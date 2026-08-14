@@ -26,7 +26,7 @@ app.use(authRoutes);
 app.use(vehicleRoutes);
 app.use(appointmentRoutes);
 app.use(serviceRoutes);
-
+app.use(require('./src/routes/chatbotRoutes'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
