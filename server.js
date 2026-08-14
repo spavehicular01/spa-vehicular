@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(cors());
 
 // Conexión a MongoDB usando las variables de entorno del archivo .env
+console.log('URI leída desde .env:', process.env.MONGO_URI);
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Conectado exitosamente a MongoDB Atlas'))
   .catch(err => console.error('Error al conectar a MongoDB:', err));
