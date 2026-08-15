@@ -1,0 +1,270 @@
+import 'package:flutter/material.dart';
+
+class BookingScreen extends StatefulWidget {
+  final DateTime selectedDate;
+  final String selectedTime;
+
+  const BookingScreen({
+    super.key,
+    required this.selectedDate,
+    required this.selectedTime,
+  });
+
+  @override
+  State<BookingScreen> createState() => _BookingScreenState();
+}
+
+class _BookingScreenState extends State<BookingScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  // Datos simulados de vehículos (Luego vendrán del perfil del usuario en la BD)
+  final List<String> _misVehiculos = [
+    'Mazda 3 - ABC-123',
+    'Toyota Hilux - XYZ-789',
+    'Chevrolet Onix - FGH-456',
+  ];
+  String? _vehiculoSeleccionado;
+
+  // Catálogo de servicios
+  final List<String> _servicios = [
+    'Lavado Básico (60 min)',
+    'Lavado Especial (100 min)',
+    'Lavado General / Chasis (150 min)',
+    'Polichado y Encerado (170 min)',
+    'Coctel / Tapicería Profunda (200 min)',
+  ];
+  String? _servicioSeleccionado;
+
+  // Modalidad: Taller vs Domicilio
+  String _modalidad = 'Llevo el vehículo'; // 'Llevo el vehículo' o 'A domicilio'
+  final _direccionController = TextEditingController();
+
+  // Método de Pago
+  String _metodoPago = 'Efectivo';
+  final List<String> _opcionesPago = [
+    'Efectivo',
+    'Transferencia (Nequi / Daviplata)',
+    'Tarjeta Débito / Crédito',
+  ];
+
+  // Sugerencias / Notas libres (Máx 500 caracteres)
+  final _notasController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _vehiculoSeleccionado = _misVehiculos.first;
+    _servicioSeleccionado = _servicios.first;
+  }
+
+  @override
+  void dispose() {
+    _direccionController.dispose();
+    _notasController.dispose();
+    super.dispose();
+  }
+
+  void _confirmarReserva() {
+    if (_formKey.currentState!.validate()) {
+      // Confirmación exitosa
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¡Cita Confirmada! 🎉'),
+          content: Text(
+            'Tu servicio de "$_servicioSeleccionado" para el vehículo '
+            '$_vehiculoSeleccionado ha sido programado para el '
+            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
+            'a las ${widget.selectedTime}.\n\n'
+            'Modalidad: $_modalidad\n'
+            'Pago: $_metodoPago',
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              onPressed: () {
+                Navigator.pop(ctx); // Cierra diálogo
+                Navigator.pop(context, true); // Regresa al calendario
+              },
+              child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalles de la Cita'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Banner con la fecha y hora seleccionadas
+              Card(
+                color: Colors.teal.shade50,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Colors.teal),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_available, color: Colors.teal, size: 36),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Hora del cupo: ${widget.selectedTime}',
+                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 1. Seleccionar Vehículo
+              const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _vehiculoSeleccionado,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.directions_car),
+                ),
+                items: _misVehiculos.map((vehiculo) {
+                  return DropdownMenuItem(value: vehiculo, child: Text(vehiculo));
+                }).toList(),
+                onChanged: (val) => setState(() => _vehiculoSeleccionado = val),
+              ),
+              const SizedBox(height: 20),
+
+              // 2. Tipo de Servicio
+              const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _servicioSeleccionado,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.local_car_wash),
+                ),
+                items: _servicios.map((serv) {
+                  return DropdownMenuItem(value: serv, child: Text(serv));
+                }).toList(),
+                onChanged: (val) => setState(() => _servicioSeleccionado = val),
+              ),
+              const SizedBox(height: 20),
+
+              // 3. Modalidad: Llevo el carro vs Domicilio
+              const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
+              RadioListTile<String>(
+                title: const Text('Llevo el vehículo al spa'),
+                value: 'Llevo el vehículo',
+                groupValue: _modalidad,
+                activeColor: Colors.teal,
+                onChanged: (val) => setState(() => _modalidad = val!),
+              ),
+              RadioListTile<String>(
+                title: const Text('A domicilio'),
+                value: 'A domicilio',
+                groupValue: _modalidad,
+                activeColor: Colors.teal,
+                onChanged: (val) => setState(() => _modalidad = val!),
+              ),
+
+              if (_modalidad == 'A domicilio') ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _direccionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección de residencia / entrega',
+                    prefixIcon: Icon(Icons.home),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (val) {
+                    if (_modalidad == 'A domicilio' && (val == null || val.trim().isEmpty)) {
+                      return 'Ingresa tu dirección para el domicilio';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // 4. Método de Pago
+              const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _metodoPago,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.payment),
+                ),
+                items: _opcionesPago.map((metodo) {
+                  return DropdownMenuItem(value: metodo, child: Text(metodo));
+                }).toList(),
+                onChanged: (val) => setState(() => _metodoPago = val!),
+              ),
+              const SizedBox(height: 20),
+
+              // 5. Sugerencias / Notas Libres (Hasta 500 letras)
+              const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _notasController,
+                maxLength: 500,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Ej. Cuidado especial con el retrovisor derecho, manchas en el tapizado trasero...',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Botón Finalizar Reserva
+              ElevatedButton(
+                onPressed: _confirmarReserva,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Confirmar y Agendar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
