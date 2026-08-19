@@ -20,4 +20,6 @@ class WashApiService {
       throw Exception('Error al cargar servicios (Código: ${response.statusCode})');
     }
   }
+
+  static Future<void> crearLavado({required String nombre, required String descripcion, required double precio, required String image}) async {}
 }

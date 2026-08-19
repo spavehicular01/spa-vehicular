@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final Function(Map<String, String>) onLoginExitoso;
+
+  const LoginScreen({
+    super.key,
+    required this.onLoginExitoso,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -9,6 +15,38 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  Map<String, String>? _registeredUserData;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _iniciarSesion() {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa correo y contraseña'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Notificamos al componente padre que se inició sesión
+    widget.onLoginExitoso({
+      'nombres': _registeredUserData?['nombres'] ?? 'Diego Beltrán',
+      'correo': _emailController.text,
+      'documento': _registeredUserData?['documento'] ?? '1077852343',
+      'telefono': _registeredUserData?['telefono'] ?? '3102581864',
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +66,10 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 24),
 
             // Campo Email
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
                 labelText: 'Email',
                 prefixIcon: Icon(Icons.email_outlined),
                 border: OutlineInputBorder(),
@@ -37,8 +77,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Campo Password con icono de ocultar/mostrar
+            // Campo Password
             TextField(
+              controller: _passwordController,
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Password',
@@ -60,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 8),
 
-            // Enlace ¿Olvidaste tu contraseña? (Alineado a la derecha)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -82,9 +122,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Botón de Iniciar Sesión (Log In)
+            // Botón de Iniciar Sesión
             ElevatedButton(
-              onPressed: () {},
+              onPressed: _iniciarSesion,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 foregroundColor: Colors.white,
@@ -100,18 +140,25 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Línea divisoria
             const Divider(thickness: 1, color: Colors.grey),
             const SizedBox(height: 24),
 
-            // Botón de Registro (Register)
+            // Botón de Registro
             OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Pantalla de Registro próximamente...'),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const RegisterScreen(),
                   ),
                 );
+
+                if (result != null && result is Map<String, String>) {
+                  setState(() {
+                    _registeredUserData = result;
+                    _emailController.text = result['correo'] ?? '';
+                  });
+                }
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.teal,

@@ -27,11 +27,11 @@ class _BookingScreenState extends State<BookingScreen> {
 
   // Catálogo de servicios
   final List<String> _servicios = [
-    'Lavado Básico (60 min)',
-    'Lavado Especial (100 min)',
-    'Lavado General / Chasis (150 min)',
-    'Polichado y Encerado (170 min)',
-    'Coctel / Tapicería Profunda (200 min)',
+    'Lavado Básico (30 min)',
+    'Lavado Especial (45 min)',
+    'Lavado General / Chasis (60 min)',
+    'Polichado y Encerado (90 min)',
+    'Coctel / Tapicería Profunda (120 min)',
   ];
   String? _servicioSeleccionado;
 
@@ -84,7 +84,14 @@ class _BookingScreenState extends State<BookingScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
               onPressed: () {
                 Navigator.pop(ctx); // Cierra diálogo
-                Navigator.pop(context, true); // Regresa al calendario
+                // Devuelve los datos de la reserva al calendario
+                Navigator.pop(context, {
+                  'servicio': _servicioSeleccionado,
+                  'vehiculo': _vehiculoSeleccionado,
+                  'modalidad': _modalidad,
+                  'metodoPago': _metodoPago,
+                  'notas': _notasController.text,
+                });
               },
               child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
             ),

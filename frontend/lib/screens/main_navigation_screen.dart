@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 import 'settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -15,15 +16,8 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  // Estado simulado de usuario (Luego lo conectaremos a la BD)
-  final bool _isLoggedIn = false; 
-
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    CalendarScreen(),
-    WashManagementScreen(),
-    LoginScreen(),
-  ];
+  // Estado dinámico del usuario autenticado (Si es null, no ha iniciado sesión)
+  Map<String, String>? _usuarioAutenticado;
 
   final List<String> _titles = const [
     'Spa Vehicular',
@@ -31,6 +25,45 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     'Mis Lavadas',
     'Cuenta',
   ];
+
+  // Construye dinámicamente las páginas
+  Widget _getPage(int index) {
+    switch (index) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return const CalendarScreen();
+      case 2:
+        return const WashManagementScreen();
+      case 3:
+        // Pestaña de Perfil / Cuenta
+        if (_usuarioAutenticado == null) {
+          // Muestra el Login si no está autenticado
+          return LoginScreen(
+            onLoginExitoso: (datos) {
+              setState(() {
+                _usuarioAutenticado = datos;
+              });
+            },
+          );
+        } else {
+          // Muestra el Perfil si ya inició sesión
+          return ProfileScreen(
+            nombreCompleto: _usuarioAutenticado!['nombres'] ?? 'Usuario',
+            correo: _usuarioAutenticado!['correo'] ?? '',
+            documento: _usuarioAutenticado!['documento'] ?? 'Sin datos',
+            telefono: _usuarioAutenticado!['telefono'] ?? 'Sin datos',
+            onCerrarSesion: () {
+              setState(() {
+                _usuarioAutenticado = null;
+              });
+            },
+          );
+        }
+      default:
+        return const HomeScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,33 +73,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
-          // Icono/Foto de Perfil (Si está registrado)
-          if (_isLoggedIn)
+          // Icono / Avatar del Perfil (Solo si inició sesión)
+          if (_usuarioAutenticado != null)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: GestureDetector(
-                onTap: () {
-                  // Acción al hacer tap en perfil
-                },
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.teal.shade200,
+                child: Text(
+                  _usuarioAutenticado!['nombres'] != null &&
+                          _usuarioAutenticado!['nombres']!.isNotEmpty
+                      ? _usuarioAutenticado!['nombres']![0].toUpperCase()
+                      : 'U',
+                  style: const TextStyle(
+                    color: Colors.teal,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
+
           // Botón de Ajustes
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
               );
             },
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: _getPage(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
