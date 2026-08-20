@@ -6,7 +6,7 @@ import 'api_config.dart';
 class WashApiService {
   static Future<List<WashService>> getLavados() async {
     final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/productos'),
+      Uri.parse('${ApiConfig.baseUrl}/services'), // <-- Cambiado de /productos a /services
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
