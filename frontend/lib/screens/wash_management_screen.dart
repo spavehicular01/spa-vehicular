@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'scheduled_washes_screen.dart';
+import 'history_washes_screen.dart';
 
 class WashManagementScreen extends StatelessWidget {
   const WashManagementScreen({super.key});
@@ -29,9 +31,11 @@ class WashManagementScreen extends StatelessWidget {
             ),
             child: InkWell(
               onTap: () {
-                // TODO: Abrir vista de lavadas programadas
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Abriendo Lavadas Programadas...')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ScheduledWashesScreen(),
+                  ),
                 );
               },
               borderRadius: BorderRadius.circular(16),
@@ -81,9 +85,11 @@ class WashManagementScreen extends StatelessWidget {
             ),
             child: InkWell(
               onTap: () {
-                // TODO: Abrir vista de historial
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Abriendo Historial de Lavadas...')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryWashesScreen(),
+                  ),
                 );
               },
               borderRadius: BorderRadius.circular(16),

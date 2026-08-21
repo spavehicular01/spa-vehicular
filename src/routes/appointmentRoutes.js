@@ -2,14 +2,19 @@ const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
 
-// Importamos el middleware (soportando ambas formas de exportación)
 const authMiddleware = require('../middlewares/authMiddleware');
 const verifyToken = authMiddleware.verifyToken || authMiddleware;
 
-// Ruta para crear cita (protegida con JWT)
+// 1. Obtener citas (Puedes agregar 'verifyToken' si quieres que solo usuarios/admins logueados las vean)
+router.get('/', verifyToken, appointmentController.obtenerCitas);
+
+// 2. Agendar nueva cita (Protegida)
 router.post('/crear', verifyToken, appointmentController.crearCita);
 
-// Ruta para reprogramar cita (protegida con JWT)
+// 3. Reprogramar cita (Protegida)
 router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprogramarCita);
+
+// 4. Cambiar estado de la cita (Protegida)
+router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 
 module.exports = router;

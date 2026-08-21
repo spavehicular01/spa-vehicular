@@ -1,6 +1,18 @@
 const Appointment = require('../models/Appointment');
 const { sendEmail } = require('../services/emailService');
 
+
+exports.obtenerCitas = async (req, res) => {
+  try {
+    const { estado } = req.query;
+    const filtro = estado ? { estado } : {};
+    const citas = await Appointment.find(filtro);
+
+    res.status(200).json(citas);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener citas', error: error.message });
+  }
+};
 exports.crearCita = async (req, res) => {
   try {
     const nuevaCita = new Appointment(req.body);
@@ -87,4 +99,35 @@ exports.reprogramarCita = async (req, res) => {
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al reprogramar cita', error: error.message });
   }
+  // Obtener citas (soporta filtrado por estado mediante req.query.estado)
+exports.obtenerCitas = async (req, res) => {
+  try {
+    const { estado } = req.query;
+    
+    // Si viene 'estado' en la URL, filtra; si no, trae todas las citas
+    const filtro = estado ? { estado } : {};
+    const citas = await Appointment.find(filtro);
+
+    res.status(200).json(citas);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener las citas', error: error.message });
+  }
+};
+// En appointmentController.js
+exports.cambiarEstadoCita = async (req, res) => {
+  try {
+    const { citaId } = req.params;
+    const { estado } = req.body; // 'confirmada', 'completado', 'cancelado'
+
+    const cita = await Appointment.findByIdAndUpdate(
+      citaId,
+      { estado },
+      { new: true }
+    );
+
+    res.json({ mensaje: 'Estado actualizado con éxito', cita });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al actualizar estado', error: error.message });
+  }
+};
 };
