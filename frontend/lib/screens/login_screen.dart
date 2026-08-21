@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/register_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -20,8 +20,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Map<String, dynamic>? _registeredUserData;
 
-  // Usuarios simulados base
-  final List<String> _usuariosValidos = ['diegobeltran0207@gmail.com', 'admin@carwash.com'];
+  // Credenciales oficiales del Administrador (SPA)
+  static const String _adminEmail = 'spavehicular01@gmail.com';
+  static const String _adminPassword = 'spa_veh_01';
+
+  // Usuarios cliente simulados
+  final List<String> _usuariosValidos = [
+    'diegobeltran0207@gmail.com',
+  ];
 
   @override
   void dispose() {
@@ -32,14 +38,45 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _iniciarSesion() {
     final email = _emailController.text.trim();
-    if (email.isEmpty || _passwordController.text.isEmpty) {
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa correo y contraseña'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Ingresa correo y contraseña'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    // Validar si el correo existe en registro reciente o usuarios base
+    // 1. VALIDACIÓN PARA EL ADMINISTRADOR (spavehicular01@gmail.com)
+    if (email == _adminEmail) {
+      if (password != _adminPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contraseña de administrador incorrecta'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Entra como ADMINISTRADOR con datos por defecto completos
+      widget.onLoginExitoso({
+        'nombres': 'Administrador SPA',
+        'correo': email,
+        'rol': 'admin',
+        'documento': '0000000000',
+        'telefono': '3000000000',
+        'vehiculos': [],
+        'citas': [],
+        'historial': [],
+      });
+      return;
+    }
+
+    // 2. VALIDACIÓN PARA CLIENTES (Diego y registrados)
     final bool existe = _usuariosValidos.contains(email) ||
         (_registeredUserData != null && _registeredUserData!['correo'] == email);
 
@@ -53,9 +90,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Entra como CLIENTE
     widget.onLoginExitoso({
       'nombres': _registeredUserData?['nombres'] ?? 'Diego Beltrán',
       'correo': email,
+      'rol': 'cliente',
       'documento': _registeredUserData?['documento'] ?? '1077852343',
       'telefono': _registeredUserData?['telefono'] ?? '3102581864',
       'vehiculos': _registeredUserData?['vehiculos'] ?? [
@@ -79,12 +118,20 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           const Icon(Icons.account_circle, size: 80, color: Colors.teal),
           const SizedBox(height: 16),
-          const Text('Bienvenido', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text(
+            'Bienvenido',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined), border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -94,8 +141,11 @@ class _LoginScreenState extends State<LoginScreen> {
               labelText: 'Password',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                icon: Icon(_obscurePassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               border: const OutlineInputBorder(),
             ),
@@ -103,13 +153,25 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _iniciarSesion,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-            child: const Text('Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Text(
+              'Iniciar Sesión',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 24),
           OutlinedButton(
             onPressed: () async {
-              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RegisterScreen(),
+                ),
+              );
               if (result != null && result is Map<String, dynamic>) {
                 setState(() {
                   _registeredUserData = result;
@@ -117,8 +179,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 });
               }
             },
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.teal, side: const BorderSide(color: Colors.teal, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 14)),
-            child: const Text('Registrarse', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.teal,
+              side: const BorderSide(color: Colors.teal, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Text(
+              'Registrarse',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

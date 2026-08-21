@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wash_service.dart';
-import '../services/wash_service.dart';
+import '../services/wash_api_service.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
