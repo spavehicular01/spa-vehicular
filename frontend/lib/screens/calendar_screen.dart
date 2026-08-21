@@ -46,117 +46,127 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 1. Calendario con localización en Español Colombia
-        Card(
-          margin: const EdgeInsets.all(12.0),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: CalendarDatePicker(
-            initialDate: _selectedDate,
-            firstDate: DateTime.now(),
-            lastDate: DateTime.now().add(const Duration(days: 90)),
-            onDateChanged: (newDate) {
-              setState(() {
-                _selectedDate = newDate;
-              });
-            },
-          ),
-        ),
-
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Cupos del día',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                children: [
-                  Icon(Icons.circle, color: Colors.teal, size: 12),
-                  SizedBox(width: 4),
-                  Text('Disponible', style: TextStyle(fontSize: 12)),
-                  SizedBox(width: 12),
-                  Icon(Icons.circle, color: Colors.grey, size: 12),
-                  SizedBox(width: 4),
-                  Text('Ocupado', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // 2. Bloques de horarios
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 2.3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Agenda tu Cita'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          // 1. Calendario con localización
+          Card(
+            margin: const EdgeInsets.all(12.0),
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: CalendarDatePicker(
+              initialDate: _selectedDate,
+              firstDate: DateTime.now(),
+              lastDate: DateTime.now().add(const Duration(days: 90)),
+              onDateChanged: (newDate) {
+                setState(() {
+                  _selectedDate = newDate;
+                });
+              },
             ),
-            itemCount: _horariosDisponibles.length,
-            itemBuilder: (context, index) {
-              final slot = _horariosDisponibles[index];
-              final bool estaOcupado = slot['ocupado'];
+          ),
 
-              return InkWell(
-                onTap: estaOcupado
-                    ? null
-                    : () => _irAFormularioReserva(slot),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: estaOcupado
-                        ? Colors.grey.shade200
-                        : Colors.teal.shade50,
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Cupos del día',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.circle, color: Colors.teal, size: 12),
+                    SizedBox(width: 4),
+                    Text('Disponible', style: TextStyle(fontSize: 12)),
+                    SizedBox(width: 12),
+                    Icon(Icons.circle, color: Colors.grey, size: 12),
+                    SizedBox(width: 4),
+                    Text('Ocupado', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Bloques de horarios protegidos con el widget Material
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 2.3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: _horariosDisponibles.length,
+              itemBuilder: (context, index) {
+                final slot = _horariosDisponibles[index];
+                final bool estaOcupado = slot['ocupado'];
+
+                return Material(
+                  color: estaOcupado
+                      ? Colors.grey.shade200
+                      : Colors.teal.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: estaOcupado
+                        ? null
+                        : () => _irAFormularioReserva(slot),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: estaOcupado ? Colors.grey : Colors.teal,
-                      width: 1.5,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: estaOcupado ? Colors.grey : Colors.teal,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            slot['hora'],
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: estaOcupado
+                                  ? Colors.grey
+                                  : Colors.teal.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            estaOcupado
+                                ? (slot['servicio'].isNotEmpty
+                                    ? slot['servicio']
+                                    : 'Reservado')
+                                : 'Agendar cita',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: estaOcupado ? Colors.grey : Colors.teal,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        slot['hora'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: estaOcupado
-                              ? Colors.grey
-                              : Colors.teal.shade800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        estaOcupado
-                            ? (slot['servicio'].isNotEmpty
-                                ? slot['servicio']
-                                : 'Reservado')
-                            : 'Agendar cita',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: estaOcupado ? Colors.grey : Colors.teal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

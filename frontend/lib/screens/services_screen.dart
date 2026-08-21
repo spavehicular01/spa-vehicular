@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wash_service.dart';
-import '../services/wash_service.dart';
+import '../services/wash_service.dart'; // Asegúrate de que aquí está declarada la clase WashApiService
+import 'calendar_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -88,6 +89,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       color: Colors.teal,
                     ),
                   ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CalendarScreen(),
+                      ),
+                    );
+                  },
                 ),
               );
             },
