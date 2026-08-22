@@ -1,19 +1,22 @@
-// src/middlewares/authMiddleware.js
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ message: 'Acceso denegado. No se proporcionó un token.' });
+  // Si no hay token o viene nulo, bloquea la petición
+  if (!token || token === 'null' || token === 'undefined') {
+    return res.status(401).json({ 
+      error: 'Acceso denegado. No te has autenticado.' 
+    });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
-    req.user = decoded; // Guarda la info del usuario (id, rol, etc.) en la petición
+    const verified = jwt.verify(token, process.env.JWT_SECRET || 'secreto_super_seguro');
+    req.user = verified;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token inválido o expirado.' });
+    return res.status(403).json({ error: 'Token inválido o expirado.' });
   }
 };
 

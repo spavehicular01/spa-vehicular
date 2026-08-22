@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/auth_required_dialog.dart';
 
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -17,7 +19,6 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Datos simulados de vehículos (Luego vendrán del perfil del usuario en la BD)
   final List<String> _misVehiculos = [
     'Mazda 3 - ABC-123',
     'Toyota Hilux - XYZ-789',
@@ -25,7 +26,6 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _vehiculoSeleccionado;
 
-  // Catálogo de servicios
   final List<String> _servicios = [
     'Lavado Básico (30 min)',
     'Lavado Especial (45 min)',
@@ -35,11 +35,9 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _servicioSeleccionado;
 
-  // Modalidad: Taller vs Domicilio
-  String _modalidad = 'Llevo el vehículo'; // 'Llevo el vehículo' o 'A domicilio'
+  String _modalidad = 'Llevo el vehículo';
   final _direccionController = TextEditingController();
 
-  // Método de Pago
   String _metodoPago = 'Efectivo';
   final List<String> _opcionesPago = [
     'Efectivo',
@@ -47,7 +45,6 @@ class _BookingScreenState extends State<BookingScreen> {
     'Tarjeta Débito / Crédito',
   ];
 
-  // Sugerencias / Notas libres (Máx 500 caracteres)
   final _notasController = TextEditingController();
 
   @override
@@ -64,41 +61,53 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
-  void _confirmarReserva() {
-    if (_formKey.currentState!.validate()) {
-      // Confirmación exitosa
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¡Cita Confirmada! 🎉'),
-          content: Text(
-            'Tu servicio de "$_servicioSeleccionado" para el vehículo '
-            '$_vehiculoSeleccionado ha sido programado para el '
-            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
-            'a las ${widget.selectedTime}.\n\n'
-            'Modalidad: $_modalidad\n'
-            'Pago: $_metodoPago',
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-              onPressed: () {
-                Navigator.pop(ctx); // Cierra diálogo
-                // Devuelve los datos de la reserva al calendario
-                Navigator.pop(context, {
-                  'servicio': _servicioSeleccionado,
-                  'vehiculo': _vehiculoSeleccionado,
-                  'modalidad': _modalidad,
-                  'metodoPago': _metodoPago,
-                  'notas': _notasController.text,
-                });
-              },
-              child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
+  Future<void> _confirmarReserva() async {
+    // 1. Validar token de autenticación ANTES de cualquier otra cosa
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    if (token == null || token.trim().isEmpty || token == 'null') {
+      if (!mounted) return;
+      AuthRequiredDialog.show(context);
+      return; // <-- Cancela y evita la confirmación
     }
+
+    // 2. Validar campos del formulario
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!mounted) return;
+
+    // 3. Confirmación exitosa (solo si existe token válido)
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¡Cita Confirmada! 🎉'),
+        content: Text(
+          'Tu servicio de "$_servicioSeleccionado" para el vehículo '
+          '$_vehiculoSeleccionado ha sido programado para el '
+          '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
+          'a las ${widget.selectedTime}.\n\n'
+          'Modalidad: $_modalidad\n'
+          'Pago: $_metodoPago',
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context, {
+                'servicio': _servicioSeleccionado,
+                'vehiculo': _vehiculoSeleccionado,
+                'modalidad': _modalidad,
+                'metodoPago': _metodoPago,
+                'notas': _notasController.text,
+              });
+            },
+            child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -116,7 +125,6 @@ class _BookingScreenState extends State<BookingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Banner con la fecha y hora seleccionadas
               Card(
                 color: Colors.teal.shade50,
                 elevation: 0,
@@ -152,7 +160,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 1. Seleccionar Vehículo
               const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -168,7 +175,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 2. Tipo de Servicio
               const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -185,7 +191,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 3. Modalidad: Llevo el carro vs Domicilio
               const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
               RadioListTile<String>(
                 title: const Text('Llevo el vehículo al spa'),
@@ -221,7 +226,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ],
               const SizedBox(height: 20),
 
-              // 4. Método de Pago
               const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -237,7 +241,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 5. Sugerencias / Notas Libres (Hasta 500 letras)
               const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
@@ -252,7 +255,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Botón Finalizar Reserva
               ElevatedButton(
                 onPressed: _confirmarReserva,
                 style: ElevatedButton.styleFrom(

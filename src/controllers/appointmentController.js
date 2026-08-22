@@ -1,7 +1,7 @@
 const Appointment = require('../models/Appointment');
 const { sendEmail } = require('../services/emailService');
 
-
+// 1. Obtener citas (con opción de filtrar por estado)
 exports.obtenerCitas = async (req, res) => {
   try {
     const { estado } = req.query;
@@ -13,16 +13,16 @@ exports.obtenerCitas = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al obtener citas', error: error.message });
   }
 };
+
+// 2. Crear cita
 exports.crearCita = async (req, res) => {
   try {
     const nuevaCita = new Appointment(req.body);
     await nuevaCita.save();
 
-    // Enviar correo de confirmación si viene el correo en la petición o usuario autenticado
     const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
-      // Formatear la fecha para que se vea amigable en el correo
       const fechaFormateada = new Date(nuevaCita.fechaHoraCita).toLocaleString('es-CO', {
         dateStyle: 'long',
         timeStyle: 'short'
@@ -51,6 +51,7 @@ exports.crearCita = async (req, res) => {
   }
 };
 
+// 3. Reprogramar cita
 exports.reprogramarCita = async (req, res) => {
   try {
     const { citaId } = req.params;
@@ -69,7 +70,6 @@ exports.reprogramarCita = async (req, res) => {
     cita.estado = 'reprogramada';
     await cita.save();
 
-    // Enviar correo de notificación de reprogramación
     const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
@@ -99,21 +99,9 @@ exports.reprogramarCita = async (req, res) => {
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al reprogramar cita', error: error.message });
   }
-  // Obtener citas (soporta filtrado por estado mediante req.query.estado)
-exports.obtenerCitas = async (req, res) => {
-  try {
-    const { estado } = req.query;
-    
-    // Si viene 'estado' en la URL, filtra; si no, trae todas las citas
-    const filtro = estado ? { estado } : {};
-    const citas = await Appointment.find(filtro);
-
-    res.status(200).json(citas);
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener las citas', error: error.message });
-  }
 };
-// En appointmentController.js
+
+// 4. Cambiar estado de la cita
 exports.cambiarEstadoCita = async (req, res) => {
   try {
     const { citaId } = req.params;
@@ -129,5 +117,4 @@ exports.cambiarEstadoCita = async (req, res) => {
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al actualizar estado', error: error.message });
   }
-};
 };

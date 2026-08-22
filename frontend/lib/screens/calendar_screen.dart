@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -25,6 +27,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   // Redirige a la pantalla de detalles de reserva al tocar un cupo disponible
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
+    // 1. Validar token de autenticación antes de navegar
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    if (token == null || token.trim().isEmpty || token == 'null') {
+      if (!mounted) return;
+      AuthRequiredDialog.show(context);
+      return; // <-- Cancela el flujo si el usuario no ha iniciado sesión
+    }
+
+    if (!mounted) return;
+
+    // 2. Si hay token, navegar a BookingScreen
     final resultado = await Navigator.push(
       context,
       MaterialPageRoute(

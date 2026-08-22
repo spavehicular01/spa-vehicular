@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart';
-import '../services/wash_service.dart'; // Asegúrate de que aquí está declarada la clase WashApiService
+import '../services/wash_service.dart';
+import '../widgets/auth_required_dialog.dart';
+import '../widgets/service_card.dart';
 import 'calendar_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
@@ -17,6 +20,30 @@ class _ServicesScreenState extends State<ServicesScreen> {
   void initState() {
     super.initState();
     _futureLavados = WashApiService.getLavados();
+  }
+
+  Future<void> _validarSesionYAgendar(BuildContext context, WashService item) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    print('🔍 DEBUG TOKEN AL TOCAR SERVICIO: "$token"');
+
+    // Muestra alerta si el token no existe, está nulo o es 'null' como string
+    if (token == null || token.trim().isEmpty || token == 'null') {
+      print('⛔ NO HAY SESIÓN ACTIVA: Bloqueando paso y mostrando alerta.');
+      if (!context.mounted) return;
+      AuthRequiredDialog.show(context);
+      return; 
+    }
+
+    print('✅ SESIÓN VÁLIDA: Abriendo pantalla de calendario.');
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CalendarScreen(),
+      ),
+    );
   }
 
   @override
@@ -52,52 +79,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
             itemCount: lavados.length,
             itemBuilder: (context, index) {
               final item = lavados[index];
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: item.imageUrl.isNotEmpty
-                        ? Image.network(
-                            item.imageUrl,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.directions_car, size: 40, color: Colors.teal),
-                          )
-                        : const Icon(Icons.directions_car, size: 40, color: Colors.teal),
-                  ),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(item.description),
-                  ),
-                  trailing: Text(
-                    '\$${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.teal,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CalendarScreen(),
-                      ),
-                    );
-                  },
-                ),
+              return ServiceCard(
+                service: item,
+                onTap: () => _validarSesionYAgendar(context, item),
               );
             },
           );
