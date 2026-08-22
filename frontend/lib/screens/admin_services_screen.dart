@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/wash_api_service.dart';
 
 class AdminServicesScreen extends StatefulWidget {
   const AdminServicesScreen({super.key});
@@ -8,127 +11,197 @@ class AdminServicesScreen extends StatefulWidget {
 }
 
 class _AdminServicesScreenState extends State<AdminServicesScreen> {
-  final List<Map<String, dynamic>> _servicios = [
-    {
-      'id': '1',
-      'nombre': 'Lavado General',
-      'descripcion': 'Lavado exterior, aspirado de cojinería y limpieza de vidrios.',
-      'precio': 25000,
-      'duracion': '45 min',
-    },
-    {
-      'id': '2',
-      'nombre': 'Polichado y Encerado',
-      'descripcion': 'Protección de pintura con cera de alta densidad y pulido.',
-      'precio': 60000,
-      'duracion': '90 min',
-    },
-    {
-      'id': '3',
-      'nombre': 'Lavado de Cojinería',
-      'descripcion': 'Desinfección profunda a vapor e higienización de asientos.',
-      'precio': 80000,
-      'duracion': '120 min',
-    },
-  ];
+  List<dynamic> _servicios = [];
+  bool _cargando = true;
 
-  void _mostrarFormularioServicio({Map<String, dynamic>? servicio, int? index}) {
-    final nombreController = TextEditingController(text: servicio?['nombre'] ?? '');
-    final descController = TextEditingController(text: servicio?['descripcion'] ?? '');
+  @override
+  void initState() {
+    super.initState();
+    _cargarServicios();
+  }
+
+  Future<void> _cargarServicios() async {
+    setState(() => _cargando = true);
+    try {
+      final lista = await WashApiService.getLavados();
+      if (mounted) {
+        setState(() {
+          _servicios = lista;
+          _cargando = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _cargando = false);
+      }
+    }
+  }
+
+  void _mostrarFormularioServicio({Map<String, dynamic>? servicio}) {
+    final nombreController =
+        TextEditingController(text: servicio?['nombre'] ?? servicio?['name'] ?? '');
+    final descController = TextEditingController(
+        text: servicio?['descripcion'] ?? servicio?['description'] ?? '');
     final precioController = TextEditingController(
-        text: servicio != null ? servicio['precio'].toString() : '');
-    final duracionController = TextEditingController(text: servicio?['duracion'] ?? '');
+        text: servicio != null ? (servicio['precio'] ?? servicio['price'] ?? '').toString() : '');
+
+    XFile? imagenSeleccionada;
+    bool subiendo = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(servicio == null ? 'Nuevo Servicio' : 'Editar Servicio'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nombreController,
-                decoration: const InputDecoration(labelText: 'Nombre del servicio'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) {
+          Future<void> seleccionarImagen() async {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image = await picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 80,
+            );
+            if (image != null) {
+              setStateModal(() {
+                imagenSeleccionada = image;
+              });
+            }
+          }
+
+          final String? imageUrl = servicio?['image'] ?? servicio?['imageUrl'];
+
+          return AlertDialog(
+            title: Text(servicio == null ? 'Nuevo Servicio' : 'Editar Servicio'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: seleccionarImagen,
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.teal),
+                      ),
+                      child: imagenSeleccionada != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(imagenSeleccionada!.path),
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : (imageUrl != null && imageUrl.isNotEmpty)
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo, color: Colors.teal, size: 30),
+                                    SizedBox(height: 6),
+                                    Text('Agregar foto del lavado', style: TextStyle(fontSize: 12)),
+                                  ],
+                                ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nombreController,
+                    decoration: const InputDecoration(labelText: 'Nombre del servicio'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descController,
+                    decoration: const InputDecoration(labelText: 'Descripción'),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: precioController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Precio (\$)'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                maxLines: 2,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: precioController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Precio (\$)'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: duracionController,
-                decoration: const InputDecoration(labelText: 'Duración estimada (ej: 45 min)'),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: subiendo
+                    ? null
+                    : () async {
+                        if (nombreController.text.isEmpty || precioController.text.isEmpty) {
+                          return;
+                        }
+
+                        setStateModal(() => subiendo = true);
+
+                        String urlFoto = imageUrl ?? '';
+                        if (imagenSeleccionada != null) {
+                          final subida = await WashApiService.subirImagen(imagenSeleccionada!);
+                          if (subida != null) urlFoto = subida;
+                        }
+
+                        final exito = await WashApiService.crearLavado(
+                          nombre: nombreController.text,
+                          descripcion: descController.text,
+                          precio: double.tryParse(precioController.text) ?? 0.0,
+                          image: urlFoto,
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          if (exito) {
+                            _cargarServicios();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(servicio != null ? 'Servicio actualizado' : 'Servicio agregado'),
+                                backgroundColor: Colors.teal,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: subiendo
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(servicio == null ? 'Guardar' : 'Actualizar'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              if (nombreController.text.isEmpty || precioController.text.isEmpty) {
-                return;
-              }
-
-              setState(() {
-                final nuevoItem = {
-                  'id': servicio?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                  'nombre': nombreController.text,
-                  'descripcion': descController.text,
-                  'precio': int.tryParse(precioController.text) ?? 0,
-                  'duracion': duracionController.text,
-                };
-
-                if (index != null) {
-                  _servicios[index] = nuevoItem;
-                } else {
-                  _servicios.add(nuevoItem);
-                }
-              });
-
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    index != null ? 'Servicio actualizado' : 'Servicio agregado',
-                  ),
-                  backgroundColor: Colors.teal,
-                ),
-              );
-            },
-            child: Text(servicio == null ? 'Guardar' : 'Actualizar'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  void _eliminarServicio(int index) {
-    setState(() {
-      _servicios.removeAt(index);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Servicio eliminado'),
-        backgroundColor: Colors.red,
-      ),
-    );
+  Future<void> _eliminarServicio(String id) async {
+    final exito = await WashApiService.eliminarServicio(id);
+    if (exito) {
+      _cargarServicios();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Servicio eliminado'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -146,94 +219,92 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Nuevo Servicio'),
       ),
-      body: _servicios.isEmpty
-          ? const Center(child: Text('No hay servicios disponibles.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _servicios.length,
-              itemBuilder: (context, index) {
-                final item = _servicios[index];
-                return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16.0),
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          item['nombre'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          '\$${item['precio']}',
-                          style: const TextStyle(
-                            color: Colors.teal,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 6),
-                        Text(item['descripcion']),
-                        const SizedBox(height: 6),
-                        Row(
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _servicios.isEmpty
+              ? const Center(child: Text('No hay servicios registrados.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: _servicios.length,
+                  itemBuilder: (context, index) {
+                    final item = _servicios[index];
+                    final String id = item['_id'] ?? item['id'] ?? '';
+                    final String nombre = item['nombre'] ?? item['name'] ?? 'Servicio';
+                    final String descripcion = item['descripcion'] ?? item['description'] ?? '';
+                    final num precio = item['precio'] ?? item['price'] ?? 0;
+
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16.0),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
-                            const SizedBox(width: 4),
                             Text(
-                              item['duracion'],
-                              style: const TextStyle(color: Colors.grey, fontSize: 13),
+                              nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              '\$${precio.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.teal,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (option) {
-                        if (option == 'editar') {
-                          _mostrarFormularioServicio(servicio: item, index: index);
-                        } else if (option == 'eliminar') {
-                          _eliminarServicio(index);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'editar',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, color: Colors.teal, size: 20),
-                              SizedBox(width: 8),
-                              Text('Editar'),
-                            ],
-                          ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 6),
+                            Text(descripcion),
+                          ],
                         ),
-                        const PopupMenuItem(
-                          value: 'eliminar',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red, size: 20),
-                              SizedBox(width: 8),
-                              Text('Eliminar'),
-                            ],
-                          ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (option) {
+                            if (option == 'editar') {
+                              _mostrarFormularioServicio(servicio: item);
+                            } else if (option == 'eliminar') {
+                              if (id.isNotEmpty) {
+                                _eliminarServicio(id);
+                              }
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'editar',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, color: Colors.teal, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Editar'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'eliminar',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Eliminar'),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }

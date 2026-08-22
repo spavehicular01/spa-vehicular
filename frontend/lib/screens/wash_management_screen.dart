@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/socket_service.dart';
-import '../services/api_service.dart';
+import '../services/wash_api_service.dart';
 
 class WashManagementScreen extends StatefulWidget {
   const WashManagementScreen({super.key});
@@ -22,14 +22,13 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
     _iniciarEscuchaSockets();
   }
 
-  // Cargar citas usando el ID guardado en SharedPreferences
   Future<void> _cargarCitasCliente() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? usuarioId = prefs.getString('userId');
 
       if (usuarioId != null && usuarioId.isNotEmpty) {
-        final citas = await ApiService.obtenerCitas(usuarioId);
+        final citas = await WashApiService.obtenerCitas(usuarioId);
         if (mounted) {
           setState(() {
             _citas = citas;
@@ -48,7 +47,6 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
     }
   }
 
-  // Escuchar actualizaciones en tiempo real vía Socket.io
   void _iniciarEscuchaSockets() {
     _socketService.conectar((data) {
       if (!mounted) return;
@@ -106,90 +104,105 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
   Widget _buildListaCitas(List<dynamic> citas, {required bool esHistorial}) {
     if (citas.isEmpty) {
-      return Center(
-        child: Text(
-          esHistorial ? 'No tienes lavadas en tu historial.' : 'No tienes citas activas.',
-          style: const TextStyle(color: Colors.grey),
+      return RefreshIndicator(
+        onRefresh: _cargarCitasCliente,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Center(
+                child: Text(
+                  esHistorial ? 'No tienes lavadas en tu historial.' : 'No tienes citas activas.',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
-      itemCount: citas.length,
-      itemBuilder: (context, index) {
-        final cita = citas[index];
-        final String estado = cita['estado'] ?? 'Pendiente';
-        final bool enProceso = estado == 'En Proceso';
+    return RefreshIndicator(
+      onRefresh: _cargarCitasCliente,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        itemCount: citas.length,
+        itemBuilder: (context, index) {
+          final cita = citas[index];
+          final String estado = cita['estado'] ?? 'Pendiente';
+          final bool enProceso = estado == 'En Proceso';
 
-        return Card(
-          elevation: enProceso ? 4 : 2,
-          margin: const EdgeInsets.only(bottom: 12.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: enProceso
-                ? const BorderSide(color: Colors.blue, width: 2)
-                : BorderSide.none,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      cita['servicioNombre'] ?? 'Servicio de Lavado',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _obtenerColorEstado(estado).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _obtenerColorEstado(estado)),
+          return Card(
+            elevation: enProceso ? 4 : 2,
+            margin: const EdgeInsets.only(bottom: 12.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: enProceso
+                  ? const BorderSide(color: Colors.blue, width: 2)
+                  : BorderSide.none,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        cita['servicioNombre'] ?? 'Servicio de Lavado',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      child: Text(
-                        estado,
-                        style: TextStyle(
-                          color: _obtenerColorEstado(estado),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _obtenerColorEstado(estado).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _obtenerColorEstado(estado)),
                         ),
+                        child: Text(
+                          estado,
+                          style: TextStyle(
+                            color: _obtenerColorEstado(estado),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}'),
+                  if (enProceso) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.local_car_wash, color: Colors.blue),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '¡Tu vehículo se encuentra actualmente en proceso de lavado!',
+                              style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                Text('📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}'),
-                if (enProceso) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.local_car_wash, color: Colors.blue),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '¡Tu vehículo se encuentra actualmente en proceso de lavado!',
-                            style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

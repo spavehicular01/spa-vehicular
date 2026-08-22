@@ -1,30 +1,27 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'api_config.dart';
 
 class SocketService {
-  late IO.Socket _socket;
+  IO.Socket? _socket;
 
-  void conectar(Function(Map<String, dynamic>) onCambioEstado) {
-    // 10.0.2.2 para emulador Android, o la IP local de tu máquina para celular físico
-    _socket = IO.io('http://10.0.2.2:5000', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
+  void conectar(Function(dynamic) onCambioEstado) {
+    _socket = IO.io(
+      ApiConfig.baseUrl.replaceAll('/api', ''),
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .build(),
+    );
+
+    _socket?.connect();
+
+    _socket?.on('cambio_estado_cita', (data) {
+      onCambioEstado(data);
     });
-
-    _socket.onConnect((_) {
-      print('Conectado al servidor WebSocket');
-    });
-
-    // Escuchar el evento emitido desde el backend
-    _socket.on('cambio_estado_cita', (data) {
-      if (data != null) {
-        onCambioEstado(Map<String, dynamic>.from(data));
-      }
-    });
-
-    _socket.onDisconnect((_) => print('Desconectado de WebSocket'));
   }
 
   void desconectar() {
-    _socket.disconnect();
+    _socket?.disconnect();
+    _socket?.dispose();
   }
 }
