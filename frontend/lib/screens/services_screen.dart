@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart';
+<<<<<<< HEAD
 import '../services/wash_service.dart';
 import '../widgets/auth_required_dialog.dart';
 import '../widgets/service_card.dart';
 import 'calendar_screen.dart';
+=======
+import '../services/wash_api_service.dart';
+>>>>>>> origin/feature/diego
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});

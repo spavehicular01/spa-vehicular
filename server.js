@@ -1,6 +1,8 @@
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http'); // 1. Importante para integrar Socket.io
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
@@ -13,9 +15,24 @@ const chatbotRoutes = require('./src/routes/chatbotRoutes');
 
 const app = express();
 
+// 2. Creación del Servidor HTTP y Socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*', // Permite conexiones desde Flutter (emulador y dispositivos físicos)
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+  }
+});
+
 // Middlewares Globales
 app.use(express.json());
 app.use(cors());
+
+// 3. Adjuntar `io` a `req` para usarlo dentro de tus controladores/rutas
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Conexión a MongoDB usando las variables de entorno del archivo .env
 console.log('URI leída desde .env:', process.env.MONGO_URI);
@@ -28,6 +45,15 @@ mongoose.connect(process.env.MONGO_URI)
 app.use((req, res, next) => {
   console.log(`📩 [${new Date().toLocaleTimeString()}] Petición recibida: ${req.method} ${req.url}`);
   next();
+});
+
+// Eventos de conexión de WebSockets
+io.on('connection', (socket) => {
+  console.log(`⚡ Cliente o Admin conectado a WebSocket ID: ${socket.id}`);
+
+  socket.on('disconnect', () => {
+    console.log(`❌ Cliente desconectado ID: ${socket.id}`);
+  });
 });
 
 // Rutas base de la API con prefijo /api
@@ -53,8 +79,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ mensaje: 'Error interno del servidor', error: err.message });
 });
 
-// Inicio del Servidor
+// 4. Inicio del Servidor usando `server.listen` en lugar de `app.listen`
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 Servidor y WebSockets corriendo en http://localhost:${PORT}`);
 });

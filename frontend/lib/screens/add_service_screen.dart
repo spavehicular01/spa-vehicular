@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/wash_service.dart';
+import '../services/wash_api_service.dart';
 
 class AddServiceScreen extends StatefulWidget {
   const AddServiceScreen({super.key});

@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart';
 import 'api_config.dart';
@@ -19,16 +19,38 @@ class WashApiService {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
       },
-    );
+=======
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
-    if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
-      return body.map((item) => WashService.fromJson(item)).toList();
-    } else {
-      throw Exception('Error al cargar servicios (Código: ${response.statusCode})');
-    }
+// 1. Modelo de datos para mapear los lavados desde MongoDB
+class WashService {
+  final String id;
+  final String nombre;
+  final String descripcion;
+  final double precio;
+  final String image;
+
+  WashService({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.precio,
+    required this.image,
+  });
+
+  factory WashService.fromJson(Map<String, dynamic> json) {
+    return WashService(
+      id: json['_id'] ?? json['id'] ?? '',
+      nombre: json['nombre'] ?? json['name'] ?? '',
+      descripcion: json['descripcion'] ?? json['description'] ?? '',
+      precio: (json['precio'] ?? json['price'] ?? 0).toDouble(),
+      image: json['image'] ?? json['imageUrl'] ?? '',
+>>>>>>> origin/feature/diego
+    );
   }
 
+<<<<<<< HEAD
   // 2. Crear un nuevo servicio de lavado (Protegida)
   static Future<bool> crearLavado({
     required String nombre,
@@ -108,5 +130,26 @@ class WashApiService {
     } else {
       throw Exception('Error al cargar el historial (Código: ${response.statusCode})');
     }
+=======
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'nombre': nombre,
+      'descripcion': descripcion,
+      'precio': precio,
+      'image': image,
+    };
+  }
+
+  // 2. Conservamos tu método helper para convertir las imágenes
+  static Future<http.MultipartFile> archivoImagen(XFile imagen) async {
+    final bytes = await imagen.readAsBytes();
+    return http.MultipartFile.fromBytes(
+      'imagen',
+      bytes,
+      contentType: MediaType('image', 'jpeg'),
+      filename: 'servicio_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+>>>>>>> origin/feature/diego
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+<<<<<<< HEAD
 import 'package:frontend/main.dart';
 
 void main() {
@@ -11,5 +12,12 @@ void main() {
 
     // 3. Confirma que el widget de la app fue encontrado exitosamente
     expect(find.byType(SpaVehicularApp), findsOneWidget);
+=======
+
+void main() {
+  test('Prueba de compilación inicial', () {
+    // Test básico para evitar fallos mientras configuras la UI principal
+    expect(true, isTrue);
+>>>>>>> origin/feature/diego
   });
 }
