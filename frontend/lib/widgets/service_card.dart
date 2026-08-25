@@ -70,7 +70,7 @@ class ServiceCard extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Colors.teal,
+                  color: Color.fromARGB(255, 0, 21, 255),
                 ),
               ),
             ],
@@ -85,7 +85,7 @@ class ServiceCard extends StatelessWidget {
       width: 70,
       height: 70,
       color: Colors.teal.shade50,
-      child: const Icon(Icons.directions_car, size: 40, color: Colors.teal),
+      child: const Icon(Icons.directions_car, size: 40, color: Color.fromARGB(255, 0, 30, 255)),
     );
   }
 }

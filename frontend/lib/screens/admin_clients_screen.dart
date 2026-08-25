@@ -19,27 +19,6 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
         {'placa': 'ABC123', 'marca': 'Toyota', 'referencia': 'Hilux', 'modelo': '2022', 'color': 'Blanco'}
       ],
     },
-    {
-      'id': '2',
-      'nombres': 'Carlos Rodríguez',
-      'correo': 'carlos.rodriguez@gmail.com',
-      'documento': '1088432190',
-      'telefono': '3159876543',
-      'vehiculos': [
-        {'placa': 'XYZ789', 'marca': 'Mazda', 'referencia': '3', 'modelo': '2021', 'color': 'Gris'}
-      ],
-    },
-    {
-      'id': '3',
-      'nombres': 'Ana Martínez',
-      'correo': 'ana.martinez@gmail.com',
-      'documento': '1099123456',
-      'telefono': '3201234567',
-      'vehiculos': [
-        {'placa': 'KTM456', 'marca': 'Chevrolet', 'referencia': 'Onix', 'modelo': '2023', 'color': 'Rojo'},
-        {'placa': 'RST987', 'marca': 'Renault', 'referencia': 'Duster', 'modelo': '2020', 'color': 'Negro'}
-      ],
-    },
   ];
 
   void _verDetallesCliente(Map<String, dynamic> cliente) {
@@ -60,7 +39,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
             Row(
               children: [
                 const CircleAvatar(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: Color.fromARGB(255, 0, 17, 255),
                   radius: 24,
                   child: Icon(Icons.person, color: Colors.white, size: 28),
                 ),
@@ -74,7 +53,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                     ),
                     Text(
                       cliente['correo'],
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: const Color.fromARGB(255, 56, 63, 122)),
                     ),
                   ],
                 ),
@@ -114,7 +93,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lista de Clientes'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 254),
         foregroundColor: Colors.white,
       ),
       body: _clientes.isEmpty
@@ -135,7 +114,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16.0),
                     leading: const CircleAvatar(
-                      backgroundColor: Colors.teal,
+                      backgroundColor: Color.fromARGB(255, 0, 42, 255),
                       child: Icon(Icons.person, color: Colors.white),
                     ),
                     title: Text(

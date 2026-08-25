@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.account_circle, size: 80, color: Colors.teal),
+          const Icon(Icons.account_circle, size: 80, color: Color.fromARGB(255, 0, 30, 255)),
           const SizedBox(height: 16),
           const Text(
             'Bienvenido',
@@ -154,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ElevatedButton(
             onPressed: _iniciarSesion,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+              backgroundColor: const Color.fromARGB(255, 0, 17, 255),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -180,8 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.teal,
-              side: const BorderSide(color: Colors.teal, width: 1.5),
+              foregroundColor: const Color.fromARGB(255, 0, 38, 255),
+              side: const BorderSide(color: Color.fromARGB(255, 0, 26, 255), width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: const Text(

@@ -76,11 +76,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               Row(
                 children: [
-                  Icon(Icons.circle, color: Colors.teal, size: 12),
+                  Icon(Icons.circle, color: Color.fromARGB(255, 0, 34, 255), size: 12),
                   SizedBox(width: 4),
                   Text('Disponible', style: TextStyle(fontSize: 12)),
                   SizedBox(width: 12),
-                  Icon(Icons.circle, color: Colors.grey, size: 12),
+                  Icon(Icons.circle, color: Color.fromARGB(255, 158, 158, 158), size: 12),
                   SizedBox(width: 4),
                   Text('Ocupado', style: TextStyle(fontSize: 12)),
                 ],
@@ -117,7 +117,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         : Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: estaOcupado ? Colors.grey : Colors.teal,
+                      color: estaOcupado ? const Color.fromARGB(255, 158, 158, 158) : Colors.teal,
                       width: 1.5,
                     ),
                   ),
@@ -130,8 +130,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: estaOcupado
-                              ? Colors.grey
-                              : Colors.teal.shade800,
+                              ? const Color.fromARGB(255, 158, 158, 158)
+                              : const Color.fromARGB(255, 0, 11, 105),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -146,7 +146,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11,
-                          color: estaOcupado ? Colors.grey : Colors.teal,
+                          color: estaOcupado ? const Color.fromARGB(255, 158, 158, 158) : const Color.fromARGB(255, 0, 30, 255),
                         ),
                       ),
                     ],

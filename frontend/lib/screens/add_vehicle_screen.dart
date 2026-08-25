@@ -129,7 +129,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Vehículo guardado correctamente'),
-              backgroundColor: Colors.green,
+              backgroundColor: Color.fromARGB(255, 91, 122, 179),
             ),
           );
           Navigator.pop(context, true);
@@ -159,7 +159,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -176,7 +176,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.teal),
+                    border: Border.all(color: const Color.fromARGB(255, 0, 76, 255)),
                   ),
                   child: _imagenSeleccionada != null
                       ? ClipRRect(
@@ -241,7 +241,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 child: ElevatedButton(
                   onPressed: _subiendo ? null : _guardarVehiculo,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: const Color.fromARGB(255, 0, 17, 255),
                     foregroundColor: Colors.white,
                   ),
                   child: _subiendo

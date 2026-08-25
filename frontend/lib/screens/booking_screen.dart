@@ -81,7 +81,7 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 0, 32, 150)),
               onPressed: () {
                 Navigator.pop(ctx); // Cierra diálogo
                 // Devuelve los datos de la reserva al calendario
@@ -106,7 +106,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalles de la Cita'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 55, 255),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -122,13 +122,13 @@ class _BookingScreenState extends State<BookingScreen> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Colors.teal),
+                  side: const BorderSide(color: Color.fromARGB(255, 0, 34, 255)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.event_available, color: Colors.teal, size: 36),
+                      const Icon(Icons.event_available, color: Color.fromARGB(255, 0, 34, 255), size: 36),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +142,7 @@ class _BookingScreenState extends State<BookingScreen> {
                           ),
                           Text(
                             'Hora del cupo: ${widget.selectedTime}',
-                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
+                            style: const TextStyle(color: Color.fromARGB(255, 0, 30, 255), fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -191,14 +191,14 @@ class _BookingScreenState extends State<BookingScreen> {
                 title: const Text('Llevo el vehículo al spa'),
                 value: 'Llevo el vehículo',
                 groupValue: _modalidad,
-                activeColor: Colors.teal,
+                activeColor: const Color.fromARGB(255, 0, 26, 255),
                 onChanged: (val) => setState(() => _modalidad = val!),
               ),
               RadioListTile<String>(
                 title: const Text('A domicilio'),
                 value: 'A domicilio',
                 groupValue: _modalidad,
-                activeColor: Colors.teal,
+                activeColor: const Color.fromARGB(255, 0, 26, 255),
                 onChanged: (val) => setState(() => _modalidad = val!),
               ),
 
@@ -256,7 +256,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ElevatedButton(
                 onPressed: _confirmarReserva,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

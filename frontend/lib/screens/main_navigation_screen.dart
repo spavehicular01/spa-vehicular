@@ -26,7 +26,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_outline, size: 80, color: Colors.teal),
+          const Icon(Icons.lock_outline, size: 80, color: Color.fromARGB(255, 0, 34, 255)),
           const SizedBox(height: 16),
           Text(
             titulo,
@@ -43,7 +43,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ElevatedButton(
             onPressed: () => setState(() => _selectedIndex = 3),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+              backgroundColor: const Color.fromARGB(255, 0, 34, 255),
               foregroundColor: Colors.white,
             ),
             child: const Text('Ir a Iniciar Sesión'),
@@ -130,7 +130,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: Text(
           ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
         ),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 30, 255),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -151,7 +151,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.teal,
+        selectedItemColor: const Color.fromARGB(255, 0, 34, 255),
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),

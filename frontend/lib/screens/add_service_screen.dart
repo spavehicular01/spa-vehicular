@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart'; // Para kIsWeb
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/wash_api_service.dart';
 
 class AddServiceScreen extends StatefulWidget {
@@ -13,20 +16,50 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _precioController = TextEditingController();
-  final _imagenController = TextEditingController();
 
+  XFile? _imagenSeleccionada;
   bool _isLoading = false;
+
+  final ImagePicker _picker = ImagePicker();
+
+  // Método para abrir la galería / archivos
+  Future<void> _seleccionarImagen() async {
+    final XFile? imagen = await _picker.pickImage(source: ImageSource.gallery);
+    if (imagen != null) {
+      setState(() {
+        _imagenSeleccionada = imagen;
+      });
+    }
+  }
 
   void _guardarServicio() async {
     if (_formKey.currentState!.validate()) {
+      if (_imagenSeleccionada == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor selecciona una imagen para el servicio'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       try {
+        // 1. Subir la imagen primero a través de la API
+        final String? imageUrl = await WashApiService.subirImagen(_imagenSeleccionada!);
+
+        if (imageUrl == null) {
+          throw Exception('No se pudo obtener la URL de la imagen.');
+        }
+
+        // 2. Crear el servicio con la URL devuelta por Cloudinary
         await WashApiService.crearLavado(
           nombre: _nombreController.text.trim(),
           descripcion: _descripcionController.text.trim(),
           precio: double.parse(_precioController.text.trim()),
-          image: _imagenController.text.trim(),
+          image: imageUrl,
         );
 
         if (mounted) {
@@ -58,16 +91,17 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     _nombreController.dispose();
     _descripcionController.dispose();
     _precioController.dispose();
-    _imagenController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color azulPrincipal = Color(0xFF0004FF);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nuevo Servicio de Lavado'),
-        backgroundColor: Colors.teal,
+        backgroundColor: azulPrincipal,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -77,6 +111,37 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Área visual para seleccionar/subir la imagen
+              GestureDetector(
+                onTap: _seleccionarImagen,
+                child: Container(
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: azulPrincipal.withOpacity(0.5)),
+                  ),
+                  child: _imagenSeleccionada != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: kIsWeb
+                              ? Image.network(_imagenSeleccionada!.path, fit: BoxFit.cover)
+                              : Image.file(File(_imagenSeleccionada!.path), fit: BoxFit.cover),
+                        )
+                      : const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo, size: 40, color: azulPrincipal),
+                            SizedBox(height: 8),
+                            Text(
+                              'Toca para seleccionar una imagen',
+                              style: TextStyle(color: azulPrincipal, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _nombreController,
                 decoration: const InputDecoration(
@@ -114,20 +179,11 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _imagenController,
-                decoration: const InputDecoration(
-                  labelText: 'URL de Imagen (Opcional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.image),
-                ),
-              ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isLoading ? null : _guardarServicio,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: azulPrincipal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

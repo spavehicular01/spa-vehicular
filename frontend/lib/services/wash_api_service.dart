@@ -10,17 +10,31 @@ class WashApiService {
   // METODOS DE SUBIDA DE IMAGENES (CLOUD)
   // ==========================================
 
+  // Helper para detectar la extensión de la imagen
+  static String _obtenerSubtipo(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    if (ext == 'png') return 'png';
+    if (ext == 'webp') return 'webp';
+    if (ext == 'heic') return 'heic';
+    return 'jpeg'; // Por defecto jpg/jpeg
+  }
+
+  // Subir imagen capturada/seleccionada al backend (Cloudinary)
   // Subir imagen capturada/seleccionada al backend (Cloudinary)
   static Future<String?> subirImagen(XFile imagen) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/upload');
       final request = http.MultipartRequest('POST', url);
 
+      // Leemos los bytes directos de la imagen (compatible con Web y Móvil)
+      final bytes = await imagen.readAsBytes();
+
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'image', // Nombre del campo que espera Multer en Express
-          imagen.path,
-          contentType: MediaType('image', 'jpeg'),
+          bytes,
+          filename: imagen.name,
+          contentType: MediaType.parse('image/${_obtenerSubtipo(imagen.name)}'),
         ),
       );
 
