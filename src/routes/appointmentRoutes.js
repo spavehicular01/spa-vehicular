@@ -5,43 +5,28 @@ const appointmentController = require('../controllers/appointmentController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const verifyToken = authMiddleware.verifyToken || authMiddleware;
 
-<<<<<<< HEAD
-// 1. Obtener citas (Puedes agregar 'verifyToken' si quieres que solo usuarios/admins logueados las vean)
-router.get('/', verifyToken, appointmentController.obtenerCitas);
-
-// 2. Agendar nueva cita (Protegida)
-router.post('/crear', verifyToken, appointmentController.crearCita);
-
-// 3. Reprogramar cita (Protegida)
-router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprogramarCita);
-
-// 4. Cambiar estado de la cita (Protegida)
-router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
-=======
 // ==========================================
 // RUTAS DE CONSULTA (GET)
 // ==========================================
 
-// 1. Obtener TODAS las citas (Para el panel Admin)
-router.get('/', verifyToken, appointmentController.obtenerTodasLasCitas);
+// Obtener todas las citas
+router.get('/', verifyToken, appointmentController.obtenerTodasLasCitas || appointmentController.obtenerCitas);
 
-// 2. Obtener citas de un CLIENTE ESPECÍFICO (Para la App Flutter)
+// Obtener citas por cliente específico (App Flutter)
 router.get('/usuario/:usuarioId', verifyToken, appointmentController.obtenerCitasPorUsuario);
 
-
 // ==========================================
-// RUTAS DE CREACIÓN Y EDICIÓN (POST / PUT)
+// RUTAS DE CREACIÓN Y EDICIÓN (POST / PUT / PATCH)
 // ==========================================
 
-// 3. Crear cita (protegida con JWT)
+// Crear nueva cita
 router.post('/crear', verifyToken, appointmentController.crearCita);
 
-// 4. Reprogramar cita (protegida con JWT)
+// Reprogramar cita
 router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprogramarCita);
 
-// 5. Cambiar estado de la cita (En Proceso / Completado / Cancelado)
+// Cambiar estado de la cita
 router.put('/estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
-
->>>>>>> origin/feature/diego
+router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 
 module.exports = router;
