@@ -1,13 +1,12 @@
 const Appointment = require('../models/Appointment');
 const { sendEmail } = require('../services/emailService');
 
-<<<<<<< HEAD
-// 1. Obtener citas (con opción de filtrar por estado)
+// 1. Obtener citas (Todas o filtradas por estado)
 exports.obtenerCitas = async (req, res) => {
   try {
     const { estado } = req.query;
     const filtro = estado ? { estado } : {};
-    const citas = await Appointment.find(filtro);
+    const citas = await Appointment.find(filtro).sort({ fechaHoraCita: -1 });
 
     res.status(200).json(citas);
   } catch (error) {
@@ -15,9 +14,7 @@ exports.obtenerCitas = async (req, res) => {
   }
 };
 
-// 2. Crear cita
-=======
-// 1. Obtener todas las citas (Para el Administrador)
+// 2. Obtener todas las citas (Panel Admin)
 exports.obtenerTodasLasCitas = async (req, res) => {
   try {
     const citas = await Appointment.find().sort({ fechaHoraCita: -1 });
@@ -27,12 +24,11 @@ exports.obtenerTodasLasCitas = async (req, res) => {
   }
 };
 
-// 2. Obtener citas de un cliente específico (Para la App Móvil Flutter)
+// 3. Obtener citas de un cliente específico (App Móvil Flutter)
 exports.obtenerCitasPorUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.params;
     
-    // Busca las citas asociadas al usuarioId o clienteId según como lo guardes en Mongo
     const citas = await Appointment.find({
       $or: [{ usuarioId }, { clienteId: usuarioId }]
     }).sort({ fechaHoraCita: -1 });
@@ -43,8 +39,7 @@ exports.obtenerCitasPorUsuario = async (req, res) => {
   }
 };
 
-// 3. Crear Cita
->>>>>>> origin/feature/diego
+// 4. Crear Cita
 exports.crearCita = async (req, res) => {
   try {
     const nuevaCita = new Appointment(req.body);
@@ -81,11 +76,7 @@ exports.crearCita = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-// 3. Reprogramar cita
-=======
-// 4. Reprogramar Cita
->>>>>>> origin/feature/diego
+// 5. Reprogramar Cita
 exports.reprogramarCita = async (req, res) => {
   try {
     const { citaId } = req.params;
@@ -135,33 +126,18 @@ exports.reprogramarCita = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-// 4. Cambiar estado de la cita
-exports.cambiarEstadoCita = async (req, res) => {
-  try {
-    const { citaId } = req.params;
-    const { estado } = req.body; // 'confirmada', 'completado', 'cancelado'
-
-    const cita = await Appointment.findByIdAndUpdate(
-=======
-// 5. Cambiar Estado de Cita y emitir WebSockets + Email
+// 6. Cambiar Estado de Cita (WebSockets + Email)
 exports.cambiarEstadoCita = async (req, res) => {
   try {
     const { citaId } = req.params;
     const { estado } = req.body;
 
     const citaActualizada = await Appointment.findByIdAndUpdate(
->>>>>>> origin/feature/diego
       citaId,
       { estado },
       { new: true }
     );
 
-<<<<<<< HEAD
-    res.json({ mensaje: 'Estado actualizado con éxito', cita });
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al actualizar estado', error: error.message });
-=======
     if (!citaActualizada) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
     }
@@ -214,6 +190,5 @@ exports.cambiarEstadoCita = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al cambiar estado de la cita', error: error.message });
->>>>>>> origin/feature/diego
   }
 };
