@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/screens/register_screen.dart';
-=======
 import 'register_screen.dart';
->>>>>>> origin/feature/diego
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -25,10 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Map<String, dynamic>? _registeredUserData;
 
-<<<<<<< HEAD
-  // Usuarios simulados base
-  final List<String> _usuariosValidos = ['diegobeltran0207@gmail.com', 'admin@carwash.com', 'didiercediel58@gmail.com'];
-=======
   // Credenciales oficiales del Administrador (SPA)
   static const String _adminEmail = 'spavehicular01@gmail.com';
   static const String _adminPassword = 'spa_veh_01';
@@ -36,8 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // Usuarios cliente simulados
   final List<String> _usuariosValidos = [
     'diegobeltran0207@gmail.com',
+    'admin@carwash.com',
+    'didiercediel58@gmail.com',
   ];
->>>>>>> origin/feature/diego
 
   @override
   void dispose() {
@@ -60,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 1. VALIDACIÓN PARA EL ADMINISTRADOR (spavehicular01@gmail.com)
+    // 1. VALIDACIÓN PARA EL ADMINISTRADOR
     if (email == _adminEmail) {
       if (password != _adminPassword) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -72,7 +65,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Entra como ADMINISTRADOR con datos por defecto completos
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', 'token_auth_valido_12345');
+      await prefs.setString('user_email', email);
+
       widget.onLoginExitoso({
         'nombres': 'Administrador SPA',
         'correo': email,
@@ -86,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 2. VALIDACIÓN PARA CLIENTES (Diego y registrados)
+    // 2. VALIDACIÓN PARA CLIENTES
     final bool existe = _usuariosValidos.contains(email) ||
         (_registeredUserData != null && _registeredUserData!['correo'] == email);
 
@@ -100,26 +96,17 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-<<<<<<< HEAD
-    // Guarda la sesión localmente para que ServicesScreen detecte la autenticación
+    // Guarda la sesión localmente
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', 'token_auth_valido_12345');
     await prefs.setString('user_email', email);
 
-=======
-    // Entra como CLIENTE
->>>>>>> origin/feature/diego
     widget.onLoginExitoso({
       'nombres': _registeredUserData?['nombres'] ?? 'Didier Cediel',
       'correo': email,
-<<<<<<< HEAD
+      'rol': 'cliente',
       'documento': _registeredUserData?['documento'] ?? '1077856793',
       'telefono': _registeredUserData?['telefono'] ?? '3202819751',
-=======
-      'rol': 'cliente',
-      'documento': _registeredUserData?['documento'] ?? '1077852343',
-      'telefono': _registeredUserData?['telefono'] ?? '3102581864',
->>>>>>> origin/feature/diego
       'vehiculos': _registeredUserData?['vehiculos'] ?? [
         {'placa': 'ABC123', 'marca': 'Toyota', 'referencia': 'Hilux', 'modelo': '2022', 'color': 'Blanco'}
       ],
@@ -134,7 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return Scaffold(
       appBar: AppBar(
         title: const Text('Iniciar Sesión'),
@@ -153,43 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Bienvenido',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-=======
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Icon(Icons.account_circle, size: 80, color: Colors.teal),
-          const SizedBox(height: 16),
-          const Text(
-            'Bienvenido',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(_obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
->>>>>>> origin/feature/diego
               ),
               const SizedBox(height: 24),
               TextField(
@@ -215,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _iniciarSesion,
                 style: ElevatedButton.styleFrom(
@@ -225,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: const Text('Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: () async {
                   final result = await Navigator.push(
@@ -233,7 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     MaterialPageRoute(builder: (context) => const RegisterScreen()),
                   );
                   if (result != null && result is Map<String, dynamic>) {
-                    // Si viene de un registro exitoso, también guardamos el token
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('token', 'token_auth_valido_12345');
 
@@ -252,50 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-<<<<<<< HEAD
         ),
-=======
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _iniciarSesion,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text(
-              'Iniciar Sesión',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RegisterScreen(),
-                ),
-              );
-              if (result != null && result is Map<String, dynamic>) {
-                setState(() {
-                  _registeredUserData = result;
-                  _emailController.text = result['correo'] ?? '';
-                });
-              }
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.teal,
-              side: const BorderSide(color: Colors.teal, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text(
-              'Registrarse',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
->>>>>>> origin/feature/diego
       ),
     );
   }

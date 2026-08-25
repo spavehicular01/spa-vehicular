@@ -129,6 +129,33 @@ class WashApiService {
     }
   }
 
+  // Actualizar un servicio existente por su ID
+  static Future<bool> actualizarServicio({
+    required String id,
+    required String nombre,
+    required String descripcion,
+    required double precio,
+    String? image,
+  }) async {
+    try {
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/services/$id');
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'nombre': nombre,
+          'descripcion': descripcion,
+          'precio': precio,
+          if (image != null) 'image': image,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Eliminar un servicio por su ID
   static Future<bool> eliminarServicio(String id) async {
     try {
