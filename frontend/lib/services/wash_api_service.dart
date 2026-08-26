@@ -3,13 +3,29 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart' as model;
 import 'api_config.dart';
 
 class WashApiService {
   // ==========================================
-  // METODOS DE SUBIDA DE IMAGENES (CLOUD)
+  // HELPER PARA CABECERAS CON AUTENTICACIÓN
   // ==========================================
+  static Future<Map<String, String>> _getHeaders({bool authRequerida = true}) async {
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (authRequerida) {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      if (token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    return headers;
+  }
 
   // Helper para detectar la extensión de la imagen
   static String _obtenerSubtipo(String filename) {
@@ -17,22 +33,28 @@ class WashApiService {
     if (ext == 'png') return 'png';
     if (ext == 'webp') return 'webp';
     if (ext == 'heic') return 'heic';
-    return 'jpeg'; // Por defecto jpg/jpeg
+    return 'jpeg';
   }
 
-  // Subir imagen capturada/seleccionada al backend (Cloudinary)
-  // Subir imagen capturada/seleccionada al backend (Cloudinary)
+  // ==========================================
+  // METODOS DE SUBIDA DE IMAGENES (CLOUD)
+  // ==========================================
   static Future<String?> subirImagen(XFile imagen) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/upload');
       final request = http.MultipartRequest('POST', url);
 
-      // Leemos los bytes directos de la imagen (compatible con Web y Móvil)
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      if (token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
       final bytes = await imagen.readAsBytes();
 
       request.files.add(
         http.MultipartFile.fromBytes(
-          'image', // Nombre del campo que espera Multer en Express
+          'image',
           bytes,
           filename: imagen.name,
           contentType: MediaType.parse('image/${_obtenerSubtipo(imagen.name)}'),
@@ -44,7 +66,7 @@ class WashApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> body = jsonDecode(response.body);
-        return body['url']; // Retorna la URL generada en Cloudinary
+        return body['url'] ?? body['imageUrl'];
       }
       return null;
     } catch (e) {
@@ -56,14 +78,14 @@ class WashApiService {
   // ==========================================
   // METODOS DE VEHÍCULOS
   // ==========================================
-
-  // Registrar un vehículo en la base de datos
   static Future<bool> registrarVehiculo(Map<String, dynamic> datosVehiculo) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles');
+      final headers = await _getHeaders();
+      
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(datosVehiculo),
       );
 
@@ -74,13 +96,14 @@ class WashApiService {
     }
   }
 
-  // Obtener los vehículos asignados al usuario logueado
   static Future<List<dynamic>> obtenerVehiculos(String usuarioId) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/usuario/$usuarioId');
+      final headers = await _getHeaders();
+
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -97,16 +120,15 @@ class WashApiService {
   // ==========================================
   // METODOS DE SERVICIOS (CATÁLOGO DE LAVADOS)
   // ==========================================
-
   static Future<List<model.WashService>> getLavados() async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services');
+      final headers = await _getHeaders(authRequerida: false);
+      headers['Cache-Control'] = 'no-cache';
+
       final response = await http.get(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -123,7 +145,6 @@ class WashApiService {
     }
   }
 
-  // Crear lavado con imagen OPCIONAL
   static Future<bool> crearLavado({
     required String nombre,
     required String descripcion,
@@ -132,19 +153,22 @@ class WashApiService {
   }) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services');
+      final headers = await _getHeaders();
+
+      final Map<String, dynamic> bodyData = {
+        'nombre': nombre,
+        'descripcion': descripcion,
+        'precio': precio,
+      };
+
+      if (image != null && image.trim().isNotEmpty) {
+        bodyData['image'] = image;
+      }
+
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nombre': nombre,
-          'name': nombre,
-          'descripcion': descripcion,
-          'description': descripcion,
-          'precio': precio,
-          'price': precio,
-          'image': image ?? '',
-          'imageUrl': image ?? '',
-        }),
+        headers: headers,
+        body: jsonEncode(bodyData),
       );
 
       debugPrint('STATUS CREAR: ${response.statusCode}');
@@ -157,7 +181,6 @@ class WashApiService {
     }
   }
 
-  // Actualizar un servicio existente por su ID (imagen OPCIONAL)
   static Future<bool> actualizarServicio({
     required String id,
     required String nombre,
@@ -167,19 +190,22 @@ class WashApiService {
   }) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services/$id');
+      final headers = await _getHeaders();
+
+      final Map<String, dynamic> bodyData = {
+        'nombre': nombre,
+        'descripcion': descripcion,
+        'precio': precio,
+      };
+
+      if (image != null && image.trim().isNotEmpty) {
+        bodyData['image'] = image;
+      }
+
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nombre': nombre,
-          'name': nombre,
-          'descripcion': descripcion,
-          'description': descripcion,
-          'precio': precio,
-          'price': precio,
-          'image': image ?? '',
-          'imageUrl': image ?? '',
-        }),
+        headers: headers,
+        body: jsonEncode(bodyData),
       );
 
       debugPrint('STATUS ACTUALIZAR: ${response.statusCode}');
@@ -192,13 +218,14 @@ class WashApiService {
     }
   }
 
-  // Eliminar un servicio por su ID
   static Future<bool> eliminarServicio(String id) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services/$id');
+      final headers = await _getHeaders();
+
       final response = await http.delete(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       return response.statusCode == 200 || response.statusCode == 204;
@@ -211,14 +238,14 @@ class WashApiService {
   // ==========================================
   // METODOS DE CITAS / AGENDAMIENTO
   // ==========================================
-
-  // Crear una nueva cita (Usuario o Admin)
   static Future<bool> crearCita(Map<String, dynamic> datosCita) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments');
+      final headers = await _getHeaders();
+
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(datosCita),
       );
 
@@ -229,14 +256,14 @@ class WashApiService {
     }
   }
 
-  // Obtener citas de un usuario específico
   static Future<List<dynamic>> obtenerCitas(String usuarioId) async {
     try {
-      final Uri url =
-          Uri.parse('${ApiConfig.baseUrl}/appointments/usuario/$usuarioId');
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments/usuario/$usuarioId');
+      final headers = await _getHeaders();
+
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -250,13 +277,14 @@ class WashApiService {
     }
   }
 
-  // Obtener todas las citas (Admin)
   static Future<List<dynamic>> obtenerTodasLasCitas() async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments');
+      final headers = await _getHeaders();
+
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -270,15 +298,14 @@ class WashApiService {
     }
   }
 
-  // Actualizar estado de la cita (Admin)
-  static Future<bool> actualizarEstadoCita(
-      String citaId, String nuevoEstado) async {
+  static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
-      final Uri url =
-          Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
+      final headers = await _getHeaders();
+
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'estado': nuevoEstado}),
       );
 

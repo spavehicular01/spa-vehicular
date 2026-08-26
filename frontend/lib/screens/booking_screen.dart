@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/auth_required_dialog.dart';
 
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
