@@ -46,7 +46,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Servicios de Lavado'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 26, 255),
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<WashService>>(
@@ -74,9 +74,44 @@ class _ServicesScreenState extends State<ServicesScreen> {
             itemCount: lavados.length,
             itemBuilder: (context, index) {
               final item = lavados[index];
-              return ServiceCard(
-                service: item,
-                onTap: () => _validarSesionYAgendar(context, item),
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: item.imageUrl.isNotEmpty
+                        ? Image.network(
+                            item.imageUrl,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.directions_car, size: 40, color: Color.fromARGB(255, 0, 30, 255)),
+                          )
+                        : const Icon(Icons.directions_car, size: 40, color: Color.fromARGB(255, 0, 26, 255)),
+                  ),
+                  title: Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(item.description),
+                  ),
+                  trailing: Text(
+                    '\$${item.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color.fromARGB(255, 0, 21, 255),
+                    ),
+                  ),
+                ),
               );
             },
           );

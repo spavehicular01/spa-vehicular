@@ -25,14 +25,14 @@ class AdminDashboardScreen extends StatelessWidget {
             color: Colors.teal.shade50,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Colors.teal, width: 1.5),
+              side: const BorderSide(color: Color.fromARGB(255, 0, 8, 255), width: 1.5),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
                   const CircleAvatar(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: Color.fromARGB(255, 0, 21, 249),
                     radius: 28,
                     child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
                   ),
@@ -48,7 +48,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           userData['correo'] ?? 'spavehicular01@gmail.com',
-                          style: TextStyle(color: Colors.grey.shade700),
+                          style: TextStyle(color: const Color.fromARGB(255, 97, 97, 97)),
                         ),
                       ],
                     ),
@@ -61,7 +61,7 @@ class AdminDashboardScreen extends StatelessWidget {
 
           const Text(
             'Panel Administrativo',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 17, 255)),
           ),
           const SizedBox(height: 16),
 
@@ -76,7 +76,7 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Gestión de Citas',
                 icono: Icons.calendar_month_outlined,
-                color: Colors.teal.shade600,
+                color: const Color.fromARGB(255, 0, 38, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -89,7 +89,7 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Servicios y Precios',
                 icono: Icons.local_car_wash_outlined,
-                color: Colors.teal.shade700,
+                color: const Color.fromARGB(255, 4, 0, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -102,7 +102,7 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Lista de Clientes',
                 icono: Icons.people_alt_outlined,
-                color: Colors.teal.shade800,
+                color: const Color.fromARGB(255, 38, 0, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -115,7 +115,7 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Reportes e Historial',
                 icono: Icons.bar_chart_outlined,
-                color: Colors.teal.shade900,
+                color: const Color.fromARGB(255, 0, 30, 255),
                 onTap: () {
                   // Módulo de reportes
                 },

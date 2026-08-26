@@ -82,7 +82,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.teal),
+                        border: Border.all(color: const Color.fromARGB(255, 0, 30, 255)),
                       ),
                       child: imagenSeleccionada != null
                           ? ClipRRect(
@@ -105,7 +105,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                               : const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: Colors.teal, size: 30),
+                                    Icon(Icons.add_a_photo, color: Color.fromARGB(255, 2, 27, 255), size: 30),
                                     SizedBox(height: 6),
                                     Text('Agregar foto del lavado', style: TextStyle(fontSize: 12)),
                                   ],
@@ -139,7 +139,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
                 ),
                 onPressed: subiendo
@@ -187,7 +187,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(servicio != null ? 'Servicio actualizado' : 'Servicio agregado'),
-                                backgroundColor: Colors.teal,
+                                backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                               ),
                             );
                           } else {
@@ -235,12 +235,12 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Servicios y Precios'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 30, 255),
         foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _mostrarFormularioServicio(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 8, 0, 255),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Nuevo Servicio'),
@@ -349,6 +349,77 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                       );
                     },
                   ),
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16.0),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              '\$${precio.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 0, 34, 255),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 6),
+                            Text(descripcion),
+                          ],
+                        ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (option) {
+                            if (option == 'editar') {
+                              _mostrarFormularioServicio(servicio: item);
+                            } else if (option == 'eliminar') {
+                              if (id.isNotEmpty) {
+                                _eliminarServicio(id);
+                              }
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: 'editar',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, color: Color.fromARGB(255, 0, 0, 255), size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Editar'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'eliminar',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Eliminar'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
     );
   }

@@ -61,53 +61,41 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
-  Future<void> _confirmarReserva() async {
-    // 1. Validar token de autenticación ANTES de cualquier otra cosa
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('token');
-
-    if (token == null || token.trim().isEmpty || token == 'null') {
-      if (!mounted) return;
-      AuthRequiredDialog.show(context);
-      return; // <-- Cancela y evita la confirmación
-    }
-
-    // 2. Validar campos del formulario
-    if (!_formKey.currentState!.validate()) return;
-
-    if (!mounted) return;
-
-    // 3. Confirmación exitosa (solo si existe token válido)
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¡Cita Confirmada! 🎉'),
-        content: Text(
-          'Tu servicio de "$_servicioSeleccionado" para el vehículo '
-          '$_vehiculoSeleccionado ha sido programado para el '
-          '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
-          'a las ${widget.selectedTime}.\n\n'
-          'Modalidad: $_modalidad\n'
-          'Pago: $_metodoPago',
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context, {
-                'servicio': _servicioSeleccionado,
-                'vehiculo': _vehiculoSeleccionado,
-                'modalidad': _modalidad,
-                'metodoPago': _metodoPago,
-                'notas': _notasController.text,
-              });
-            },
-            child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+  void _confirmarReserva() {
+    if (_formKey.currentState!.validate()) {
+      // Confirmación exitosa
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¡Cita Confirmada! 🎉'),
+          content: Text(
+            'Tu servicio de "$_servicioSeleccionado" para el vehículo '
+            '$_vehiculoSeleccionado ha sido programado para el '
+            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
+            'a las ${widget.selectedTime}.\n\n'
+            'Modalidad: $_modalidad\n'
+            'Pago: $_metodoPago',
           ),
-        ],
-      ),
-    );
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 0, 32, 150)),
+              onPressed: () {
+                Navigator.pop(ctx); // Cierra diálogo
+                // Devuelve los datos de la reserva al calendario
+                Navigator.pop(context, {
+                  'servicio': _servicioSeleccionado,
+                  'vehiculo': _vehiculoSeleccionado,
+                  'modalidad': _modalidad,
+                  'metodoPago': _metodoPago,
+                  'notas': _notasController.text,
+                });
+              },
+              child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -115,7 +103,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalles de la Cita'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 55, 255),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -130,13 +118,13 @@ class _BookingScreenState extends State<BookingScreen> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Colors.teal),
+                  side: const BorderSide(color: Color.fromARGB(255, 0, 34, 255)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.event_available, color: Colors.teal, size: 36),
+                      const Icon(Icons.event_available, color: Color.fromARGB(255, 0, 34, 255), size: 36),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +138,7 @@ class _BookingScreenState extends State<BookingScreen> {
                           ),
                           Text(
                             'Hora del cupo: ${widget.selectedTime}',
-                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
+                            style: const TextStyle(color: Color.fromARGB(255, 0, 30, 255), fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -196,14 +184,14 @@ class _BookingScreenState extends State<BookingScreen> {
                 title: const Text('Llevo el vehículo al spa'),
                 value: 'Llevo el vehículo',
                 groupValue: _modalidad,
-                activeColor: Colors.teal,
+                activeColor: const Color.fromARGB(255, 0, 26, 255),
                 onChanged: (val) => setState(() => _modalidad = val!),
               ),
               RadioListTile<String>(
                 title: const Text('A domicilio'),
                 value: 'A domicilio',
                 groupValue: _modalidad,
-                activeColor: Colors.teal,
+                activeColor: const Color.fromARGB(255, 0, 26, 255),
                 onChanged: (val) => setState(() => _modalidad = val!),
               ),
 
@@ -258,7 +246,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ElevatedButton(
                 onPressed: _confirmarReserva,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

@@ -53,7 +53,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensaje),
-          backgroundColor: Colors.teal,
+          backgroundColor: const Color.fromARGB(255, 0, 0, 255),
         ),
       );
     } else {
@@ -86,7 +86,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Citas (Admin)'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 42, 255),
         foregroundColor: Colors.white,
       ),
       body: _cargando
@@ -159,7 +159,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                       value: 'Completado',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.check_circle, color: Colors.green),
+                                          Icon(Icons.check_circle, color: Color.fromARGB(255, 0, 138, 251)),
                                           SizedBox(width: 8),
                                           Text('Finalizar Lavada (Completado)'),
                                         ],
@@ -179,7 +179,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: Colors.teal,
+                                      color: const Color.fromARGB(255, 0, 38, 255),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Row(

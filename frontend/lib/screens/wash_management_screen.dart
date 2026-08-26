@@ -222,11 +222,11 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
           child: Container(
-            color: Colors.teal,
+            color: const Color.fromARGB(255, 30, 0, 255),
             child: const TabBar(
               indicatorColor: Colors.white,
               labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
+              unselectedLabelColor: Color.fromARGB(179, 255, 251, 0),
               tabs: [
                 Tab(icon: Icon(Icons.time_to_leave), text: 'En Curso / Próximas'),
                 Tab(icon: Icon(Icons.history), text: 'Historial'),

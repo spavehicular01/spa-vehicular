@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spa Vehicular'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 51, 255),
         foregroundColor: Colors.white,
         centerTitle: true,
       ),
@@ -46,7 +46,7 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Colors.teal, Color(0xFF004D40)],
+                  colors: [Color.fromARGB(255, 0, 47, 255), Color.fromARGB(255, 0, 34, 255)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -68,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                   SizedBox(height: 8),
                   Text(
                     'El mejor cuidado y limpieza para tu vehículo',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(color: Color.fromARGB(179, 0, 26, 255), fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -90,7 +90,7 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: Colors.teal,
+                        backgroundColor: Color.fromARGB(255, 0, 76, 255),
                         child: Icon(Icons.cleaning_services, color: Colors.white, size: 28),
                       ),
                       SizedBox(width: 16),
@@ -108,12 +108,12 @@ class HomeScreen extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               'Ver catálogo de servicios y precios',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(color: Color.fromARGB(255, 0, 64, 255)),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 18),
+                      Icon(Icons.arrow_forward_ios, color: Color.fromARGB(255, 0, 55, 255), size: 18),
                     ],
                   ),
                 ),

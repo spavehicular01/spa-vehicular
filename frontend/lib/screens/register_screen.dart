@@ -83,14 +83,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: const Text(
                 ' Asunto: Bienvenido al SPA VEHICULAR\n\n'
                 'Gracias por unirte. Presiona el botón a continuación para verificar tu cuenta e iniciar sesión.',
-                style: TextStyle(fontSize: 13, color: Colors.teal),
+                style: TextStyle(fontSize: 13, color: Color.fromARGB(255, 0, 34, 252)),
               ),
             ),
           ],
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 0, 34, 255)),
             onPressed: () {
               Navigator.pop(ctx); // Cierra modal
               Navigator.pop(context, {
@@ -112,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registro de Usuario'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 26, 255),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -230,7 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: _procesarRegistro,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

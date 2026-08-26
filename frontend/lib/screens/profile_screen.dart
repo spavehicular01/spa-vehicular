@@ -180,7 +180,7 @@ Future<void> _ejecutarCerrarSesion() async {
                           elevation: 1,
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ListTile(
-                            leading: const Icon(Icons.directions_car, color: Colors.teal),
+                            leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 30, 255)),
                             title: Text('$marca $referencia ($placa)'),
                             subtitle: Text('Tipo: $tipo | Año: $modelo | Color: $color'),
                             trailing: Row(
@@ -216,7 +216,7 @@ Future<void> _ejecutarCerrarSesion() async {
                     icon: const Icon(Icons.add),
                     label: const Text('Registrar Nuevo Vehículo'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
+                      backgroundColor: const Color.fromARGB(255, 0, 21, 178),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -238,7 +238,7 @@ Future<void> _ejecutarCerrarSesion() async {
         children: [
           const CircleAvatar(
             radius: 40,
-            backgroundColor: Colors.teal,
+            backgroundColor: Color.fromARGB(255, 0, 21, 255),
             child: Icon(Icons.person, size: 50, color: Colors.white),
           ),
           const SizedBox(height: 12),
@@ -253,7 +253,7 @@ Future<void> _ejecutarCerrarSesion() async {
           const Divider(height: 30),
 
           ListTile(
-            leading: const Icon(Icons.badge, color: Colors.teal),
+            leading: const Icon(Icons.badge, color: Color.fromARGB(255, 0, 30, 255)),
             title: const Text('Documento de Identidad'),
             subtitle: Text(widget.documento),
           ),
@@ -263,17 +263,17 @@ Future<void> _ejecutarCerrarSesion() async {
             color: Colors.teal.shade50,
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.phone_android, color: Colors.teal),
+              leading: const Icon(Icons.phone_android, color: Color.fromARGB(255, 0, 34, 255)),
               title: const Text('Número de Teléfono'),
               subtitle: Text(widget.telefono),
-              trailing: const Icon(Icons.touch_app, color: Colors.teal),
+              trailing: const Icon(Icons.touch_app, color: Color.fromARGB(255, 0, 38, 255)),
               onTap: () {
                 showModalBottomSheet(
                   context: context,
                   builder: (ctx) => Wrap(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.phone, color: Colors.teal),
+                        leading: const Icon(Icons.phone, color: Color.fromRGBO(0, 255, 229, 1)),
                         title: const Text('Llamar'),
                         onTap: () {
                           Navigator.pop(ctx);
@@ -300,10 +300,10 @@ Future<void> _ejecutarCerrarSesion() async {
             color: Colors.teal.shade50,
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.directions_car, color: Colors.teal),
+              leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 42, 255)),
               title: const Text('Mis Vehículos'),
               subtitle: Text('${_listaVehiculos.length} vehículo(s) registrado(s)'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.teal),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color.fromARGB(255, 0, 38, 255)),
               onTap: _mostrarMisVehiculos,
             ),
           ),
