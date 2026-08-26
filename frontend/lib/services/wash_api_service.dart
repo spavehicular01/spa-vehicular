@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
@@ -33,6 +34,7 @@ class WashApiService {
       }
       return null;
     } catch (e) {
+      debugPrint('ERROR SUBIR IMAGEN: $e');
       return null;
     }
   }
@@ -53,6 +55,7 @@ class WashApiService {
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
+      debugPrint('ERROR REGISTRAR VEHICULO: $e');
       return false;
     }
   }
@@ -72,6 +75,7 @@ class WashApiService {
       }
       return [];
     } catch (e) {
+      debugPrint('ERROR OBTENER VEHICULOS: $e');
       return [];
     }
   }
@@ -100,15 +104,17 @@ class WashApiService {
       }
       return [];
     } catch (e) {
+      debugPrint('ERROR GET LAVADOS: $e');
       return [];
     }
   }
 
+  // Crear lavado con imagen OPCIONAL
   static Future<bool> crearLavado({
     required String nombre,
     required String descripcion,
     required double precio,
-    required String image,
+    String? image,
   }) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services');
@@ -117,19 +123,27 @@ class WashApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'nombre': nombre,
+          'name': nombre,
           'descripcion': descripcion,
+          'description': descripcion,
           'precio': precio,
-          'image': image,
+          'price': precio,
+          'image': image ?? '',
+          'imageUrl': image ?? '',
         }),
       );
 
+      debugPrint('STATUS CREAR: ${response.statusCode}');
+      debugPrint('BODY CREAR: ${response.body}');
+
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
+      debugPrint('ERROR CATCH CREAR: $e');
       return false;
     }
   }
 
-  // Actualizar un servicio existente por su ID
+  // Actualizar un servicio existente por su ID (imagen OPCIONAL)
   static Future<bool> actualizarServicio({
     required String id,
     required String nombre,
@@ -144,14 +158,22 @@ class WashApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'nombre': nombre,
+          'name': nombre,
           'descripcion': descripcion,
+          'description': descripcion,
           'precio': precio,
-          if (image != null) 'image': image,
+          'price': precio,
+          'image': image ?? '',
+          'imageUrl': image ?? '',
         }),
       );
 
+      debugPrint('STATUS ACTUALIZAR: ${response.statusCode}');
+      debugPrint('BODY ACTUALIZAR: ${response.body}');
+
       return response.statusCode == 200;
     } catch (e) {
+      debugPrint('ERROR CATCH ACTUALIZAR: $e');
       return false;
     }
   }
@@ -167,6 +189,7 @@ class WashApiService {
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
+      debugPrint('ERROR ELIMINAR SERVICIO: $e');
       return false;
     }
   }
@@ -187,6 +210,7 @@ class WashApiService {
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
+      debugPrint('ERROR CREAR CITA: $e');
       return false;
     }
   }
@@ -207,6 +231,7 @@ class WashApiService {
       }
       return [];
     } catch (e) {
+      debugPrint('ERROR OBTENER CITAS: $e');
       return [];
     }
   }
@@ -226,6 +251,7 @@ class WashApiService {
       }
       return [];
     } catch (e) {
+      debugPrint('ERROR OBTENER TODAS LAS CITAS: $e');
       return [];
     }
   }
@@ -244,6 +270,7 @@ class WashApiService {
 
       return response.statusCode == 200;
     } catch (e) {
+      debugPrint('ERROR ACTUALIZAR ESTADO CITA: $e');
       return false;
     }
   }
