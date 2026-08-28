@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
   nombres: { type: String, required: true },
@@ -13,7 +14,24 @@ const userSchema = new mongoose.Schema({
     default: 'cliente' 
   },
   direccionPrincipal: { type: String, default: '' },
-  fechaRegistro: { type: Date, default: Date.now }
+
+  // --- VERIFICACIÓN DE CUENTA ---
+  isVerified: { type: Boolean, default: false },
+  codigoVerificacion: { type: String },
+  codigoVerificacionExpiracion: { type: Date },
+
+  // --- RECUPERACIÓN DE CONTRASEÑA ---
+  codigoRecuperacion: { type: String },
+  codigoexpiracion: { type: Date }
+}, { timestamps: true });
+
+// Encriptación de contraseña antes de guardar
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
+export default User;
