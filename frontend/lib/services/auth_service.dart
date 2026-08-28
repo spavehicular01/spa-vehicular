@@ -2,19 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  // Nota: Usa 10.0.2.2 para emulador Android o localhost para Windows/Desktop
   static const String _baseUrl = 'http://10.0.2.2:3000/api/auth';
 
-  // 1. Iniciar Sesión (Login)
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
@@ -28,7 +23,6 @@ class AuthService {
     }
   }
 
-  // 2. Registrar Usuario (Mapeado a tu modelo User.js)
   static Future<Map<String, dynamic>> registrar({
     required String nombres,
     required String apellidos,
@@ -62,7 +56,6 @@ class AuthService {
     }
   }
 
-  // 3. Enviar código para recuperar contraseña
   static Future<Map<String, dynamic>> solicitarCodigoRecuperacion(String email) async {
     try {
       final response = await http.post(
@@ -81,7 +74,6 @@ class AuthService {
     }
   }
 
-  // 4. Verificar código y cambiar contraseña
   static Future<Map<String, dynamic>> restablecerPassword({
     required String email,
     required String codigo,

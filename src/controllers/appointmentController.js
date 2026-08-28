@@ -4,10 +4,17 @@ const { sendEmail } = require('../services/emailService');
 // 1. Obtener todas las citas (Para el Administrador)
 exports.obtenerTodasLasCitas = async (req, res) => {
   try {
-    const citas = await Appointment.find().sort({ fechaHoraCita: -1 });
-    res.json(citas);
+    const citas = await Appointment.find()
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 });
+
+    res.status(200).json(citas);
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener todas las citas', error: error.message });
+    res.status(500).json({ 
+      mensaje: 'Error al obtener todas las citas', 
+      error: error.message 
+    });
   }
 };
 
@@ -15,15 +22,20 @@ exports.obtenerTodasLasCitas = async (req, res) => {
 exports.obtenerCitasPorUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.params;
-    
-    // Busca las citas asociadas al usuarioId o clienteId según como lo guardes en Mongo
-    const citas = await Appointment.find({
-      $or: [{ usuarioId }, { clienteId: usuarioId }]
-    }).sort({ fechaHoraCita: -1 });
 
-    res.json(citas);
+    const citas = await Appointment.find({
+      $or: [{ usuarioId }, { clienteId: usuarioId }, { usuario: usuarioId }]
+    })
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 });
+
+    res.status(200).json(citas);
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener las citas del usuario', error: error.message });
+    res.status(500).json({ 
+      mensaje: 'Error al obtener las citas del usuario', 
+      error: error.message 
+    });
   }
 };
 
@@ -33,7 +45,12 @@ exports.crearCita = async (req, res) => {
     const nuevaCita = new Appointment(req.body);
     await nuevaCita.save();
 
-    // Enviar correo de confirmación si viene el correo en la petición o usuario autenticado
+    // Notificar por WebSockets en tiempo real si el admin está conectado
+    if (req.io) {
+      req.io.emit('nueva_cita', nuevaCita);
+    }
+
+    // Enviar correo de confirmación
     const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
@@ -59,9 +76,15 @@ exports.crearCita = async (req, res) => {
       }).catch(err => console.error('⚠️ No se pudo enviar el correo de creación:', err.message));
     }
 
-    res.status(201).json({ mensaje: 'Cita agendada con éxito', cita: nuevaCita });
+    res.status(201).json({ 
+      mensaje: 'Cita agendada con éxito', 
+      cita: nuevaCita 
+    });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al agendar cita', error: error.message });
+    res.status(500).json({ 
+      mensaje: 'Error al agendar cita', 
+      error: error.message 
+    });
   }
 };
 
@@ -72,10 +95,16 @@ exports.reprogramarCita = async (req, res) => {
     const { nuevaFecha, motivo } = req.body;
 
     const cita = await Appointment.findById(citaId);
-    if (!cita) return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    if (!cita) {
+      return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    if (!cita.historialReprogramaciones) {
+      cita.historialReprogramaciones = [];
+    }
 
     cita.historialReprogramaciones.push({
-      motivo,
+      motivo: motivo || 'Sin motivo especificado',
       fechaAnterior: cita.fechaHoraCita,
       fechaNueva: nuevaFecha
     });
@@ -84,7 +113,12 @@ exports.reprogramarCita = async (req, res) => {
     cita.estado = 'reprogramada';
     await cita.save();
 
-    const correoDestino = req.body.correo || (req.user && req.user.correo);
+    // Notificar por WebSockets
+    if (req.io) {
+      req.io.emit('cita_reprogramada', cita);
+    }
+
+    const correoDestino = req.body.correo || cita.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
       const fechaFormateada = new Date(nuevaFecha).toLocaleString('es-CO', {
@@ -109,9 +143,15 @@ exports.reprogramarCita = async (req, res) => {
       }).catch(err => console.error('⚠️ No se pudo enviar el correo de reprogramación:', err.message));
     }
 
-    res.json({ mensaje: 'Cita reprogramada correctamente', cita });
+    res.status(200).json({ 
+      mensaje: 'Cita reprogramada correctamente', 
+      cita 
+    });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al reprogramar cita', error: error.message });
+    res.status(500).json({ 
+      mensaje: 'Error al reprogramar cita', 
+      error: error.message 
+    });
   }
 };
 
@@ -131,6 +171,7 @@ exports.cambiarEstadoCita = async (req, res) => {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
     }
 
+    // Emitir cambio vía WebSockets
     if (req.io) {
       req.io.emit('cambio_estado_cita', {
         citaId: citaActualizada._id,
@@ -154,6 +195,10 @@ exports.cambiarEstadoCita = async (req, res) => {
         titulo = '✅ ¡Tu vehículo está listo!';
         mensajeColor = '#38a169';
         contenido = 'El servicio ha finalizado con éxito. Ya puedes pasar a recoger tu vehículo.';
+      } else if (estado === 'Cancelado') {
+        titulo = '❌ Cita Cancelada';
+        mensajeColor = '#e53e3e';
+        contenido = 'Tu cita ha sido cancelada. Si consideras que es un error, por favor comunícate con nosotros.';
       }
 
       sendEmail({
@@ -172,12 +217,38 @@ exports.cambiarEstadoCita = async (req, res) => {
       }).catch(err => console.error('⚠️ No se pudo enviar el correo de actualización de estado:', err.message));
     }
 
-    res.json({
+    res.status(200).json({
       mensaje: `Estado de la cita actualizado a '${estado}'`,
       cita: citaActualizada
     });
 
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al cambiar estado de la cita', error: error.message });
+    res.status(500).json({ 
+      mensaje: 'Error al cambiar estado de la cita', 
+      error: error.message 
+    });
+  }
+};
+
+// 6. Obtener citas por fecha específica (YYYY-MM-DD) para el calendario de Flutter
+exports.obtenerCitasPorFecha = async (req, res) => {
+  try {
+    const { fecha } = req.params;
+
+    const inicioDia = new Date(`${fecha}T00:00:00.000Z`);
+    const finDia = new Date(`${fecha}T23:59:59.999Z`);
+
+    const citas = await Appointment.find({
+      fechaHoraCita: { $gte: inicioDia, $lte: finDia }
+    })
+      .populate('vehiculoId')
+      .populate('servicioId');
+
+    res.status(200).json(citas);
+  } catch (error) {
+    res.status(500).json({ 
+      mensaje: 'Error al obtener citas por fecha', 
+      error: error.message 
+    });
   }
 };
