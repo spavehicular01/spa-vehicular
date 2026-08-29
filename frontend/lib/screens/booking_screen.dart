@@ -23,7 +23,6 @@ class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Datos simulados de vehículos (Luego vendrán del perfil del usuario en la BD)
   final List<String> _misVehiculos = [
     'Mazda 3 - ABC-123',
     'Toyota Hilux - XYZ-789',
@@ -31,7 +30,6 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _vehiculoSeleccionado;
 
-  // Catálogo de servicios
   final List<String> _servicios = [
     'Lavado Básico (30 min)',
     'Lavado Especial (45 min)',
@@ -41,11 +39,13 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _servicioSeleccionado;
 
+<<<<<<< HEAD
   // Modalidad: Taller vs Domicilio
+=======
+>>>>>>> origin/main
   String _modalidad = 'Llevo el vehículo';
   final _direccionController = TextEditingController();
 
-  // Método de Pago
   String _metodoPago = 'Efectivo';
   final List<String> _opcionesPago = [
     'Efectivo',
@@ -53,7 +53,10 @@ class _BookingScreenState extends State<BookingScreen> {
     'Tarjeta Débito / Crédito',
   ];
 
+<<<<<<< HEAD
   // Sugerencias / Notas libres
+=======
+>>>>>>> origin/main
   final _notasController = TextEditingController();
 
   @override
@@ -150,7 +153,6 @@ class _BookingScreenState extends State<BookingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Banner con la fecha y hora seleccionadas
               Card(
                 color: Colors.teal.shade50,
                 elevation: 0,
@@ -186,7 +188,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 1. Seleccionar Vehículo
               const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -202,7 +203,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 2. Tipo de Servicio
               const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -219,7 +219,10 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
+<<<<<<< HEAD
               // 3. Modalidad
+=======
+>>>>>>> origin/main
               const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
               RadioListTile<String>(
                 title: const Text('Llevo el vehículo al spa'),
@@ -255,7 +258,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ],
               const SizedBox(height: 20),
 
-              // 4. Método de Pago
               const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -271,7 +273,10 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
+<<<<<<< HEAD
               // 5. Sugerencias / Notas Libres
+=======
+>>>>>>> origin/main
               const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
@@ -286,7 +291,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Botón Finalizar Reserva
               ElevatedButton(
                 onPressed: _isLoading ? null : _confirmarReserva,
                 style: ElevatedButton.styleFrom(

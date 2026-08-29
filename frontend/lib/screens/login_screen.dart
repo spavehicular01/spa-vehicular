@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart'; // Import de la pantalla de recuperación
 
@@ -28,6 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
   // Usuarios cliente simulados
   final List<String> _usuariosValidos = [
     'diegobeltran0207@gmail.com',
+    'admin@carwash.com',
+    'didiercediel58@gmail.com',
   ];
 
   @override
@@ -37,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _iniciarSesion() {
+  Future<void> _iniciarSesion() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -51,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 1. VALIDACIÓN PARA EL ADMINISTRADOR (spavehicular01@gmail.com)
+    // 1. VALIDACIÓN PARA EL ADMINISTRADOR
     if (email == _adminEmail) {
       if (password != _adminPassword) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +66,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Entra como ADMINISTRADOR con datos por defecto completos
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', 'token_auth_valido_12345');
+      await prefs.setString('user_email', email);
+
       widget.onLoginExitoso({
         'nombres': 'Administrador SPA',
         'correo': email,
@@ -77,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 2. VALIDACIÓN PARA CLIENTES (Diego y registrados)
+    // 2. VALIDACIÓN PARA CLIENTES
     final bool existe = _usuariosValidos.contains(email) ||
         (_registeredUserData != null && _registeredUserData!['correo'] == email);
 
@@ -91,13 +97,17 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Entra como CLIENTE
+    // Guarda la sesión localmente
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', 'token_auth_valido_12345');
+    await prefs.setString('user_email', email);
+
     widget.onLoginExitoso({
-      'nombres': _registeredUserData?['nombres'] ?? 'Diego Beltrán',
+      'nombres': _registeredUserData?['nombres'] ?? 'Didier Cediel',
       'correo': email,
       'rol': 'cliente',
-      'documento': _registeredUserData?['documento'] ?? '1077852343',
-      'telefono': _registeredUserData?['telefono'] ?? '3102581864',
+      'documento': _registeredUserData?['documento'] ?? '1077856793',
+      'telefono': _registeredUserData?['telefono'] ?? '3202819751',
       'vehiculos': _registeredUserData?['vehiculos'] ?? [
         {'placa': 'ABC123', 'marca': 'Toyota', 'referencia': 'Hilux', 'modelo': '2022', 'color': 'Blanco'}
       ],
@@ -215,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-        ],
+        ], // Corchete de cierre del children que faltaba
       ),
     );
   }

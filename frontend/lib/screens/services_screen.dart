@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart';
-import '../services/wash_api_service.dart';
+import '../services/wash_service.dart';
+import '../widgets/auth_required_dialog.dart';
+import '../widgets/service_card.dart';
+import 'calendar_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -16,6 +20,25 @@ class _ServicesScreenState extends State<ServicesScreen> {
   void initState() {
     super.initState();
     _futureLavados = WashApiService.getLavados();
+  }
+
+  Future<void> _validarSesionYAgendar(BuildContext context, WashService item) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    if (token == null || token.trim().isEmpty || token == 'null') {
+      if (!context.mounted) return;
+      AuthRequiredDialog.show(context);
+      return;
+    }
+
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CalendarScreen(),
+      ),
+    );
   }
 
   @override
@@ -34,14 +57,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
           } else if (snapshot.hasError) {
             return Center(
               child: Text(
-                'Error al conectar con la API:\n${snapshot.error}',
+                'Error al cargar servicios:\n${snapshot.error}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
-              child: Text('No hay servicios de lavado disponibles.'),
+              child: Text('No hay servicios disponibles.'),
             );
           }
 

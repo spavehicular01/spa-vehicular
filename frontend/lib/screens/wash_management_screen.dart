@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/socket_service.dart';
-import '../services/wash_api_service.dart';
+import '../services/wash_service.dart';
 
 class WashManagementScreen extends StatefulWidget {
   const WashManagementScreen({super.key});
@@ -28,7 +28,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
       final String? usuarioId = prefs.getString('userId');
 
       if (usuarioId != null && usuarioId.isNotEmpty) {
-        final citas = await WashApiService.obtenerCitas(usuarioId);
+        final citas = await WashApiService.getCitasProgramadas();
         if (mounted) {
           setState(() {
             _citas = citas;

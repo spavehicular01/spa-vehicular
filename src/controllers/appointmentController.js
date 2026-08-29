@@ -1,7 +1,20 @@
 const Appointment = require('../models/Appointment');
 const { sendEmail } = require('../services/emailService');
 
-// 1. Obtener todas las citas (Para el Administrador)
+// 1. Obtener citas (Todas o filtradas por estado)
+exports.obtenerCitas = async (req, res) => {
+  try {
+    const { estado } = req.query;
+    const filtro = estado ? { estado } : {};
+    const citas = await Appointment.find(filtro).sort({ fechaHoraCita: -1 });
+
+    res.status(200).json(citas);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener citas', error: error.message });
+  }
+};
+
+// 2. Obtener todas las citas (Panel Admin)
 exports.obtenerTodasLasCitas = async (req, res) => {
   try {
     const citas = await Appointment.find()
@@ -18,11 +31,11 @@ exports.obtenerTodasLasCitas = async (req, res) => {
   }
 };
 
-// 2. Obtener citas de un cliente específico (Para la App Móvil Flutter)
+// 3. Obtener citas de un cliente específico (App Móvil Flutter)
 exports.obtenerCitasPorUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.params;
-
+    
     const citas = await Appointment.find({
       $or: [{ usuarioId }, { clienteId: usuarioId }, { usuario: usuarioId }]
     })
@@ -39,18 +52,12 @@ exports.obtenerCitasPorUsuario = async (req, res) => {
   }
 };
 
-// 3. Crear Cita
+// 4. Crear Cita
 exports.crearCita = async (req, res) => {
   try {
     const nuevaCita = new Appointment(req.body);
     await nuevaCita.save();
 
-    // Notificar por WebSockets en tiempo real si el admin está conectado
-    if (req.io) {
-      req.io.emit('nueva_cita', nuevaCita);
-    }
-
-    // Enviar correo de confirmación
     const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
@@ -88,7 +95,7 @@ exports.crearCita = async (req, res) => {
   }
 };
 
-// 4. Reprogramar Cita
+// 5. Reprogramar Cita
 exports.reprogramarCita = async (req, res) => {
   try {
     const { citaId } = req.params;
@@ -155,7 +162,7 @@ exports.reprogramarCita = async (req, res) => {
   }
 };
 
-// 5. Cambiar Estado de Cita y emitir WebSockets + Email
+// 6. Cambiar Estado de Cita (WebSockets + Email)
 exports.cambiarEstadoCita = async (req, res) => {
   try {
     const { citaId } = req.params;

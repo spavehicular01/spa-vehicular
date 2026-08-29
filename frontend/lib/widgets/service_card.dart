@@ -3,12 +3,12 @@ import '../models/wash_service.dart';
 
 class ServiceCard extends StatelessWidget {
   final WashService service;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const ServiceCard({
     super.key,
     required this.service,
-    this.onTap,
+    required this.onTap,
   });
 
   @override
@@ -26,7 +26,6 @@ class ServiceCard extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              // Imagen o Icono por defecto
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: service.imageUrl.isNotEmpty
@@ -41,7 +40,6 @@ class ServiceCard extends StatelessWidget {
                     : _buildFallbackIcon(),
               ),
               const SizedBox(width: 16),
-              // Información del servicio
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +62,6 @@ class ServiceCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Precio
               Text(
                 '\$${service.price.toStringAsFixed(0)}',
                 style: const TextStyle(

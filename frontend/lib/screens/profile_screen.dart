@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'add_vehicle_screen.dart';
 
@@ -42,6 +43,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _listaVehiculos = List.from(widget.vehiculos);
     }
   }
+
+  /// Borra el token guardado y ejecuta el callback de cierre de sesión
+  /// Borra el token guardado y ejecuta el callback de cierre de sesión
+Future<void> _ejecutarCerrarSesion() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear(); // Limpia el token y todos los datos residuales de SharedPreferences
+  
+  widget.onCerrarSesion();
+}
 
   Future<void> _hacerLlamada(String numero) async {
     final Uri url = Uri(scheme: 'tel', path: numero);
@@ -301,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
 
           OutlinedButton.icon(
-            onPressed: widget.onCerrarSesion,
+            onPressed: _ejecutarCerrarSesion,
             icon: const Icon(Icons.logout, color: Colors.red),
             label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
             style: OutlinedButton.styleFrom(

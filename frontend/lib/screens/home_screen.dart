@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/auth_required_dialog.dart';
 import 'services_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  Future<void> _validarYIrAServicios(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('token');
+
+    // Muestra alerta si no hay sesión activa
+    if (token == null || token.trim().isEmpty || token == 'null') {
+      if (!context.mounted) return;
+      AuthRequiredDialog.show(context);
+      return;
+    }
+
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ServicesScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,14 +82,7 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ServicesScreen(),
-                    ),
-                  );
-                },
+                onTap: () => _validarYIrAServicios(context),
                 borderRadius: BorderRadius.circular(12),
                 child: const Padding(
                   padding: EdgeInsets.all(20.0),

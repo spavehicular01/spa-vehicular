@@ -2,24 +2,31 @@ const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
 
-// 1. Obtener todas las citas (Para Panel Admin)
-// GET /api/appointments
-router.get('/', appointmentController.obtenerTodasLasCitas);
+const authMiddleware = require('../middlewares/authMiddleware');
+const verifyToken = authMiddleware.verifyToken || authMiddleware;
 
-// 2. Obtener citas por ID de usuario (Para App Móvil Flutter)
-// GET /api/appointments/usuario/:usuarioId
-router.get('/usuario/:usuarioId', appointmentController.obtenerCitasPorUsuario);
+// ==========================================
+// RUTAS DE CONSULTA (GET)
+// ==========================================
 
-// 3. Crear una nueva cita
-// POST /api/appointments
-router.post('/', appointmentController.crearCita);
+// Obtener todas las citas
+router.get('/', verifyToken, appointmentController.obtenerTodasLasCitas || appointmentController.obtenerCitas);
 
-// 4. Reprogramar una cita existente
-// PUT /api/appointments/:citaId/reprogramar
-router.put('/:citaId/reprogramar', appointmentController.reprogramarCita);
+// Obtener citas por cliente específico (App Flutter)
+router.get('/usuario/:usuarioId', verifyToken, appointmentController.obtenerCitasPorUsuario);
 
-// 5. Cambiar el estado de una cita (Pendiente, En Proceso, Completado, Cancelado)
-// PATCH /api/appointments/:citaId/estado
-router.patch('/:citaId/estado', appointmentController.cambiarEstadoCita);
+// ==========================================
+// RUTAS DE CREACIÓN Y EDICIÓN (POST / PUT / PATCH)
+// ==========================================
+
+// Crear nueva cita
+router.post('/crear', verifyToken, appointmentController.crearCita);
+
+// Reprogramar cita
+router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprogramarCita);
+
+// Cambiar estado de la cita
+router.put('/estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
+router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 
 module.exports = router;
