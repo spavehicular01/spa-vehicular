@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart'; // Import de la pantalla de recuperación
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -160,7 +161,32 @@ class _LoginScreenState extends State<LoginScreen> {
               border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 16),
+          
+          // --- ENLACE AGREGADO: RESTABLECER CONTRASEÑA ---
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordScreen(),
+                  ),
+                );
+              },
+              child: const Text(
+                '¿Has olvidado tu contraseña?',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+          // ----------------------------------------------
+
+          const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _iniciarSesion,
             style: ElevatedButton.styleFrom(

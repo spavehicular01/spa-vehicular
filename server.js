@@ -8,10 +8,12 @@ const cors = require('cors');
 
 // Importación de Rutas
 const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/userRoutes'); // <-- Agregado para usuarios
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const appointmentRoutes = require('./src/routes/appointmentRoutes');
 const serviceRoutes = require('./src/routes/serviceRoutes');
 const chatbotRoutes = require('./src/routes/chatbotRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes'); // <-- Agregado para subir imágenes
 
 const app = express();
 
@@ -58,10 +60,12 @@ io.on('connection', (socket) => {
 
 // Rutas base de la API con prefijo /api
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); // <-- Agregada la ruta para gestión de perfil
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/upload', uploadRoutes); // <-- Agregada la ruta para Cloudinary
 
 // Ruta raíz para verificación del servidor
 app.get('/', (req, res) => {

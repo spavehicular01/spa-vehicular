@@ -1,98 +1,135 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const emailService = require('../services/emailService');
 
-// Registrar usuario (RF001)
-exports.registrarUser = async (req, res) => {
+// 1. Iniciar Sesión (Login)
+exports.login = async (req, res) => {
   try {
-    const { nombres, apellidos, documentoIdentidad, correo, celular, password, rol } = req.body;
+    const { email, password } = req.body;
 
-    // 1. Verificar si el usuario ya existe
-    const existeUsuario = await User.findOne({ correo });
-    if (existeUsuario) {
-      return res.status(400).json({ mensaje: 'El correo ya está registrado' });
+    const user = await User.findOne({ correo: email });
+    if (!user) {
+      return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
     }
 
-    // 2. Encriptar la contraseña
-    const salt = await bcrypt.genSalt(10);
-    const passwordEncriptado = await bcrypt.hash(password, salt);
+    if (user.password !== password) {
+      return res.status(400).json({ ok: false, mensaje: 'Contraseña incorrecta' });
+    }
 
-    // 3. Crear el nuevo usuario
+    return res.status(200).json({
+      ok: true,
+      mensaje: 'Inicio de sesión exitoso',
+      usuario: {
+        id: user._id,
+        nombres: user.nombres,
+        apellidos: user.apellidos,
+        correo: user.correo,
+        rol: user.rol,
+        documentoIdentidad: user.documentoIdentidad,
+        celular: user.celular
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ ok: false, mensaje: 'Error al iniciar sesión' });
+  }
+};
+
+// 2. Registrar usuario
+exports.registro = async (req, res) => {
+  try {
+    const { nombres, apellidos, documentoIdentidad, correo, celular, password } = req.body;
+
+    const existeUsuario = await User.findOne({ 
+      $or: [{ correo }, { documentoIdentidad }] 
+    });
+
+    if (existeUsuario) {
+      return res.status(400).json({ 
+        ok: false, 
+        mensaje: 'El correo o documento de identidad ya están registrados' 
+      });
+    }
+
     const nuevoUsuario = new User({
       nombres,
       apellidos,
       documentoIdentidad,
       correo,
       celular,
-      password: passwordEncriptado,
-      rol: rol || 'cliente'
+      password
     });
 
     await nuevoUsuario.save();
 
-    // 4. Limpiar la respuesta sin exponer el hash
-    const usuarioRespuesta = nuevoUsuario.toObject();
-    delete usuarioRespuesta.password;
-
-    res.status(201).json({ 
-      mensaje: 'Usuario registrado con éxito', 
-      usuario: usuarioRespuesta 
+    return res.status(201).json({
+      ok: true,
+      mensaje: 'Usuario registrado con éxito',
+      usuario: nuevoUsuario
     });
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al registrar usuario', error: error.message });
+    return res.status(500).json({ ok: false, mensaje: 'Error al registrar el usuario' });
   }
 };
 
-// Iniciar sesión (RF003)
-exports.loginUser = async (req, res) => {
-  console.log('🔥🔥 ¡ENTRÓ AL LOGIN DE AUTHCONTROLLER! 🔥🔥');
+// 3. Solicitar código de recuperación
+exports.solicitarCodigoRecuperacion = async (req, res) => {
   try {
-    const { correo, password } = req.body;
+    const { email } = req.body;
+    const user = await User.findOne({ correo: email });
 
-    // 1. Buscar usuario por correo únicamente
-    const usuario = await User.findOne({ correo });
-    if (!usuario) {
-      console.log('❌ Usuario no encontrado:', correo);
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    if (!user) {
+      return res.status(404).json({ ok: false, mensaje: 'El correo no se encuentra registrado' });
     }
 
-    // 2. Comparar la contraseña ingresada con el hash o texto de la BD
-    let esValido = await bcrypt.compare(password, usuario.password);
-    
-    // Soporte de compatibilidad si el usuario antiguo tenía contraseña en texto plano
-    if (!esValido && password === usuario.password) {
-      esValido = true;
+    // Generar código aleatorio de 6 dígitos
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetPasswordCode = codigo;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    console.log(`[CÓDIGO REPORTE FORGOT PASSWORD PARA ${email}]: ${codigo}`);
+
+    // Envío de correo usando tu servicio existente en src/services/emailService.js
+    if (emailService && typeof emailService.enviarCorreo === 'function') {
+      await emailService.enviarCorreo(
+        email,
+        'Código de Recuperación de Contraseña - SPA Vehicular',
+        `Tu código de verificación de 6 dígitos para restablecer tu contraseña es: ${codigo}`
+      );
     }
 
-    if (!esValido) {
-      console.log('❌ Contraseña incorrecta para:', correo);
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
-    }
-
-    // 3. Generar el Token JWT
-    const token = jwt.sign(
-      { 
-        id: usuario._id, 
-        correo: usuario.correo, 
-        rol: usuario.rol 
-      },
-      process.env.JWT_SECRET || 'clave_secreta_provisoria',
-      { expiresIn: '8h' }
-    );
-
-    console.log('✅ Token generado con éxito:', token);
-
-    // 4. Ocultar contraseña en la respuesta
-    const usuarioRespuesta = usuario.toObject();
-    delete usuarioRespuesta.password;
-
-    res.json({
-      mensaje: 'Inicio de sesión exitoso',
-      token,
-      usuario: usuarioRespuesta
-    });
+    return res.status(200).json({ ok: true, mensaje: 'Código enviado correctamente' });
   } catch (error) {
-    console.error('🔥 Error en loginUser:', error);
-    res.status(500).json({ mensaje: 'Error al iniciar sesión', error: error.message });
+    console.error(error);
+    return res.status(500).json({ ok: false, mensaje: 'Error interno en el servidor' });
+  }
+};
+
+// 4. Restablecer la contraseña
+exports.restablecerPassword = async (req, res) => {
+  try {
+    const { email, codigo, nuevaPassword } = req.body;
+    const user = await User.findOne({ correo: email });
+
+    if (!user || !user.resetPasswordCode) {
+      return res.status(400).json({ ok: false, mensaje: 'Solicitud inválida o no encontrada' });
+    }
+
+    if (user.resetPasswordCode !== codigo) {
+      return res.status(400).json({ ok: false, mensaje: 'El código de 6 dígitos es incorrecto' });
+    }
+
+    if (new Date() > new Date(user.resetPasswordExpires)) {
+      return res.status(400).json({ ok: false, mensaje: 'El código ha expirado' });
+    }
+
+    user.password = nuevaPassword;
+    user.resetPasswordCode = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return res.status(200).json({ ok: true, mensaje: 'Contraseña actualizada con éxito' });
+  } catch (error) {
+    return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña' });
   }
 };

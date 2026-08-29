@@ -4,10 +4,7 @@ const bcrypt = require('bcryptjs');
 // 1. Definición del esquema
 const userSchema = new mongoose.Schema({
   nombres: { type: String, required: true },
-  apellidos: { type: String, required: true },
-  documentoIdentidad: { type: String, required: true, unique: true },
   correo: { type: String, required: true, unique: true },
-  celular: { type: String, required: true },
   password: { type: String, required: true },
   rol: { 
     type: String, 

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
+import '../services/appointment_service.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  final Map<String, dynamic>? usuario;
+  final String? token;
+
+  const CalendarScreen({super.key, this.usuario, this.token});
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -12,20 +16,66 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
+  bool _isLoading = false;
 
-  // Horarios de la jornada
-  final List<Map<String, dynamic>> _horariosDisponibles = [
+  List<Map<String, dynamic>> _horariosDisponibles = [
     {'hora': '08:00 AM', 'ocupado': false, 'servicio': ''},
-    {'hora': '09:00 AM', 'ocupado': true, 'servicio': 'Lavado Básico'},
+    {'hora': '09:00 AM', 'ocupado': false, 'servicio': ''},
     {'hora': '10:00 AM', 'ocupado': false, 'servicio': ''},
     {'hora': '11:00 AM', 'ocupado': false, 'servicio': ''},
     {'hora': '02:00 PM', 'ocupado': false, 'servicio': ''},
-    {'hora': '03:00 PM', 'ocupado': true, 'servicio': 'Polichado y Encerado'},
+    {'hora': '03:00 PM', 'ocupado': false, 'servicio': ''},
     {'hora': '04:00 PM', 'ocupado': false, 'servicio': ''},
     {'hora': '05:00 PM', 'ocupado': false, 'servicio': ''},
   ];
 
-  // Redirige a la pantalla de detalles de reserva al tocar un cupo disponible
+  @override
+  void initState() {
+    super.initState();
+    _cargarCitasDelDia();
+  }
+
+  Future<void> _cargarCitasDelDia() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final fechaStr = _selectedDate.toIso8601String().split('T')[0];
+      final citasBackend = await AppointmentService.obtenerCitasPorFecha(
+        fechaStr, 
+        token: widget.token,
+      );
+
+      final listadoActualizado = [
+        {'hora': '08:00 AM', 'ocupado': false, 'servicio': ''},
+        {'hora': '09:00 AM', 'ocupado': false, 'servicio': ''},
+        {'hora': '10:00 AM', 'ocupado': false, 'servicio': ''},
+        {'hora': '11:00 AM', 'ocupado': false, 'servicio': ''},
+        {'hora': '02:00 PM', 'ocupado': false, 'servicio': ''},
+        {'hora': '03:00 PM', 'ocupado': false, 'servicio': ''},
+        {'hora': '04:00 PM', 'ocupado': false, 'servicio': ''},
+        {'hora': '05:00 PM', 'ocupado': false, 'servicio': ''},
+      ];
+
+      for (var cita in citasBackend) {
+        final horaCita = cita['hora'];
+        for (var slot in listadoActualizado) {
+          if (slot['hora'] == horaCita) {
+            slot['ocupado'] = true;
+            slot['servicio'] = cita['servicio'] ?? 'Reservado';
+          }
+        }
+      }
+
+      setState(() {
+        _horariosDisponibles = listadoActualizado;
+      });
+    } catch (e) {
+      // Manejo de error de red opcional
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
     // 1. Validar token de autenticación antes de navegar
     final prefs = await SharedPreferences.getInstance();
@@ -46,16 +96,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context) => BookingScreen(
           selectedDate: _selectedDate,
           selectedTime: slot['hora'],
+          usuario: widget.usuario,
+          token: widget.token,
         ),
       ),
     );
 
-    // Si el usuario confirmó la reserva en BookingScreen, marcamos el cupo como ocupado
     if (resultado != null && resultado is Map<String, dynamic>) {
-      setState(() {
-        slot['ocupado'] = true;
-        slot['servicio'] = resultado['servicio'] ?? 'Reservado';
-      });
+      _cargarCitasDelDia();
     }
   }
 
