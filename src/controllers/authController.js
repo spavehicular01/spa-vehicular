@@ -1,17 +1,21 @@
-const User = require('../models/User');
-const emailService = require('../services/emailService');
+import User from '../models/User.js';
+import { sendEmail } from '../services/emailService.js';
 
 // 1. Iniciar Sesión (Login)
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ correo: email });
+    const user = await User.findOne({ 
+      $or: [{ correo: email }, { Correo_Electronico: email }] 
+    });
+
     if (!user) {
       return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
     }
 
-    if (user.password !== password) {
+    const passUser = user.password || user.passwords;
+    if (passUser !== password) {
       return res.status(400).json({ ok: false, mensaje: 'Contraseña incorrecta' });
     }
 
@@ -20,12 +24,12 @@ exports.login = async (req, res) => {
       mensaje: 'Inicio de sesión exitoso',
       usuario: {
         id: user._id,
-        nombres: user.nombres,
-        apellidos: user.apellidos,
-        correo: user.correo,
+        nombres: user.nombres || user.Nombre,
+        apellidos: user.apellidos || user.Apellido,
+        correo: user.correo || user.Correo_Electronico,
         rol: user.rol,
         documentoIdentidad: user.documentoIdentidad,
-        celular: user.celular
+        celular: user.celular || user.telefono
       }
     });
   } catch (error) {
@@ -34,12 +38,12 @@ exports.login = async (req, res) => {
 };
 
 // 2. Registrar usuario
-exports.registro = async (req, res) => {
+export const registro = async (req, res) => {
   try {
     const { nombres, apellidos, documentoIdentidad, correo, celular, password } = req.body;
 
     const existeUsuario = await User.findOne({ 
-      $or: [{ correo }, { documentoIdentidad }] 
+      $or: [{ correo }, { Correo_Electronico: correo }, { documentoIdentidad }] 
     });
 
     if (existeUsuario) {
@@ -71,10 +75,12 @@ exports.registro = async (req, res) => {
 };
 
 // 3. Solicitar código de recuperación
-exports.solicitarCodigoRecuperacion = async (req, res) => {
+export const solicitarCodigoRecuperacion = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ correo: email });
+    const user = await User.findOne({ 
+      $or: [{ correo: email }, { Correo_Electronico: email }] 
+    });
 
     if (!user) {
       return res.status(404).json({ ok: false, mensaje: 'El correo no se encuentra registrado' });
@@ -89,14 +95,19 @@ exports.solicitarCodigoRecuperacion = async (req, res) => {
 
     console.log(`[CÓDIGO REPORTE FORGOT PASSWORD PARA ${email}]: ${codigo}`);
 
-    // Envío de correo usando tu servicio existente en src/services/emailService.js
-    if (emailService && typeof emailService.enviarCorreo === 'function') {
-      await emailService.enviarCorreo(
-        email,
-        'Código de Recuperación de Contraseña - SPA Vehicular',
-        `Tu código de verificación de 6 dígitos para restablecer tu contraseña es: ${codigo}`
-      );
-    }
+    // Envío de correo usando sendEmail
+    await sendEmail({
+      to: email,
+      subject: 'Código de Recuperación de Contraseña - SPA Vehicular',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #2b6cb0;">Restablecer Contraseña</h2>
+          <p>Tu código de verificación de 6 dígitos para restablecer tu contraseña es:</p>
+          <h1 style="color: #e53e3e; letter-spacing: 4px;">${codigo}</h1>
+          <p>Este código expira en 15 minutos.</p>
+        </div>
+      `
+    });
 
     return res.status(200).json({ ok: true, mensaje: 'Código enviado correctamente' });
   } catch (error) {
@@ -106,10 +117,12 @@ exports.solicitarCodigoRecuperacion = async (req, res) => {
 };
 
 // 4. Restablecer la contraseña
-exports.restablecerPassword = async (req, res) => {
+export const restablecerPassword = async (req, res) => {
   try {
     const { email, codigo, nuevaPassword } = req.body;
-    const user = await User.findOne({ correo: email });
+    const user = await User.findOne({ 
+      $or: [{ correo: email }, { Correo_Electronico: email }] 
+    });
 
     if (!user || !user.resetPasswordCode) {
       return res.status(400).json({ ok: false, mensaje: 'Solicitud inválida o no encontrada' });
@@ -132,4 +145,11 @@ exports.restablecerPassword = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña' });
   }
+};
+
+export default {
+  login,
+  registro,
+  solicitarCodigoRecuperacion,
+  restablecerPassword
 };

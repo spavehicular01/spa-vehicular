@@ -1,8 +1,16 @@
-const express = require('express');
+import express from 'express';
+import {
+  registrarUsers,
+  verificarCuenta,
+  reenviarCodigoVerificacion,
+  login
+} from "../controllers/User.js";
+
 const router = express.Router();
-const userController = require('../controllers/userController');
 
-// Ruta para actualizar datos del perfil
-router.put('/:id', userController.actualizarPerfil);
+router.post("/registrar", registrarUsers);
+router.post("/verificar-codigo", verificarCuenta);
+router.post("/reenviar-codigo", reenviarCodigoVerificacion);
+router.post("/login", login);
 
-module.exports = router;
+export default router;

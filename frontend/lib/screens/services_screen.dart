@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart';
 import '../services/wash_service.dart';
 import '../widgets/auth_required_dialog.dart';
-import '../widgets/service_card.dart';
 import 'calendar_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
@@ -81,6 +80,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
+                  onTap: () => _validarSesionYAgendar(context, item), // <-- Conectado aquí
                   contentPadding: const EdgeInsets.all(12),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),

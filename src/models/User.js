@@ -1,35 +1,33 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-// 1. Definición del esquema
 const userSchema = new mongoose.Schema({
-  nombres: { type: String, required: true },
-  correo: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  rol: { 
-    type: String, 
-    enum: ['cliente', 'administrador', 'operario'], 
-    default: 'cliente' 
-  },
-  direccionPrincipal: { type: String, default: '' },
+  Nombre: { type: String, required: true, uppercase: true, trim: true },
+  Apellido: { type: String, required: true, uppercase: true, trim: true },
+  telefono: { type: String, required: true, trim: true },
+  Correo_Electronico: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  passwords: { type: String, required: true },
 
   // --- VERIFICACIÓN DE CUENTA ---
   isVerified: { type: Boolean, default: false },
   codigoVerificacion: { type: String },
   codigoVerificacionExpiracion: { type: Date },
 
-  // --- RECUPERACIÓN DE CONTRASEÑA ---
+  // Recuperación de contraseña
   codigoRecuperacion: { type: String },
-  codigoexpiracion: { type: Date }
+  codigoexpiracion: { type: Date },
+
+  rol: { type: String, enum: ["admin", "usuario"], default: "usuario" }
 }, { timestamps: true });
 
-// 2. Encriptación de contraseña antes de guardar
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  
+// Encriptación antes de guardar
+userSchema.pre("save", async function () {
+  if (!this.isModified("passwords")) return;
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.passwords = await bcrypt.hash(this.passwords, salt);
 });
 
-// 3. Creación y exportación del modelo al final
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+
+// IMPORTANTE: Asegúrate de tener esta línea al final
+export default User;

@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import authController from '../controllers/authController.js';
+
 const router = express.Router();
-const authController = require('../controllers/authController');
 
 // 1. Autenticación principal
 router.post('/login', authController.login);
@@ -10,4 +11,4 @@ router.post('/registrar', authController.registro);
 router.post('/recuperar/solicitar-codigo', authController.solicitarCodigoRecuperacion);
 router.post('/recuperar/restablecer-password', authController.restablecerPassword);
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const Appointment = require('../models/Appointment');
-const { sendEmail } = require('../services/emailService');
+import Appointment from '../models/Appointment.js';
+import { sendEmail } from '../services/emailService.js';
 
 // 1. Obtener citas (Todas o filtradas por estado)
-exports.obtenerCitas = async (req, res) => {
+export const obtenerCitas = async (req, res) => {
   try {
     const { estado } = req.query;
     const filtro = estado ? { estado } : {};
@@ -15,7 +15,7 @@ exports.obtenerCitas = async (req, res) => {
 };
 
 // 2. Obtener todas las citas (Panel Admin)
-exports.obtenerTodasLasCitas = async (req, res) => {
+export const obtenerTodasLasCitas = async (req, res) => {
   try {
     const citas = await Appointment.find()
       .populate('vehiculoId')
@@ -32,7 +32,7 @@ exports.obtenerTodasLasCitas = async (req, res) => {
 };
 
 // 3. Obtener citas de un cliente específico (App Móvil Flutter)
-exports.obtenerCitasPorUsuario = async (req, res) => {
+export const obtenerCitasPorUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.params;
     
@@ -53,7 +53,7 @@ exports.obtenerCitasPorUsuario = async (req, res) => {
 };
 
 // 4. Crear Cita
-exports.crearCita = async (req, res) => {
+export const crearCita = async (req, res) => {
   try {
     const nuevaCita = new Appointment(req.body);
     await nuevaCita.save();
@@ -96,7 +96,7 @@ exports.crearCita = async (req, res) => {
 };
 
 // 5. Reprogramar Cita
-exports.reprogramarCita = async (req, res) => {
+export const reprogramarCita = async (req, res) => {
   try {
     const { citaId } = req.params;
     const { nuevaFecha, motivo } = req.body;
@@ -163,7 +163,7 @@ exports.reprogramarCita = async (req, res) => {
 };
 
 // 6. Cambiar Estado de Cita (WebSockets + Email)
-exports.cambiarEstadoCita = async (req, res) => {
+export const cambiarEstadoCita = async (req, res) => {
   try {
     const { citaId } = req.params;
     const { estado } = req.body;
@@ -237,8 +237,8 @@ exports.cambiarEstadoCita = async (req, res) => {
   }
 };
 
-// 6. Obtener citas por fecha específica (YYYY-MM-DD) para el calendario de Flutter
-exports.obtenerCitasPorFecha = async (req, res) => {
+// 7. Obtener citas por fecha específica (YYYY-MM-DD) para el calendario de Flutter
+export const obtenerCitasPorFecha = async (req, res) => {
   try {
     const { fecha } = req.params;
 
@@ -258,4 +258,15 @@ exports.obtenerCitasPorFecha = async (req, res) => {
       error: error.message 
     });
   }
+};
+
+// Exportación por defecto del objeto controlador completo
+export default {
+  obtenerCitas,
+  obtenerTodasLasCitas,
+  obtenerCitasPorUsuario,
+  crearCita,
+  reprogramarCita,
+  cambiarEstadoCita,
+  obtenerCitasPorFecha
 };

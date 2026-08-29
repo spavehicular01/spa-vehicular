@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
   final String selectedTime;
+  final Map<String, dynamic>? usuario; // <-- Parámetro agregado
+  final String? token;                 // <-- Parámetro agregado
 
   const BookingScreen({
     super.key,
     required this.selectedDate,
     required this.selectedTime,
+    this.usuario,                      // <-- Constructor actualizado
+    this.token,                        // <-- Constructor actualizado
   });
 
   @override

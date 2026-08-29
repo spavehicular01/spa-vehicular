@@ -1,27 +1,49 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
-// Configuración del servicio de correo (Gmail)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'spavehicular01@gmail.com', // Tu correo de administrador SPA
-    pass: 'xxxx xxxx xxxx xxxx'       // Contraseña de aplicación generada en tu cuenta de Google
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
-exports.enviarCodigoCorreo = async (destino, codigo) => {
+// Enviar código para verificar registro de cuenta
+export const enviarCodigoVerificacion = async (correo, nombre, codigo) => {
   const mailOptions = {
-    from: '"SPA Vehicular" <spavehicular01@gmail.com>',
-    to: destino,
-    subject: 'Código de Recuperación de Contraseña - SPA Vehicular',
+    from: `"Cars Wash" <${process.env.EMAIL_USER}>`,
+    to: correo,
+    subject: '¡Gracias por registrarte! Confirma tu cuenta',
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; padding: 20px;">
+        <h2>¡Hola, ${nombre}!</h2>
+        <p>Gracias por registrarte en nuestra plataforma.</p>
+        <p>Para completar tu registro y activar tu cuenta, ingresa el siguiente código de 6 dígitos:</p>
+        <div style="background-color: #007bff; color: #ffffff; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 5px; text-align: center; border-radius: 8px; margin: 20px 0;">
+          ${codigo}
+        </div>
+        <p>Este código vencerá en <strong>15 minutos</strong>.</p>
+        <p>Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
+      </div>
+    `
+  };
+
+  return await transporter.sendMail(mailOptions);
+};
+
+// Enviar código para recuperar contraseña
+export const enviarCodigoRecuperacion = async (correo, codigo) => {
+  const mailOptions = {
+    from: `"Cars Wash" <${process.env.EMAIL_USER}>`,
+    to: correo,
+    subject: 'Recuperación de Contraseña - Cars Wash',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2>Recuperación de Contraseña</h2>
-        <p>Has solicitado restablecer tu contraseña en <strong>SPA Vehicular</strong>.</p>
-        <p>Tu código de verificación de 6 dígitos es:</p>
-        <h1 style="color: #0011ff; letter-spacing: 5px;">${codigo}</h1>
+        <h2>Restablecer Contraseña</h2>
+        <p>Has solicitado restablecer tu contraseña. Usa el siguiente código:</p>
+        <h1 style="color: #dc3545; letter-spacing: 2px;">${codigo}</h1>
         <p>Este código expira en 15 minutos.</p>
-        <p>Si no solicitaste este cambio, puedes ignorar este mensaje.</p>
+        <p>Si no solicitaste este cambio, ignora este mensaje.</p>
       </div>
     `
   };
