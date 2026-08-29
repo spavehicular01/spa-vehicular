@@ -66,13 +66,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
       }
 
-      setState(() {
-        _horariosDisponibles = listadoActualizado;
-      });
+      if (mounted) {
+        setState(() {
+          _horariosDisponibles = listadoActualizado;
+        });
+      }
     } catch (e) {
       // Manejo de error de red opcional
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -84,7 +88,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (token == null || token.trim().isEmpty || token == 'null') {
       if (!mounted) return;
       AuthRequiredDialog.show(context);
-      return; // Cancela el flujo si el usuario no ha iniciado sesión
+      return;
     }
 
     if (!mounted) return;
@@ -102,6 +106,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
+    // Recargar citas si el usuario creó una reserva exitosamente
     if (resultado != null && resultado is Map<String, dynamic>) {
       _cargarCitasDelDia();
     }
@@ -112,12 +117,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agenda tu Cita'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // 1. Calendario con localización
+          // 1. Calendario con selección de fecha dinámica
           Card(
             margin: const EdgeInsets.all(12.0),
             elevation: 2,
@@ -130,6 +135,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 setState(() {
                   _selectedDate = newDate;
                 });
+                _cargarCitasDelDia(); // Recarga las citas desde la API al cambiar la fecha
               },
             ),
           ),
@@ -158,72 +164,76 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
 
-          // 2. Bloques de horarios protegidos con el widget Material
+          // 2. Bloques de horarios con feedback de carga
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _horariosDisponibles.length,
-              itemBuilder: (context, index) {
-                final slot = _horariosDisponibles[index];
-                final bool estaOcupado = slot['ocupado'];
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 0, 26, 255)))
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.3,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: _horariosDisponibles.length,
+                    itemBuilder: (context, index) {
+                      final slot = _horariosDisponibles[index];
+                      final bool estaOcupado = slot['ocupado'];
 
-                return InkWell(
-                  onTap: estaOcupado
-                      ? null
-                      : () => _irAFormularioReserva(slot),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: estaOcupado
-                          ? Colors.grey.shade200
-                          : Colors.teal.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: estaOcupado ? const Color.fromARGB(255, 158, 158, 158) : Colors.teal,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          slot['hora'],
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      return InkWell(
+                        onTap: estaOcupado ? null : () => _irAFormularioReserva(slot),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
                             color: estaOcupado
-                                ? const Color.fromARGB(255, 158, 158, 158)
-                                : const Color.fromARGB(255, 0, 11, 105),
+                                ? Colors.grey.shade200
+                                : Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: estaOcupado
+                                  ? const Color.fromARGB(255, 158, 158, 158)
+                                  : const Color.fromARGB(255, 0, 26, 255),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                slot['hora'],
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: estaOcupado
+                                      ? const Color.fromARGB(255, 158, 158, 158)
+                                      : const Color.fromARGB(255, 0, 11, 105),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                estaOcupado
+                                    ? (slot['servicio'].isNotEmpty
+                                        ? slot['servicio']
+                                        : 'Reservado')
+                                    : 'Agendar cita',
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: estaOcupado
+                                      ? const Color.fromARGB(255, 158, 158, 158)
+                                      : const Color.fromARGB(255, 0, 30, 255),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          estaOcupado
-                              ? (slot['servicio'].isNotEmpty
-                                  ? slot['servicio']
-                                  : 'Reservado')
-                              : 'Agendar cita',
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: estaOcupado ? const Color.fromARGB(255, 158, 158, 158) : const Color.fromARGB(255, 0, 30, 255),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),

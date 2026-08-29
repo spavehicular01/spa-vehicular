@@ -39,10 +39,7 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _servicioSeleccionado;
 
-<<<<<<< HEAD
   // Modalidad: Taller vs Domicilio
-=======
->>>>>>> origin/main
   String _modalidad = 'Llevo el vehículo';
   final _direccionController = TextEditingController();
 
@@ -53,10 +50,7 @@ class _BookingScreenState extends State<BookingScreen> {
     'Tarjeta Débito / Crédito',
   ];
 
-<<<<<<< HEAD
   // Sugerencias / Notas libres
-=======
->>>>>>> origin/main
   final _notasController = TextEditingController();
 
   @override
@@ -219,10 +213,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-<<<<<<< HEAD
               // 3. Modalidad
-=======
->>>>>>> origin/main
               const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
               RadioListTile<String>(
                 title: const Text('Llevo el vehículo al spa'),
@@ -273,10 +264,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-<<<<<<< HEAD
               // 5. Sugerencias / Notas Libres
-=======
->>>>>>> origin/main
               const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
