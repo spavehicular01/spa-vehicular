@@ -1,6 +1,7 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
+// 1. Definición del esquema
 const userSchema = new mongoose.Schema({
   nombres: { type: String, required: true },
   apellidos: { type: String, required: true },
@@ -25,7 +26,7 @@ const userSchema = new mongoose.Schema({
   codigoexpiracion: { type: Date }
 }, { timestamps: true });
 
-// Encriptación de contraseña antes de guardar
+// 2. Encriptación de contraseña antes de guardar
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   
@@ -33,5 +34,5 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-const User = mongoose.model("User", userSchema);
-export default User;
+// 3. Creación y exportación del modelo al final
+module.exports = mongoose.model("User", userSchema);
