@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import '../services/appointment_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
   final String selectedTime;
+  final Map<String, dynamic>? usuario;
+  final String? token;
 
   const BookingScreen({
     super.key,
     required this.selectedDate,
     required this.selectedTime,
+    this.usuario,
+    this.token,
   });
 
   @override
@@ -16,6 +21,7 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   // Datos simulados de vehículos (Luego vendrán del perfil del usuario en la BD)
   final List<String> _misVehiculos = [
@@ -36,7 +42,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _servicioSeleccionado;
 
   // Modalidad: Taller vs Domicilio
-  String _modalidad = 'Llevo el vehículo'; // 'Llevo el vehículo' o 'A domicilio'
+  String _modalidad = 'Llevo el vehículo';
   final _direccionController = TextEditingController();
 
   // Método de Pago
@@ -47,7 +53,7 @@ class _BookingScreenState extends State<BookingScreen> {
     'Tarjeta Débito / Crédito',
   ];
 
-  // Sugerencias / Notas libres (Máx 500 caracteres)
+  // Sugerencias / Notas libres
   final _notasController = TextEditingController();
 
   @override
@@ -64,11 +70,37 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
-  void _confirmarReserva() {
-    if (_formKey.currentState!.validate()) {
-      // Confirmación exitosa
+  Future<void> _confirmarReserva() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    // Preparar el cuerpo de los datos para la API
+    final datosCita = {
+      'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
+      'correo': widget.usuario?['correo'],
+      'hora': widget.selectedTime,
+      'fechaHoraCita': widget.selectedDate.toIso8601String(),
+      'servicio': _servicioSeleccionado,
+      'vehiculo': _vehiculoSeleccionado,
+      'modalidad': _modalidad,
+      'direccion': _modalidad == 'A domicilio' ? _direccionController.text : null,
+      'metodoPago': _metodoPago,
+      'notas': _notasController.text,
+      'estado': 'Pendiente',
+    };
+
+    // Llamada al backend Node.js
+    final respuesta = await AppointmentService.crearCita(datosCita);
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (respuesta['success']) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('¡Cita Confirmada! 🎉'),
           content: Text(
@@ -81,21 +113,23 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 0, 32, 150)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 0, 32, 150),
+              ),
               onPressed: () {
-                Navigator.pop(ctx); // Cierra diálogo
-                // Devuelve los datos de la reserva al calendario
-                Navigator.pop(context, {
-                  'servicio': _servicioSeleccionado,
-                  'vehiculo': _vehiculoSeleccionado,
-                  'modalidad': _modalidad,
-                  'metodoPago': _metodoPago,
-                  'notas': _notasController.text,
-                });
+                Navigator.pop(ctx);
+                Navigator.pop(context, respuesta['cita'] ?? datosCita);
               },
               child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
             ),
           ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(respuesta['message'] ?? 'Error al agendar cita'),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -185,7 +219,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 3. Modalidad: Llevo el carro vs Domicilio
+              // 3. Modalidad
               const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
               RadioListTile<String>(
                 title: const Text('Llevo el vehículo al spa'),
@@ -237,7 +271,7 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 5. Sugerencias / Notas Libres (Hasta 500 letras)
+              // 5. Sugerencias / Notas Libres
               const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
@@ -254,7 +288,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
               // Botón Finalizar Reserva
               ElevatedButton(
-                onPressed: _confirmarReserva,
+                onPressed: _isLoading ? null : _confirmarReserva,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
@@ -263,10 +297,16 @@ class _BookingScreenState extends State<BookingScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Confirmar y Agendar',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Confirmar y Agendar',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           ),
