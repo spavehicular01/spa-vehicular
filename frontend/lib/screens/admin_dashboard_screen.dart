@@ -15,6 +15,8 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -22,10 +24,13 @@ class AdminDashboardScreen extends StatelessWidget {
         children: [
           // Tarjeta de información del Administrador
           Card(
-            color: Colors.teal.shade50,
+            color: isDark ? const Color(0xFF1E293B) : Colors.teal.shade50,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color.fromARGB(255, 0, 8, 255), width: 1.5),
+              side: BorderSide(
+                color: isDark ? const Color(0xFF334155) : const Color.fromARGB(255, 0, 8, 255),
+                width: 1.5,
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -43,12 +48,18 @@ class AdminDashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           userData['nombres'] ?? 'Administrador SPA',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           userData['correo'] ?? 'spavehicular01@gmail.com',
-                          style: TextStyle(color: const Color.fromARGB(255, 97, 97, 97)),
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade400 : const Color.fromARGB(255, 97, 97, 97),
+                          ),
                         ),
                       ],
                     ),
@@ -59,9 +70,13 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          const Text(
+          Text(
             'Panel Administrativo',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 17, 255)),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 17, 255),
+            ),
           ),
           const SizedBox(height: 16),
 
