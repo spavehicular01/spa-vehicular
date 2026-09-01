@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart'; // Importante para acceder a los Notifier globales
 import '../services/user_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -20,9 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _documentoController;
 
   bool _isLoading = false;
-  bool _modoOscuro = false;
-  double _fontSizeScale = 1.0;
-  
   File? _imagenSeleccionada;
   String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
@@ -40,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     
     _avatarUrl = widget.usuario?['avatar'] ?? widget.usuario?['imagenUrl'];
-    _cargarPreferencias();
   }
 
   @override
@@ -52,21 +49,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _cargarPreferencias() async {
+  // Métodos que notifican al instante a toda la app
+  Future<void> _cambiarModoOscuro(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _modoOscuro = prefs.getBool('modo_oscuro') ?? false;
-      _fontSizeScale = prefs.getDouble('font_scale') ?? 1.0;
-    });
+    await prefs.setBool('modo_oscuro', value);
+    
+    // Cambia el tema global al instante
+    themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
+    setState(() {});
   }
 
-  Future<void> _guardarPreferencia(String key, dynamic value) async {
+  Future<void> _cambiarTamanioLetra(double value) async {
     final prefs = await SharedPreferences.getInstance();
-    if (value is bool) {
-      await prefs.setBool(key, value);
-    } else if (value is double) {
-      await prefs.setDouble(key, value);
-    }
+    await prefs.setDouble('font_scale', value);
+    
+    // Cambia la escala de texto global al instante
+    fontSizeNotifier.value = value;
+    setState(() {});
   }
 
   Future<void> _seleccionarFoto() async {
@@ -114,219 +113,178 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = _modoOscuro ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
-    final Color cardColor = _modoOscuro ? const Color(0xFF1E1E1E) : Colors.white;
-    final Color textColor = _modoOscuro ? Colors.white : Colors.black87;
+    final bool esModoOscuro = themeNotifier.value == ThemeMode.dark;
 
-    return Theme(
-      data: (_modoOscuro ? ThemeData.dark() : ThemeData.light()).copyWith(
-        scaffoldBackgroundColor: backgroundColor,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ajustes de Perfil'),
       ),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Ajustes de Perfil',
-            style: TextStyle(fontSize: 20 * _fontSizeScale),
-          ),
-          backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-          foregroundColor: Colors.white,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Avatar con botón de cámara
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                      backgroundImage: _imagenSeleccionada != null
-                          ? FileImage(_imagenSeleccionada!)
-                          : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                              ? NetworkImage(_avatarUrl!) as ImageProvider
-                              : null,
-                      child: (_imagenSeleccionada == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
-                          ? const Icon(Icons.person, size: 55, color: Colors.white)
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _seleccionarFoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.blueAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Avatar con opción de foto
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                    backgroundImage: _imagenSeleccionada != null
+                        ? FileImage(_imagenSeleccionada!)
+                        : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                            ? NetworkImage(_avatarUrl!) as ImageProvider
+                            : null,
+                    child: (_imagenSeleccionada == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
+                        ? const Icon(Icons.person, size: 55, color: Colors.white)
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _seleccionarFoto,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Documento de Identidad (Bloqueado)
+            TextField(
+              controller: _documentoController,
+              enabled: false,
+              decoration: const InputDecoration(
+                labelText: 'Documento de Identidad (No editable)',
+                prefixIcon: Icon(Icons.badge_outlined),
+                border: OutlineInputBorder(),
+                filled: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _nombresController,
+              decoration: const InputDecoration(
+                labelText: 'Nombres',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _apellidosController,
+              decoration: const InputDecoration(
+                labelText: 'Apellidos',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _celularController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Celular',
+                prefixIcon: Icon(Icons.phone_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            ElevatedButton(
+              onPressed: _isLoading ? null : _guardarCambios,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text('Guardar Cambios', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 24),
+
+            // Personalización Global (Modo Oscuro y Tamaño de Letra)
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Personalización Global',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    SwitchListTile(
+                      secondary: Icon(
+                        esModoOscuro ? Icons.dark_mode : Icons.light_mode,
+                        color: const Color.fromARGB(255, 0, 30, 255),
+                      ),
+                      title: const Text('Modo Oscuro'),
+                      value: esModoOscuro,
+                      onChanged: (val) => _cambiarModoOscuro(val),
+                    ),
+                    const Divider(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
+                            SizedBox(width: 12),
+                            Text('Tamaño de Letra Global'),
+                          ],
+                        ),
+                        Text(
+                          '${(fontSizeNotifier.value * 100).round()}%',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: fontSizeNotifier.value,
+                      min: 0.8,
+                      max: 1.4,
+                      divisions: 6,
+                      activeColor: const Color.fromARGB(255, 0, 30, 255),
+                      onChanged: (val) => _cambiarTamanioLetra(val),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
+            const Divider(height: 40),
 
-              // Campo Documento Bloqueado (No editable)
-              TextField(
-                controller: _documentoController,
-                enabled: false,
-                style: TextStyle(fontSize: 15 * _fontSizeScale),
-                decoration: InputDecoration(
-                  labelText: 'Documento de Identidad (No editable)',
-                  prefixIcon: const Icon(Icons.badge_outlined),
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: _modoOscuro ? Colors.grey.shade800 : Colors.grey.shade200,
-                ),
+            ListTile(
+              leading: const Icon(Icons.exit_to_app, color: Colors.red),
+              title: const Text(
+                'Cerrar Sesión',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _nombresController,
-                style: TextStyle(fontSize: 15 * _fontSizeScale),
-                decoration: const InputDecoration(
-                  labelText: 'Nombres',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _apellidosController,
-                style: TextStyle(fontSize: 15 * _fontSizeScale),
-                decoration: const InputDecoration(
-                  labelText: 'Apellidos',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _celularController,
-                keyboardType: TextInputType.phone,
-                style: TextStyle(fontSize: 15 * _fontSizeScale),
-                decoration: const InputDecoration(
-                  labelText: 'Celular',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: _isLoading ? null : _guardarCambios,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : Text(
-                        'Guardar Cambios',
-                        style: TextStyle(fontSize: 16 * _fontSizeScale, fontWeight: FontWeight.bold),
-                      ),
-              ),
-              const SizedBox(height: 24),
-
-              // Sección Apariencia (Modo Oscuro y Tamaño de Letra)
-              Card(
-                color: cardColor,
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Personalización',
-                        style: TextStyle(
-                          fontSize: 15 * _fontSizeScale,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      SwitchListTile(
-                        secondary: Icon(
-                          _modoOscuro ? Icons.dark_mode : Icons.light_mode,
-                          color: const Color.fromARGB(255, 0, 30, 255),
-                        ),
-                        title: Text(
-                          'Modo Oscuro',
-                          style: TextStyle(fontSize: 14 * _fontSizeScale, color: textColor),
-                        ),
-                        value: _modoOscuro,
-                        onChanged: (val) {
-                          setState(() => _modoOscuro = val);
-                          _guardarPreferencia('modo_oscuro', val);
-                        },
-                      ),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Tamaño de Letra',
-                                style: TextStyle(fontSize: 14 * _fontSizeScale, color: textColor),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            '${(_fontSizeScale * 100).round()}%',
-                            style: TextStyle(fontSize: 14 * _fontSizeScale, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _fontSizeScale,
-                        min: 0.8,
-                        max: 1.4,
-                        divisions: 6,
-                        activeColor: const Color.fromARGB(255, 0, 30, 255),
-                        onChanged: (val) {
-                          setState(() => _fontSizeScale = val);
-                          _guardarPreferencia('font_scale', val);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Divider(height: 40),
-
-              ListTile(
-                leading: const Icon(Icons.exit_to_app, color: Colors.red),
-                title: Text(
-                  'Cerrar Sesión',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15 * _fontSizeScale,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
-              ),
-            ],
-          ),
+              onTap: () {
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+            ),
+          ],
         ),
       ),
     );
