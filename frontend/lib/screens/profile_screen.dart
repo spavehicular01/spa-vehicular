@@ -45,13 +45,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Borra el token guardado y ejecuta el callback de cierre de sesión
-  /// Borra el token guardado y ejecuta el callback de cierre de sesión
-Future<void> _ejecutarCerrarSesion() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.clear(); // Limpia el token y todos los datos residuales de SharedPreferences
-  
-  widget.onCerrarSesion();
-}
+  Future<void> _ejecutarCerrarSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Limpia el token y todos los datos residuales de SharedPreferences
+    
+    widget.onCerrarSesion();
+  }
 
   Future<void> _hacerLlamada(String numero) async {
     final Uri url = Uri(scheme: 'tel', path: numero);
@@ -126,6 +125,8 @@ Future<void> _ejecutarCerrarSesion() async {
   }
 
   void _mostrarMisVehiculos() {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -178,9 +179,13 @@ Future<void> _ejecutarCerrarSesion() async {
 
                         return Card(
                           elevation: 1,
+                          color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ListTile(
-                            leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 30, 255)),
+                            leading: Icon(
+                              Icons.directions_car, 
+                              color: isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 30, 255),
+                            ),
                             title: Text('$marca $referencia ($placa)'),
                             subtitle: Text('Tipo: $tipo | Año: $modelo | Color: $color'),
                             trailing: Row(
@@ -216,7 +221,7 @@ Future<void> _ejecutarCerrarSesion() async {
                     icon: const Icon(Icons.add),
                     label: const Text('Registrar Nuevo Vehículo'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 0, 21, 178),
+                      backgroundColor: isDark ? const Color(0xFF2563EB) : const Color.fromARGB(255, 0, 21, 178),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -232,14 +237,21 @@ Future<void> _ejecutarCerrarSesion() async {
 
   @override
   Widget build(BuildContext context) {
+    // Detectamos si la app está en modo oscuro
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Colores dinámicos para las tarjetas del perfil
+    final Color cardBgColor = isDark ? const Color(0xFF0F172A) : Colors.teal.shade50;
+    final Color iconColor = isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 34, 255);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 40,
-            backgroundColor: Color.fromARGB(255, 0, 21, 255),
-            child: Icon(Icons.person, size: 50, color: Colors.white),
+            backgroundColor: isDark ? const Color(0xFF2563EB) : const Color.fromARGB(255, 0, 21, 255),
+            child: const Icon(Icons.person, size: 50, color: Colors.white),
           ),
           const SizedBox(height: 12),
           Text(
@@ -248,25 +260,26 @@ Future<void> _ejecutarCerrarSesion() async {
           ),
           Text(
             widget.correo,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey),
           ),
           const Divider(height: 30),
 
           ListTile(
-            leading: const Icon(Icons.badge, color: Color.fromARGB(255, 0, 30, 255)),
+            leading: Icon(Icons.badge, color: iconColor),
             title: const Text('Documento de Identidad'),
             subtitle: Text(widget.documento),
           ),
 
+          // Tarjeta de Teléfono adaptable
           Card(
             elevation: 0,
-            color: Colors.teal.shade50,
+            color: cardBgColor,
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.phone_android, color: Color.fromARGB(255, 0, 34, 255)),
+              leading: Icon(Icons.phone_android, color: iconColor),
               title: const Text('Número de Teléfono'),
               subtitle: Text(widget.telefono),
-              trailing: const Icon(Icons.touch_app, color: Color.fromARGB(255, 0, 38, 255)),
+              trailing: Icon(Icons.touch_app, color: iconColor),
               onTap: () {
                 showModalBottomSheet(
                   context: context,
@@ -295,15 +308,16 @@ Future<void> _ejecutarCerrarSesion() async {
             ),
           ),
 
+          // Tarjeta de Mis Vehículos adaptable
           Card(
             elevation: 0,
-            color: Colors.teal.shade50,
+            color: cardBgColor,
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 42, 255)),
+              leading: Icon(Icons.directions_car, color: iconColor),
               title: const Text('Mis Vehículos'),
               subtitle: Text('${_listaVehiculos.length} vehículo(s) registrado(s)'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color.fromARGB(255, 0, 38, 255)),
+              trailing: Icon(Icons.arrow_forward_ios, size: 16, color: iconColor),
               onTap: _mostrarMisVehiculos,
             ),
           ),
