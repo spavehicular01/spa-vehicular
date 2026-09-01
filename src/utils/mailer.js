@@ -1,52 +1,58 @@
-import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+dotenv.config();
+
+// Función auxiliar para realizar peticiones HTTP a la API REST de Brevo
+const enviarEmailBrevo = async ({ correo, asunto, html }) => {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { 
+        name: 'Cars Wash', 
+        email: process.env.EMAIL_USER || 'didiercediel58@gmail.com' 
+      },
+      to: [{ email: correo }],
+      subject: asunto,
+      htmlContent: html
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Error Brevo API: ${data.message || JSON.stringify(data)}`);
   }
-});
 
-// Enviar código para verificar registro de cuenta
-export const enviarCodigoVerificacion = async (correo, nombre, codigo) => {
-  const mailOptions = {
-    from: `"Cars Wash" <${process.env.EMAIL_USER}>`,
-    to: correo,
-    subject: '¡Gracias por registrarte! Confirma tu cuenta',
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; padding: 20px;">
-        <h2>¡Hola, ${nombre}!</h2>
-        <p>Gracias por registrarte en nuestra plataforma.</p>
-        <p>Para completar tu registro y activar tu cuenta, ingresa el siguiente código de 6 dígitos:</p>
-        <div style="background-color: #007bff; color: #ffffff; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 5px; text-align: center; border-radius: 8px; margin: 20px 0;">
-          ${codigo}
-        </div>
-        <p>Este código vencerá en <strong>15 minutos</strong>.</p>
-        <p>Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
-      </div>
-    `
-  };
-
-  return await transporter.sendMail(mailOptions);
+  return data;
 };
 
-// Enviar código para recuperar contraseña
-export const enviarCodigoRecuperacion = async (correo, codigo) => {
-  const mailOptions = {
-    from: `"Cars Wash" <${process.env.EMAIL_USER}>`,
-    to: correo,
-    subject: 'Recuperación de Contraseña - Cars Wash',
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2>Restablecer Contraseña</h2>
-        <p>Has solicitado restablecer tu contraseña. Usa el siguiente código:</p>
-        <h1 style="color: #dc3545; letter-spacing: 2px;">${codigo}</h1>
-        <p>Este código expira en 15 minutos.</p>
-        <p>Si no solicitaste este cambio, ignora este mensaje.</p>
-      </div>
-    `
-  };
+// 1. Enviar código de verificación al registrarse
+export const enviarCodigoVerificacion = async (correo, codigo) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2>¡Bienvenido a Cars Wash! 🚗✨</h2>
+      <p>Tu código de verificación para activar tu cuenta es:</p>
+      <h1 style="color: #007bff; letter-spacing: 2px;">${codigo}</h1>
+      <p>Este código expira en 15 minutos.</p>
+    </div>
+  `;
+  return await enviarEmailBrevo({ correo, asunto: 'Código de Verificación - Cars Wash', html });
+};
 
-  return await transporter.sendMail(mailOptions);
+// 2. Enviar código de recuperación de contraseña
+export const enviarCodigoRecuperacion = async (correo, codigo) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2>Restablecer Contraseña</h2>
+      <p>Has solicitado restablecer tu contraseña. Usa el siguiente código:</p>
+      <h1 style="color: #dc3545; letter-spacing: 2px;">${codigo}</h1>
+      <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+    </div>
+  `;
+  return await enviarEmailBrevo({ correo, asunto: 'Recuperación de Contraseña - Cars Wash', html });
 };

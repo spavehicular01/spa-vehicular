@@ -1,5 +1,5 @@
 import User from '../models/User.js';
-import { sendEmail } from '../services/emailService.js';
+import { enviarCodigoRecuperacion } from '../utils/mailer.js';
 
 // 1. Iniciar Sesión (Login)
 export const login = async (req, res) => {
@@ -33,17 +33,39 @@ export const login = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ ok: false, mensaje: 'Error al iniciar sesión' });
+    return res.status(500).json({ ok: false, mensaje: 'Error al iniciar sesión', error: error.message });
   }
 };
 
-// 2. Registrar usuario
+// 2. Registrar usuario (Rol normalizado en mayúsculas)
 export const registro = async (req, res) => {
   try {
-    const { nombres, apellidos, documentoIdentidad, correo, celular, password } = req.body;
+    const { 
+      nombres, Nombre, 
+      apellidos, Apellido, 
+      documentoIdentidad, 
+      correo, Correo_Electronico, 
+      celular, telefono, 
+      password, passwords, 
+      rol 
+    } = req.body;
+
+    const emailVal = correo || Correo_Electronico;
+    const docVal = documentoIdentidad;
+
+    if (!emailVal || (!password && !passwords)) {
+      return res.status(400).json({ 
+        ok: false, 
+        mensaje: 'El correo y la contraseña son campos obligatorios.' 
+      });
+    }
 
     const existeUsuario = await User.findOne({ 
-      $or: [{ correo }, { Correo_Electronico: correo }, { documentoIdentidad }] 
+      $or: [
+        { correo: emailVal }, 
+        { Correo_Electronico: emailVal }, 
+        ...(docVal ? [{ documentoIdentidad: docVal }] : [])
+      ] 
     });
 
     if (existeUsuario) {
@@ -53,13 +75,23 @@ export const registro = async (req, res) => {
       });
     }
 
+    // Normaliza el rol asignado a MAYÚSCULAS para cumplir el enum del Schema ('CLIENTE')
+    const rolDefinido = rol ? rol.toUpperCase() : 'CLIENTE';
+
+    // Remueve o ajusta la línea del rol y deja que Mongoose use el default del Schema:
     const nuevoUsuario = new User({
-      nombres,
-      apellidos,
-      documentoIdentidad,
-      correo,
-      celular,
-      password
+      nombres: nombres || Nombre,
+      Nombre: Nombre || nombres,
+      apellidos: apellidos || Apellido,
+      Apellido: Apellido || apellidos,
+      documentoIdentidad: docVal,
+      correo: emailVal,
+      Correo_Electronico: emailVal,
+      celular: celular || telefono,
+      telefono: telefono || celular,
+      password: password || passwords,
+      passwords: passwords || password,
+      // Si el modelo requiere rol obligatoriamente, prueba mandando 'user' o 'Admin' según lo que veas en tu User.js
     });
 
     await nuevoUsuario.save();
@@ -70,7 +102,12 @@ export const registro = async (req, res) => {
       usuario: nuevoUsuario
     });
   } catch (error) {
-    return res.status(500).json({ ok: false, mensaje: 'Error al registrar el usuario' });
+    console.error('🔥 Error exacto en registro:', error);
+    return res.status(500).json({ 
+      ok: false, 
+      mensaje: 'Error al registrar el usuario', 
+      error: error.message 
+    });
   }
 };
 
@@ -78,41 +115,35 @@ export const registro = async (req, res) => {
 export const solicitarCodigoRecuperacion = async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ ok: false, mensaje: 'El correo electrónico es requerido' });
+    }
+
+    const emailNormalizado = email.toLowerCase().trim();
+
     const user = await User.findOne({ 
-      $or: [{ correo: email }, { Correo_Electronico: email }] 
+      $or: [{ correo: emailNormalizado }, { Correo_Electronico: emailNormalizado }] 
     });
 
     if (!user) {
       return res.status(404).json({ ok: false, mensaje: 'El correo no se encuentra registrado' });
     }
 
-    // Generar código aleatorio de 6 dígitos
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.resetPasswordCode = codigo;
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    console.log(`[CÓDIGO REPORTE FORGOT PASSWORD PARA ${email}]: ${codigo}`);
+    console.log(`[CÓDIGO REPORTE FORGOT PASSWORD PARA ${emailNormalizado}]: ${codigo}`);
 
-    // Envío de correo usando sendEmail
-    await sendEmail({
-      to: email,
-      subject: 'Código de Recuperación de Contraseña - SPA Vehicular',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #2b6cb0;">Restablecer Contraseña</h2>
-          <p>Tu código de verificación de 6 dígitos para restablecer tu contraseña es:</p>
-          <h1 style="color: #e53e3e; letter-spacing: 4px;">${codigo}</h1>
-          <p>Este código expira en 15 minutos.</p>
-        </div>
-      `
-    });
+    await enviarCodigoRecuperacion(emailNormalizado, codigo);
 
-    return res.status(200).json({ ok: true, mensaje: 'Código enviado correctamente' });
+    return res.status(200).json({ ok: true, mensaje: 'Código enviado correctamente al correo' });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ ok: false, mensaje: 'Error interno en el servidor' });
+    console.error('Error en solicitarCodigoRecuperacion:', error);
+    return res.status(500).json({ ok: false, mensaje: 'Error interno en el servidor', error: error.message });
   }
 };
 
@@ -120,8 +151,15 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
 export const restablecerPassword = async (req, res) => {
   try {
     const { email, codigo, nuevaPassword } = req.body;
+
+    if (!email || !codigo || !nuevaPassword) {
+      return res.status(400).json({ ok: false, mensaje: 'Todos los campos son requeridos' });
+    }
+
+    const emailNormalizado = email.toLowerCase().trim();
+
     const user = await User.findOne({ 
-      $or: [{ correo: email }, { Correo_Electronico: email }] 
+      $or: [{ correo: emailNormalizado }, { Correo_Electronico: emailNormalizado }] 
     });
 
     if (!user || !user.resetPasswordCode) {
@@ -137,13 +175,14 @@ export const restablecerPassword = async (req, res) => {
     }
 
     user.password = nuevaPassword;
+    if (user.passwords !== undefined) user.passwords = nuevaPassword;
     user.resetPasswordCode = null;
     user.resetPasswordExpires = null;
     await user.save();
 
     return res.status(200).json({ ok: true, mensaje: 'Contraseña actualizada con éxito' });
   } catch (error) {
-    return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña' });
+    return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña', error: error.message });
   }
 };
 
