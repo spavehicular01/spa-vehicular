@@ -3,9 +3,12 @@ import Service from '../models/Service.js';
 // Obtener todos los servicios activos
 export const obtenerServicios = async (req, res) => {
   try {
-    const servicios = await Service.find({ activo: true });
+    // Si tus servicios en BD no tienen el campo 'activo', se muestran todos los existentes.
+    // Si manejan 'activo', busca los que no estén explícitamente desactivados (false).
+    const servicios = await Service.find({ activo: { $ne: false } });
     res.json(servicios);
   } catch (error) {
+    console.error('Error en obtenerServicios:', error);
     res.status(500).json({ mensaje: 'Error al obtener servicios', error: error.message });
   }
 };
@@ -24,16 +27,19 @@ export const crearServicio = async (req, res) => {
     } = req.body;
 
     const nuevoServicio = new Service({
-      nombreServicio: nombreServicio || nombre,
+      nombreServicio: nombreServicio || nombre || 'Sin nombre',
       descripcion: descripcion || '',
-      precio: precio || 0,
-      imagenUrl: image || imagenUrl || '',
-      duracionEstimadaMinutos: duracionEstimadaMinutos || 30
+      precio: precio ? Number(precio) : 0, // Garantizar que sea número
+      imagenUrl: imagenUrl || image || '',
+      duracionEstimadaMinutos: duracionEstimadaMinutos ? Number(duracionEstimadaMinutos) : 30,
+      activo: true // Asegurar que el servicio quede visible para los usuarios
     });
 
     await nuevoServicio.save();
+    console.log('Servicio guardado exitosamente:', nuevoServicio);
     res.status(201).json({ mensaje: 'Servicio creado exitosamente', servicio: nuevoServicio });
   } catch (error) {
+    console.error('Error detallado al crear servicio:', error); // Esto imprimirá la causa exacta en la terminal de Node
     res.status(500).json({ mensaje: 'Error al crear servicio', error: error.message });
   }
 };
@@ -54,9 +60,9 @@ export const actualizarServicio = async (req, res) => {
     const datosActualizados = {
       ...(nombre || nombreServicio ? { nombreServicio: nombreServicio || nombre } : {}),
       ...(descripcion !== undefined && { descripcion }),
-      ...(precio !== undefined && { precio }),
+      ...(precio !== undefined && { precio: Number(precio) }),
       ...(image || imagenUrl ? { imagenUrl: image || imagenUrl } : {}),
-      ...(duracionEstimadaMinutos !== undefined && { duracionEstimadaMinutos })
+      ...(duracionEstimadaMinutos !== undefined && { duracionEstimadaMinutos: Number(duracionEstimadaMinutos) })
     };
 
     const servicioActualizado = await Service.findByIdAndUpdate(
@@ -71,6 +77,7 @@ export const actualizarServicio = async (req, res) => {
 
     res.json({ mensaje: 'Servicio actualizado exitosamente', servicio: servicioActualizado });
   } catch (error) {
+    console.error('Error al actualizar servicio:', error);
     res.status(500).json({ mensaje: 'Error al actualizar servicio', error: error.message });
   }
 };
@@ -86,6 +93,7 @@ export const eliminarServicio = async (req, res) => {
 
     res.json({ mensaje: 'Servicio eliminado correctamente' });
   } catch (error) {
+    console.error('Error al eliminar servicio:', error);
     res.status(500).json({ mensaje: 'Error al eliminar servicio', error: error.message });
   }
 };

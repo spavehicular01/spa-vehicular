@@ -4,31 +4,7 @@ import 'package:http/http.dart' as http;
 class AppointmentService {
   static const String _baseUrl = 'http://10.0.2.2:3000/api/appointments';
 
-  // Obtener citas por fecha
-  static Future<List<dynamic>> obtenerCitasPorFecha(String fecha, {String? token}) async {
-    try {
-      final url = Uri.parse('$_baseUrl?fecha=$fecha');
-      
-      final Map<String, String> headers = {
-        'Content-Type': 'application/json',
-      };
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-
-      final response = await http.get(url, headers: headers);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data is List ? data : (data['citas'] ?? []);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // Obtener citas por ID de usuario
+  // 1. Obtener citas por ID de usuario
   static Future<List<dynamic>> obtenerCitasUsuario(String usuarioId) async {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/usuario/$usuarioId'));
@@ -41,7 +17,26 @@ class AppointmentService {
     }
   }
 
-  // Crear una nueva cita
+  // 2. Obtener citas por fecha (Nuevo método para resolver la línea roja del calendario)
+  static Future<List<dynamic>> obtenerCitasPorFecha(String fecha, {String? token}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/fecha/$fecha'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // 3. Crear una nueva cita
   static Future<Map<String, dynamic>> crearCita(Map<String, dynamic> datosCita) async {
     try {
       final response = await http.post(
@@ -61,7 +56,7 @@ class AppointmentService {
     }
   }
 
-  // Reprogramar cita
+  // 4. Reprogramar cita
   static Future<bool> reprogramarCita(String citaId, String nuevaFecha, String motivo) async {
     try {
       final response = await http.put(

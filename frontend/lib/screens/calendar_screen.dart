@@ -104,6 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
+    // Recargar citas si el usuario creó una reserva exitosamente
     if (resultado != null && resultado is Map<String, dynamic>) {
       _cargarCitasDelDia();
     }
@@ -114,12 +115,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agenda tu Cita'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // 1. Calendario
+          // 1. Calendario con selección de fecha dinámica
           Card(
             margin: const EdgeInsets.all(12.0),
             elevation: 2,
@@ -132,7 +133,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 setState(() {
                   _selectedDate = newDate;
                 });
-                _cargarCitasDelDia(); // Carga las citas según el nuevo día elegido
+                _cargarCitasDelDia(); // Recarga las citas desde la API al cambiar la fecha
               },
             ),
           ),
@@ -161,10 +162,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
 
-          // 2. Estado de carga o rejilla de horarios
+          // 2. Bloques de horarios con feedback de carga
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 0, 26, 255)))
                 : GridView.builder(
                     padding: const EdgeInsets.all(16),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -189,7 +190,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 : Colors.teal.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: estaOcupado ? const Color.fromARGB(255, 158, 158, 158) : Colors.teal,
+                              color: estaOcupado
+                                  ? const Color.fromARGB(255, 158, 158, 158)
+                                  : const Color.fromARGB(255, 0, 26, 255),
                               width: 1.5,
                             ),
                           ),
@@ -209,7 +212,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 estaOcupado
-                                    ? (slot['servicio'].isNotEmpty ? slot['servicio'] : 'Reservado')
+                                    ? (slot['servicio'].isNotEmpty
+                                        ? slot['servicio']
+                                        : 'Reservado')
                                     : 'Agendar cita',
                                 textAlign: TextAlign.center,
                                 maxLines: 1,

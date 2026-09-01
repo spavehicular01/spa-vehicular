@@ -73,3 +73,9 @@ export default {
   registerVehicle,
   deleteVehicle
 };
+
+export default {
+  getVehiclesByUser,
+  registerVehicle,
+  deleteVehicle
+};
