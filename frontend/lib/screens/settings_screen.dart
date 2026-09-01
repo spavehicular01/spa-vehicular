@@ -25,18 +25,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
 
+  // Comprueba si existe una sesión activa
+  bool get _estaAutenticado => widget.usuario != null && widget.usuario!.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
-    _nombresController = TextEditingController(text: widget.usuario?['nombres'] ?? widget.usuario?['nombre'] ?? '');
-    _apellidosController = TextEditingController(text: widget.usuario?['apellidos'] ?? '');
-    _celularController = TextEditingController(text: widget.usuario?['celular'] ?? widget.usuario?['telefono'] ?? '');
-    
-    // El documento no se edita para evitar duplicados en la BD
-    _documentoController = TextEditingController(
-      text: widget.usuario?['documento'] ?? widget.usuario?['cedula'] ?? 'Sin Documento',
+    _nombresController = TextEditingController(
+      text: widget.usuario?['nombres'] ?? widget.usuario?['nombre'] ?? '',
     );
-    
+    _apellidosController = TextEditingController(
+      text: widget.usuario?['apellidos'] ?? '',
+    );
+    _celularController = TextEditingController(
+      text: widget.usuario?['celular'] ?? widget.usuario?['telefono'] ?? '',
+    );
+    _documentoController = TextEditingController(
+      text: widget.usuario?['documento'] ?? widget.usuario?['cedula'] ?? widget.usuario?['documentoIdentidad'] ?? 'Sin Documento',
+    );
     _avatarUrl = widget.usuario?['avatar'] ?? widget.usuario?['imagenUrl'];
   }
 
@@ -49,12 +55,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  // Métodos que notifican al instante a toda la app
   Future<void> _cambiarModoOscuro(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('modo_oscuro', value);
-    
-    // Cambia el tema global al instante
     themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
     setState(() {});
   }
@@ -62,13 +65,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _cambiarTamanioLetra(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('font_scale', value);
-    
-    // Cambia la escala de texto global al instante
     fontSizeNotifier.value = value;
     setState(() {});
   }
 
   Future<void> _seleccionarFoto() async {
+    if (!_estaAutenticado) return;
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (image != null) {
       setState(() {
@@ -97,11 +99,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       nombres: _nombresController.text.trim(),
       apellidos: _apellidosController.text.trim(),
       celular: _celularController.text.trim(),
+      imagen: _imagenSeleccionada,
     );
 
     setState(() => _isLoading = false);
 
     if (!mounted) return;
+
+    if (resultado['success'] == true && resultado['usuario'] != null) {
+      setState(() {
+        if (resultado['usuario']['avatar'] != null) {
+          _avatarUrl = resultado['usuario']['avatar'];
+        }
+        _imagenSeleccionada = null;
+      });
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -117,111 +129,153 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajustes de Perfil'),
+        title: Text(_estaAutenticado ? 'Ajustes de Perfil' : 'Ajustes y Configuración'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Avatar con opción de foto
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                    backgroundImage: _imagenSeleccionada != null
-                        ? FileImage(_imagenSeleccionada!)
-                        : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                            ? NetworkImage(_avatarUrl!) as ImageProvider
-                            : null,
-                    child: (_imagenSeleccionada == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
-                        ? const Icon(Icons.person, size: 55, color: Colors.white)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _seleccionarFoto,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Colors.blueAccent,
-                          shape: BoxShape.circle,
+            // SI ESTÁ AUTENTICADO: Se muestra la gestión del perfil
+            if (_estaAutenticado) ...[
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                      backgroundImage: _imagenSeleccionada != null
+                          ? FileImage(_imagenSeleccionada!)
+                          : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                              ? NetworkImage(_avatarUrl!) as ImageProvider
+                              : null,
+                      child: (_imagenSeleccionada == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
+                          ? const Icon(Icons.person, size: 55, color: Colors.white)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _seleccionarFoto,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.blueAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
                         ),
-                        child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              TextField(
+                controller: _documentoController,
+                enabled: false,
+                decoration: const InputDecoration(
+                  labelText: 'Documento de Identidad (No editable)',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                  border: OutlineInputBorder(),
+                  filled: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: _nombresController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombres',
+                  prefixIcon: Icon(Icons.person_outline),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: _apellidosController,
+                decoration: const InputDecoration(
+                  labelText: 'Apellidos',
+                  prefixIcon: Icon(Icons.person_outline),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: _celularController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Celular',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              ElevatedButton(
+                onPressed: _isLoading ? null : _guardarCambios,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Guardar Cambios', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 24),
+            ] 
+            // SI NO HA INICIADO SESIÓN: Se muestra el panel para iniciar sesión
+            else ...[
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.account_circle, size: 70, color: Color.fromARGB(255, 0, 30, 255)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '¡Bienvenido a Spa Vehicular!',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Inicia sesión para gestionar tus datos personales, consultar tus vehículos y reservar servicios.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.popUntil(context, (route) => route.isFirst);
+                        },
+                        icon: const Icon(Icons.login),
+                        label: const Text('Iniciar Sesión / Registrarse'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
+            ],
 
-            // Documento de Identidad (Bloqueado)
-            TextField(
-              controller: _documentoController,
-              enabled: false,
-              decoration: const InputDecoration(
-                labelText: 'Documento de Identidad (No editable)',
-                prefixIcon: Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(),
-                filled: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _nombresController,
-              decoration: const InputDecoration(
-                labelText: 'Nombres',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _apellidosController,
-              decoration: const InputDecoration(
-                labelText: 'Apellidos',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _celularController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Celular',
-                prefixIcon: Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            ElevatedButton(
-              onPressed: _isLoading ? null : _guardarCambios,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    )
-                  : const Text('Guardar Cambios', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 24),
-
-            // Personalización Global (Modo Oscuro y Tamaño de Letra)
+            // Secciones globales que permanecen activas (Modo Oscuro / Tamaño de Letra)
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -272,18 +326,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const Divider(height: 40),
 
-            ListTile(
-              leading: const Icon(Icons.exit_to_app, color: Colors.red),
-              title: const Text(
-                'Cerrar Sesión',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            // El botón de "Cerrar Sesión" solo se dibuja si el usuario está autenticado
+            if (_estaAutenticado) ...[
+              const Divider(height: 40),
+              ListTile(
+                leading: const Icon(Icons.exit_to_app, color: Colors.red),
+                title: const Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+                onTap: () {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                },
               ),
-              onTap: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-            ),
+            ],
           ],
         ),
       ),

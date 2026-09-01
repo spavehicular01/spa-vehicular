@@ -6,9 +6,19 @@ exports.actualizarPerfil = async (req, res) => {
     const { id } = req.params;
     const { nombres, apellidos, celular } = req.body;
 
+    // Construir objeto con los datos a actualizar
+    const datosActualizar = { nombres, apellidos, celular };
+
+    // Si la imagen viene procesada por Multer/Cloudinary
+    if (req.file) {
+      datosActualizar.avatar = req.file.path;
+    } else if (req.body.avatar) {
+      datosActualizar.avatar = req.body.avatar;
+    }
+
     const usuarioActualizado = await User.findByIdAndUpdate(
       id,
-      { nombres, apellidos, celular },
+      datosActualizar,
       { new: true }
     );
 
@@ -26,7 +36,8 @@ exports.actualizarPerfil = async (req, res) => {
         correo: usuarioActualizado.correo,
         celular: usuarioActualizado.celular,
         rol: usuarioActualizado.rol,
-        documentoIdentidad: usuarioActualizado.documentoIdentidad
+        documentoIdentidad: usuarioActualizado.documentoIdentidad,
+        avatar: usuarioActualizado.avatar
       }
     });
   } catch (error) {
