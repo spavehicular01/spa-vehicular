@@ -1,19 +1,18 @@
-require('dotenv').config();
+import 'dotenv/config';
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import mongoose from 'mongoose';
+import cors from 'cors';
 
-const express = require('express');
-const http = require('http'); // 1. Importante para integrar Socket.io
-const { Server } = require('socket.io');
-const mongoose = require('mongoose');
-const cors = require('cors');
-
-// Importación de Rutas
-const authRoutes = require('./src/routes/authRoutes');
-const userRoutes = require('./src/routes/userRoutes'); // <-- Agregado para usuarios
-const vehicleRoutes = require('./src/routes/vehicleRoutes');
-const appointmentRoutes = require('./src/routes/appointmentRoutes');
-const serviceRoutes = require('./src/routes/serviceRoutes');
-const chatbotRoutes = require('./src/routes/chatbotRoutes');
-const uploadRoutes = require('./src/routes/uploadRoutes'); // <-- Agregado para subir imágenes
+// Importación de Rutas (OBLIGATORIO incluir la extensión .js)
+import authRoutes from './src/routes/authRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
+import vehicleRoutes from './src/routes/vehicleRoutes.js';
+import appointmentRoutes from './src/routes/appointmentRoutes.js';
+import serviceRoutes from './src/routes/serviceRoutes.js';
+import chatbotRoutes from './src/routes/chatbotRoutes.js';
+import uploadRoutes from './src/routes/uploadRoutes.js';
 
 const app = express();
 
@@ -60,12 +59,12 @@ io.on('connection', (socket) => {
 
 // Rutas base de la API con prefijo /api
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes); // <-- Agregada la ruta para gestión de perfil
+app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chatbot', chatbotRoutes);
-app.use('/api/upload', uploadRoutes); // <-- Agregada la ruta para Cloudinary
+app.use('/api/upload', uploadRoutes);
 
 // Ruta raíz para verificación del servidor
 app.get('/', (req, res) => {
@@ -83,7 +82,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ mensaje: 'Error interno del servidor', error: err.message });
 });
 
-// 4. Inicio del Servidor usando `server.listen` en lugar de `app.listen`
+// 4. Inicio del Servidor usando `server.listen`
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor y WebSockets corriendo en http://localhost:${PORT}`);
