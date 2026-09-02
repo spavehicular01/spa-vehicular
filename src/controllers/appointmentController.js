@@ -10,6 +10,7 @@ export const obtenerCitas = async (req, res) => {
 
     res.status(200).json(citas);
   } catch (error) {
+    console.error('Error en obtenerCitas:', error);
     res.status(500).json({ mensaje: 'Error al obtener citas', error: error.message });
   }
 };
@@ -20,10 +21,12 @@ export const obtenerTodasLasCitas = async (req, res) => {
     const citas = await Appointment.find()
       .populate('vehiculoId')
       .populate('servicioId')
-      .sort({ fechaHoraCita: -1 });
+      .sort({ fechaHoraCita: -1 })
+      .lean(); // .lean() convierte a JSON plano solucionando inconsistencias de Mongoose
 
     res.status(200).json(citas);
   } catch (error) {
+    console.error('Error en obtenerTodasLasCitas:', error);
     res.status(500).json({ 
       mensaje: 'Error al obtener todas las citas', 
       error: error.message 
@@ -41,10 +44,12 @@ export const obtenerCitasPorUsuario = async (req, res) => {
     })
       .populate('vehiculoId')
       .populate('servicioId')
-      .sort({ fechaHoraCita: -1 });
+      .sort({ fechaHoraCita: -1 })
+      .lean();
 
     res.status(200).json(citas);
   } catch (error) {
+    console.error('Error en obtenerCitasPorUsuario:', error);
     res.status(500).json({ 
       mensaje: 'Error al obtener las citas del usuario', 
       error: error.message 
@@ -88,6 +93,7 @@ export const crearCita = async (req, res) => {
       cita: nuevaCita 
     });
   } catch (error) {
+    console.error('Error en crearCita:', error);
     res.status(500).json({ 
       mensaje: 'Error al agendar cita', 
       error: error.message 
@@ -120,7 +126,6 @@ export const reprogramarCita = async (req, res) => {
     cita.estado = 'reprogramada';
     await cita.save();
 
-    // Notificar por WebSockets
     if (req.io) {
       req.io.emit('cita_reprogramada', cita);
     }
@@ -155,6 +160,7 @@ export const reprogramarCita = async (req, res) => {
       cita 
     });
   } catch (error) {
+    console.error('Error en reprogramarCita:', error);
     res.status(500).json({ 
       mensaje: 'Error al reprogramar cita', 
       error: error.message 
@@ -178,7 +184,6 @@ export const cambiarEstadoCita = async (req, res) => {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
     }
 
-    // Emitir cambio vía WebSockets
     if (req.io) {
       req.io.emit('cambio_estado_cita', {
         citaId: citaActualizada._id,
@@ -230,6 +235,7 @@ export const cambiarEstadoCita = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error en cambiarEstadoCita:', error);
     res.status(500).json({ 
       mensaje: 'Error al cambiar estado de la cita', 
       error: error.message 
@@ -249,10 +255,12 @@ export const obtenerCitasPorFecha = async (req, res) => {
       fechaHoraCita: { $gte: inicioDia, $lte: finDia }
     })
       .populate('vehiculoId')
-      .populate('servicioId');
+      .populate('servicioId')
+      .lean();
 
     res.status(200).json(citas);
   } catch (error) {
+    console.error('Error en obtenerCitasPorFecha:', error);
     res.status(500).json({ 
       mensaje: 'Error al obtener citas por fecha', 
       error: error.message 
@@ -260,7 +268,6 @@ export const obtenerCitasPorFecha = async (req, res) => {
   }
 };
 
-// Exportación por defecto del objeto controlador completo
 export default {
   obtenerCitas,
   obtenerTodasLasCitas,

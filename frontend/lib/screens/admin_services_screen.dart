@@ -38,16 +38,15 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
   }
 
   void _mostrarFormularioServicio({dynamic servicio}) {
-    // Extracción segura soportando Objetos con propiedades o Mapas JSON
     final String idServicio = _obtenerCampo(servicio, ['id', '_id']);
     final nombreController = TextEditingController(
-      text: _obtenerCampo(servicio, ['nombreServicio', 'nombre', 'name']),
+      text: _obtenerCampo(servicio, ['title', 'nombreServicio', 'nombre', 'name']),
     );
     final descController = TextEditingController(
-      text: _obtenerCampo(servicio, ['descripcion', 'description']),
+      text: _obtenerCampo(servicio, ['description', 'descripcion']),
     );
     
-    final dynamic valPrecio = _obtenerValor(servicio, ['precio', 'price']);
+    final dynamic valPrecio = _obtenerValor(servicio, ['precioBase', 'precio', 'price']);
     final precioController = TextEditingController(
       text: valPrecio != null ? valPrecio.toString() : '',
     );
@@ -73,7 +72,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
             }
           }
 
-          final String? imageUrl = _obtenerCampo(servicio, ['imagenUrl', 'image', 'imageUrl']);
+          final String? imageUrl = _obtenerCampo(servicio, ['imageUrl', 'imagenUrl', 'image']);
 
           return AlertDialog(
             title: Text(servicio == null ? 'Nuevo Servicio' : 'Editar Servicio'),
@@ -242,45 +241,77 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     }
   }
 
-  // Funciones auxiliares para evitar NoSuchMethodError independientemente del tipo que retorne la API
+  // Extrae de forma segura tanto de Maps como de Objetos Modelos Dart
   String _obtenerCampo(dynamic objeto, List<String> llaves) {
     if (objeto == null) return '';
-    for (var llave in llaves) {
-      try {
-        if (objeto is Map && objeto.containsKey(llave) && objeto[llave] != null) {
+
+    // Si es un Map JSON
+    if (objeto is Map) {
+      for (var llave in llaves) {
+        if (objeto.containsKey(llave) && objeto[llave] != null) {
           return objeto[llave].toString();
         }
-      } catch (_) {}
-      try {
-        var val = (objeto as dynamic);
-        switch (llave) {
-          case 'id': if (val.id != null) return val.id.toString(); break;
-          case '_id': if (val.id != null) return val.id.toString(); break;
-          case 'nombreServicio': if (val.nombreServicio != null) return val.nombreServicio.toString(); break;
-          case 'nombre': if (val.nombre != null) return val.nombre.toString(); break;
-          case 'descripcion': if (val.descripcion != null) return val.descripcion.toString(); break;
-          case 'imagenUrl': if (val.imagenUrl != null) return val.imagenUrl.toString(); break;
-          case 'image': if (val.image != null) return val.image.toString(); break;
-        }
-      } catch (_) {}
+      }
     }
+
+    // Si es un Objeto Modelo Dart
+    try {
+      var val = (objeto as dynamic);
+      for (var llave in llaves) {
+        switch (llave) {
+          case 'id':
+          case '_id':
+            if (val.id != null) return val.id.toString();
+            break;
+          case 'title':
+          case 'nombreServicio':
+          case 'nombre':
+          case 'name':
+            if (val.title != null) return val.title.toString();
+            if (val.nombreServicio != null) return val.nombreServicio.toString();
+            if (val.nombre != null) return val.nombre.toString();
+            break;
+          case 'description':
+          case 'descripcion':
+            if (val.description != null) return val.description.toString();
+            if (val.descripcion != null) return val.descripcion.toString();
+            break;
+          case 'imageUrl':
+          case 'imagenUrl':
+          case 'image':
+            if (val.imageUrl != null) return val.imageUrl.toString();
+            if (val.imagenUrl != null) return val.imagenUrl.toString();
+            if (val.image != null) return val.image.toString();
+            break;
+        }
+      }
+    } catch (_) {}
+
     return '';
   }
 
   dynamic _obtenerValor(dynamic objeto, List<String> llaves) {
     if (objeto == null) return null;
-    for (var llave in llaves) {
-      try {
-        if (objeto is Map && objeto.containsKey(llave)) {
+
+    if (objeto is Map) {
+      for (var llave in llaves) {
+        if (objeto.containsKey(llave) && objeto[llave] != null) {
           return objeto[llave];
         }
-      } catch (_) {}
-      try {
-        var val = (objeto as dynamic);
-        if (llave == 'precio' && val.precio != null) return val.precio;
-        if (llave == 'price' && val.price != null) return val.price;
-      } catch (_) {}
+      }
     }
+
+    try {
+      var val = (objeto as dynamic);
+      for (var llave in llaves) {
+        if ((llave == 'precioBase' || llave == 'precio' || llave == 'price')) {
+          if (val.precioBase != null) return val.precioBase;
+          if (val.precio != null) return val.precio;
+          if (val.price != null) return val.price;
+        }
+      }
+    } catch (_) {}
+
     return null;
   }
 
@@ -311,10 +342,10 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                     itemBuilder: (context, index) {
                       final item = _servicios[index];
                       final String id = _obtenerCampo(item, ['id', '_id']);
-                      final String nombre = _obtenerCampo(item, ['nombreServicio', 'nombre', 'name']);
-                      final String descripcion = _obtenerCampo(item, ['descripcion', 'description']);
-                      final num precio = _obtenerValor(item, ['precio', 'price']) ?? 0;
-                      final String foto = _obtenerCampo(item, ['imagenUrl', 'image', 'imageUrl']);
+                      final String nombre = _obtenerCampo(item, ['title', 'nombreServicio', 'nombre', 'name']);
+                      final String descripcion = _obtenerCampo(item, ['description', 'descripcion']);
+                      final num precio = _obtenerValor(item, ['precioBase', 'precio', 'price']) ?? 0;
+                      final String foto = _obtenerCampo(item, ['imageUrl', 'imagenUrl', 'image']);
 
                       return Card(
                         elevation: 2,
@@ -363,7 +394,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 6),
-                              Text(descripcion),
+                              Text(descripcion.isNotEmpty ? descripcion : 'Sin descripción'),
                             ],
                           ),
                           trailing: PopupMenuButton<String>(

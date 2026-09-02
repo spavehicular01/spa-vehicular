@@ -5,6 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart' as model;
+import '../models/service_model.dart';
 import 'api_config.dart';
 
 class WashApiService {
@@ -37,7 +38,7 @@ class WashApiService {
   }
 
   // ==========================================
-  // METODOS DE SUBIDA DE IMAGENES (CLOUD)
+  // MÉTODOS DE SUBIDA DE IMÁGENES (CLOUD)
   // ==========================================
   static Future<String?> subirImagen(XFile imagen) async {
     try {
@@ -76,13 +77,13 @@ class WashApiService {
   }
 
   // ==========================================
-  // METODOS DE VEHÍCULOS
+  // MÉTODOS DE VEHÍCULOS
   // ==========================================
   static Future<bool> registrarVehiculo(Map<String, dynamic> datosVehiculo) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles');
       final headers = await _getHeaders();
-      
+
       final response = await http.post(
         url,
         headers: headers,
@@ -118,7 +119,7 @@ class WashApiService {
   }
 
   // ==========================================
-  // METODOS DE SERVICIOS (CATÁLOGO DE LAVADOS)
+  // MÉTODOS DE SERVICIOS (CATÁLOGO DE LAVADOS)
   // ==========================================
   static Future<List<model.WashService>> getLavados() async {
     try {
@@ -145,10 +146,34 @@ class WashApiService {
     }
   }
 
+  static Future<List<ServiceModel>> getLavadosModel() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/services'),
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(response.body);
+        return body.map((item) => ServiceModel.fromJson(item)).toList();
+      } else {
+        throw Exception('Error al cargar servicios (${response.statusCode})');
+      }
+    } catch (e) {
+      debugPrint('ERROR GET LAVADOS MODEL: $e');
+      return [];
+    }
+  }
+
   static Future<bool> crearLavado({
     required String nombre,
     required String descripcion,
-    required double precio,
+    double? precio,
+    List<PrecioVehiculo>? precios,
+    int duracionEstimadaMinutos = 30,
     String? image,
   }) async {
     try {
@@ -157,9 +182,16 @@ class WashApiService {
 
       final Map<String, dynamic> bodyData = {
         'nombre': nombre,
+        'nombreServicio': nombre,
         'descripcion': descripcion,
-        'precio': precio,
+        'duracionEstimadaMinutos': duracionEstimadaMinutos,
       };
+
+      if (precios != null && precios.isNotEmpty) {
+        bodyData['precios'] = precios.map((p) => p.toJson()).toList();
+      } else if (precio != null) {
+        bodyData['precio'] = precio;
+      }
 
       if (image != null && image.trim().isNotEmpty) {
         bodyData['image'] = image;
@@ -171,12 +203,9 @@ class WashApiService {
         body: jsonEncode(bodyData),
       );
 
-      debugPrint('STATUS CREAR: ${response.statusCode}');
-      debugPrint('BODY CREAR: ${response.body}');
-
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
-      debugPrint('ERROR CATCH CREAR: $e');
+      debugPrint('ERROR CATCH CREAR LAVADO: $e');
       return false;
     }
   }
@@ -208,9 +237,6 @@ class WashApiService {
         body: jsonEncode(bodyData),
       );
 
-      debugPrint('STATUS ACTUALIZAR: ${response.statusCode}');
-      debugPrint('BODY ACTUALIZAR: ${response.body}');
-
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('ERROR CATCH ACTUALIZAR: $e');
@@ -236,12 +262,16 @@ class WashApiService {
   }
 
   // ==========================================
-  // METODOS DE CITAS / AGENDAMIENTO
+  // MÉTODOS DE CITAS / AGENDAMIENTO
   // ==========================================
-  static Future<bool> crearCita(Map<String, dynamic> datosCita) async {
+  static Future<Map<String, dynamic>> crearCita(Map<String, dynamic> datosCita, {String? token}) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments');
       final headers = await _getHeaders();
+
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
 
       final response = await http.post(
         url,
@@ -249,10 +279,14 @@ class WashApiService {
         body: jsonEncode(datosCita),
       );
 
-      return response.statusCode == 201 || response.statusCode == 200;
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      responseData['status'] = response.statusCode;
+      responseData['success'] = response.statusCode == 201 || response.statusCode == 200;
+
+      return responseData;
     } catch (e) {
       debugPrint('ERROR CREAR CITA: $e');
-      return false;
+      return {'success': false, 'message': 'Error de conexión con el servidor: $e'};
     }
   }
 
@@ -272,7 +306,7 @@ class WashApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('ERROR OBTENER CITAS: $e');
+      debugPrint('ERROR OBTENER CITAS USUARIO: $e');
       return [];
     }
   }
@@ -290,26 +324,62 @@ class WashApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
+      } else {
+        throw Exception('Error al obtener citas (${response.statusCode})');
       }
-      return [];
     } catch (e) {
       debugPrint('ERROR OBTENER TODAS LAS CITAS: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<dynamic>> getCitasProgramadas() async {
+    return await obtenerTodasLasCitas();
+  }
+
+  static Future<List<dynamic>> getHistorialCitas() async {
+    try {
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments?estado=completado');
+      final headers = await _getHeaders();
+
+      final response = await http.get(
+        url,
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      } else {
+        throw Exception('Error al cargar el historial (${response.statusCode})');
+      }
+    } catch (e) {
+      debugPrint('ERROR GET HISTORIAL CITAS: $e');
       return [];
     }
   }
 
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
-      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
+      final Uri urlEstandar = Uri.parse('${ApiConfig.baseUrl}/appointments/$citaId');
       final headers = await _getHeaders();
+      final body = jsonEncode({'estado': nuevoEstado});
 
-      final response = await http.put(
-        url,
-        headers: headers,
-        body: jsonEncode({'estado': nuevoEstado}),
-      );
+      var response = await http.put(urlEstandar, headers: headers, body: body);
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+
+      final Uri urlEspecifica = Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
+      response = await http.put(urlEspecifica, headers: headers, body: body);
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+
+      response = await http.patch(urlEstandar, headers: headers, body: body);
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       debugPrint('ERROR ACTUALIZAR ESTADO CITA: $e');
       return false;

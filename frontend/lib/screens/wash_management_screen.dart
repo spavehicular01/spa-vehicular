@@ -102,6 +102,33 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
     }
   }
 
+  // Funciones auxiliares para obtener nombre y descripción seguros
+  String _obtenerNombreServicio(Map<String, dynamic> cita) {
+    if (cita['servicioNombre'] != null && cita['servicioNombre'].toString().isNotEmpty) {
+      return cita['servicioNombre'];
+    }
+    if (cita['servicio'] is Map) {
+      return cita['servicio']['nombreServicio'] ?? cita['servicio']['nombre'] ?? 'Servicio de Lavado';
+    }
+    if (cita['servicioId'] is Map) {
+      return cita['servicioId']['nombreServicio'] ?? cita['servicioId']['nombre'] ?? 'Servicio de Lavado';
+    }
+    return 'Servicio de Lavado';
+  }
+
+  String _obtenerDescripcionServicio(Map<String, dynamic> cita) {
+    if (cita['servicioDescripcion'] != null && cita['servicioDescripcion'].toString().isNotEmpty) {
+      return cita['servicioDescripcion'];
+    }
+    if (cita['servicio'] is Map && cita['servicio']['descripcion'] != null) {
+      return cita['servicio']['descripcion'];
+    }
+    if (cita['servicioId'] is Map && cita['servicioId']['descripcion'] != null) {
+      return cita['servicioId']['descripcion'];
+    }
+    return 'Sin descripción registrada';
+  }
+
   Widget _buildListaCitas(List<dynamic> citas, {required bool esHistorial}) {
     if (citas.isEmpty) {
       return RefreshIndicator(
@@ -134,6 +161,9 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
           final String estado = cita['estado'] ?? 'Pendiente';
           final bool enProceso = estado == 'En Proceso';
 
+          final String nombreServicio = _obtenerNombreServicio(cita);
+          final String descripcionServicio = _obtenerDescripcionServicio(cita);
+
           return Card(
             elevation: enProceso ? 4 : 2,
             margin: const EdgeInsets.only(bottom: 12.0),
@@ -150,11 +180,15 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        cita['servicioNombre'] ?? 'Servicio de Lavado',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Text(
+                          nombreServicio,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -173,7 +207,14 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  Text(
+                    descripcionServicio,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
                   Text('📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}'),
                   if (enProceso) ...[
                     const SizedBox(height: 12),

@@ -3,8 +3,6 @@ import Service from '../models/Service.js';
 // Obtener todos los servicios activos
 export const obtenerServicios = async (req, res) => {
   try {
-    // Si tus servicios en BD no tienen el campo 'activo', se muestran todos los existentes.
-    // Si manejan 'activo', busca los que no estén explícitamente desactivados (false).
     const servicios = await Service.find({ activo: { $ne: false } });
     res.json(servicios);
   } catch (error) {
@@ -13,7 +11,7 @@ export const obtenerServicios = async (req, res) => {
   }
 };
 
-// Crear un nuevo servicio mapeando los datos recibidos desde Flutter
+// Crear un nuevo servicio mapeando el arreglo de precios por tipo de vehículo
 export const crearServicio = async (req, res) => {
   try {
     const { 
@@ -21,25 +19,28 @@ export const crearServicio = async (req, res) => {
       nombreServicio, 
       descripcion, 
       precio, 
-      image, 
-      imagenUrl, 
+      precios, 
       duracionEstimadaMinutos 
     } = req.body;
+
+    // Procesa el arreglo 'precios' o construye uno con 'automovil' por defecto
+    const listaPrecios = Array.isArray(precios) && precios.length > 0
+      ? precios
+      : [{ tipoVehiculo: 'automovil', precio: precio ? Number(precio) : 0 }];
 
     const nuevoServicio = new Service({
       nombreServicio: nombreServicio || nombre || 'Sin nombre',
       descripcion: descripcion || '',
-      precio: precio ? Number(precio) : 0, // Garantizar que sea número
-      imagenUrl: imagenUrl || image || '',
+      precios: listaPrecios,
       duracionEstimadaMinutos: duracionEstimadaMinutos ? Number(duracionEstimadaMinutos) : 30,
-      activo: true // Asegurar que el servicio quede visible para los usuarios
+      activo: true
     });
 
     await nuevoServicio.save();
     console.log('Servicio guardado exitosamente:', nuevoServicio);
     res.status(201).json({ mensaje: 'Servicio creado exitosamente', servicio: nuevoServicio });
   } catch (error) {
-    console.error('Error detallado al crear servicio:', error); // Esto imprimirá la causa exacta en la terminal de Node
+    console.error('Error detallado al crear servicio:', error);
     res.status(500).json({ mensaje: 'Error al crear servicio', error: error.message });
   }
 };
@@ -52,16 +53,20 @@ export const actualizarServicio = async (req, res) => {
       nombreServicio, 
       descripcion, 
       precio, 
-      image, 
-      imagenUrl, 
+      precios, 
       duracionEstimadaMinutos 
     } = req.body;
 
+    const valorNombre = nombreServicio || nombre;
+
+    const listaPrecios = Array.isArray(precios) && precios.length > 0
+      ? precios
+      : precio !== undefined ? [{ tipoVehiculo: 'automovil', precio: Number(precio) }] : undefined;
+
     const datosActualizados = {
-      ...(nombre || nombreServicio ? { nombreServicio: nombreServicio || nombre } : {}),
+      ...(valorNombre && { nombreServicio: valorNombre }),
       ...(descripcion !== undefined && { descripcion }),
-      ...(precio !== undefined && { precio: Number(precio) }),
-      ...(image || imagenUrl ? { imagenUrl: image || imagenUrl } : {}),
+      ...(listaPrecios && { precios: listaPrecios }),
       ...(duracionEstimadaMinutos !== undefined && { duracionEstimadaMinutos: Number(duracionEstimadaMinutos) })
     };
 
@@ -82,7 +87,7 @@ export const actualizarServicio = async (req, res) => {
   }
 };
 
-// Eliminar un servicio (o desactivarlo si manejas borrado lógico)
+// Eliminar un servicio
 export const eliminarServicio = async (req, res) => {
   try {
     const servicioEliminado = await Service.findByIdAndDelete(req.params.id);

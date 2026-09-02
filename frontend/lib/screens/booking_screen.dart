@@ -23,26 +23,29 @@ class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  final List<String> _misVehiculos = [
-    'Mazda 3 - ABC-123',
-    'Toyota Hilux - XYZ-789',
-    'Chevrolet Onix - FGH-456',
+  // Lista de vehículos registrados (debería venir de MongoDB con su _id)
+  final List<Map<String, String>> _misVehiculos = [
+    {'id': '64b0f1a23c8e4d001234567a', 'nombre': 'Mazda 3 - ABC-123'},
+    {'id': '64b0f1a23c8e4d001234567b', 'nombre': 'Toyota Hilux - XYZ-789'},
+    {'id': '64b0f1a23c8e4d001234567c', 'nombre': 'Chevrolet Onix - FGH-456'},
   ];
-  String? _vehiculoSeleccionado;
+  String? _vehiculoSeleccionadoId;
 
-  final List<String> _servicios = [
-    'Lavado Básico (30 min)',
-    'Lavado Especial (45 min)',
-    'Lavado General / Chasis (60 min)',
-    'Polichado y Encerado (90 min)',
-    'Coctel / Tapicería Profunda (120 min)',
+  // Lista de servicios registrados (debería venir de MongoDB con su _id)
+  final List<Map<String, String>> _servicios = [
+    {'id': '64b0f2a23c8e4d001234568a', 'nombre': 'Lavado Básico (30 min)'},
+    {'id': '64b0f2a23c8e4d001234568b', 'nombre': 'Lavado Especial (45 min)'},
+    {'id': '64b0f2a23c8e4d001234568c', 'nombre': 'Lavado General / Chasis (60 min)'},
+    {'id': '64b0f2a23c8e4d001234568d', 'nombre': 'Polichado y Encerado (90 min)'},
+    {'id': '64b0f2a23c8e4d001234568e', 'nombre': 'Coctel / Tapicería Profunda (120 min)'},
   ];
-  String? _servicioSeleccionado;
+  String? _servicioSeleccionadoId;
 
-  // Modalidad: Taller vs Domicilio
+  // Modalidad
   String _modalidad = 'Llevo el vehículo';
   final _direccionController = TextEditingController();
 
+  // Pago
   String _metodoPago = 'Efectivo';
   final List<String> _opcionesPago = [
     'Efectivo',
@@ -50,14 +53,13 @@ class _BookingScreenState extends State<BookingScreen> {
     'Tarjeta Débito / Crédito',
   ];
 
-  // Sugerencias / Notas libres
   final _notasController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _vehiculoSeleccionado = _misVehiculos.first;
-    _servicioSeleccionado = _servicios.first;
+    _vehiculoSeleccionadoId = _misVehiculos.first['id'];
+    _servicioSeleccionadoId = _servicios.first['id'];
   }
 
   @override
@@ -72,60 +74,87 @@ class _BookingScreenState extends State<BookingScreen> {
 
     setState(() => _isLoading = true);
 
-    // Preparar el cuerpo de los datos para la API
-    final datosCita = {
-      'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
-      'correo': widget.usuario?['correo'],
-      'hora': widget.selectedTime,
-      'fechaHoraCita': widget.selectedDate.toIso8601String(),
-      'servicio': _servicioSeleccionado,
-      'vehiculo': _vehiculoSeleccionado,
-      'modalidad': _modalidad,
-      'direccion': _modalidad == 'A domicilio' ? _direccionController.text : null,
-      'metodoPago': _metodoPago,
-      'notas': _notasController.text,
-      'estado': 'Pendiente',
-    };
+    try {
+      // Formatear la fecha y hora seleccionada en ISO 8601
+      final fechaCitaIso = DateTime(
+        widget.selectedDate.year,
+        widget.selectedDate.month,
+        widget.selectedDate.day,
+      ).toIso8601String();
 
-    // Llamada al backend Node.js
-    final respuesta = await AppointmentService.crearCita(datosCita);
+      // Construcción del Payload normalizado para Node.js y Mongoose
+      final datosCita = {
+        'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
+        'vehiculoId': _vehiculoSeleccionadoId,
+        'servicioId': _servicioSeleccionadoId,
+        'vehiculo': _misVehiculos.firstWhere((v) => v['id'] == _vehiculoSeleccionadoId)['nombre'],
+        'servicio': _servicios.firstWhere((s) => s['id'] == _servicioSeleccionadoId)['nombre'],
+        'fechaHoraCita': fechaCitaIso,
+        'hora': widget.selectedTime,
+        'correo': widget.usuario?['correo'],
+        'modalidad': _modalidad == 'A domicilio' ? 'a_domicilio' : 'en_spa',
+        'direccion': _modalidad == 'A domicilio' ? _direccionController.text : null,
+        'metodoPago': _metodoPago,
+        'especificaciones': _notasController.text,
+        'estado': 'Pendiente',
+      };
 
-    setState(() => _isLoading = false);
+      print('--> PAYLOAD ENVIADO AL BACKEND: $datosCita');
+      print('--> TOKEN JWT ENVIADO: ${widget.token}');
 
-    if (!mounted) return;
+      // Pasar datos y token JWT al servicio
+      final respuesta = await AppointmentService.crearCita(datosCita, token: widget.token);
 
-    if (respuesta['success']) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('¡Cita Confirmada! 🎉'),
-          content: Text(
-            'Tu servicio de "$_servicioSeleccionado" para el vehículo '
-            '$_vehiculoSeleccionado ha sido programado para el '
-            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
-            'a las ${widget.selectedTime}.\n\n'
-            'Modalidad: $_modalidad\n'
-            'Pago: $_metodoPago',
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 0, 32, 150),
-              ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pop(context, respuesta['cita'] ?? datosCita);
-              },
-              child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+      print('--> RESPUESTA DEL SERVIDOR: $respuesta');
+
+      setState(() => _isLoading = false);
+
+      if (!mounted) return;
+
+      if (respuesta['success'] == true || respuesta['status'] == 201 || respuesta['status'] == 200) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('¡Cita Confirmada! 🎉'),
+            content: Text(
+              'Tu servicio ha sido programado con éxito para el '
+              '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
+              'a las ${widget.selectedTime}.\n\n'
+              'Modalidad: $_modalidad\n'
+              'Pago: $_metodoPago',
             ),
-          ],
-        ),
-      );
-    } else {
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 0, 32, 150),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(respuesta['message'] ?? respuesta['error'] ?? 'Error al agendar cita'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      setState(() => _isLoading = false);
+      print('--> EXCEPCIÓN AL AGENDAR: $e');
+      print('--> STACKTRACE: $stackTrace');
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(respuesta['message'] ?? 'Error al agendar cita'),
+          content: Text('Error de conexión o datos inválidos: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -185,35 +214,40 @@ class _BookingScreenState extends State<BookingScreen> {
               const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _vehiculoSeleccionado,
+                value: _vehiculoSeleccionadoId,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.directions_car),
                 ),
                 items: _misVehiculos.map((vehiculo) {
-                  return DropdownMenuItem(value: vehiculo, child: Text(vehiculo));
+                  return DropdownMenuItem(
+                    value: vehiculo['id'],
+                    child: Text(vehiculo['nombre']!),
+                  );
                 }).toList(),
-                onChanged: (val) => setState(() => _vehiculoSeleccionado = val),
+                onChanged: (val) => setState(() => _vehiculoSeleccionadoId = val),
               ),
               const SizedBox(height: 20),
 
               const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _servicioSeleccionado,
+                value: _servicioSeleccionadoId,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.local_car_wash),
                 ),
                 items: _servicios.map((serv) {
-                  return DropdownMenuItem(value: serv, child: Text(serv));
+                  return DropdownMenuItem(
+                    value: serv['id'],
+                    child: Text(serv['nombre']!),
+                  );
                 }).toList(),
-                onChanged: (val) => setState(() => _servicioSeleccionado = val),
+                onChanged: (val) => setState(() => _servicioSeleccionadoId = val),
               ),
               const SizedBox(height: 20),
 
-              // 3. Modalidad
               const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
               RadioListTile<String>(
                 title: const Text('Llevo el vehículo al spa'),
@@ -264,7 +298,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 5. Sugerencias / Notas Libres
               const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(

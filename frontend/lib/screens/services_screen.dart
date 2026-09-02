@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/wash_service.dart';
+import '../models/service_model.dart';
 import '../services/wash_service.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'calendar_screen.dart';
+import '../widgets/service_card.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -13,7 +14,7 @@ class ServicesScreen extends StatefulWidget {
 }
 
 class _ServicesScreenState extends State<ServicesScreen> {
-  late Future<List<WashService>> _futureLavados;
+  late Future<List<ServiceModel>> _futureLavados;
 
   @override
   void initState() {
@@ -21,7 +22,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     _futureLavados = WashApiService.getLavados();
   }
 
-  Future<void> _validarSesionYAgendar(BuildContext context, WashService item) async {
+  Future<void> _validarSesionYAgendar(BuildContext context, ServiceModel item) async {
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('token');
 
@@ -48,7 +49,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
         backgroundColor: const Color.fromARGB(255, 0, 26, 255),
         foregroundColor: Colors.white,
       ),
-      body: FutureBuilder<List<WashService>>(
+      body: FutureBuilder<List<ServiceModel>>(
         future: _futureLavados,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

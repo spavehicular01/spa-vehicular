@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/wash_service.dart';
+import '../models/service_model.dart';
 
 class ServiceCard extends StatelessWidget {
-  final WashService service;
+  final ServiceModel service;
   final VoidCallback onTap;
 
   const ServiceCard({
@@ -28,16 +28,7 @@ class ServiceCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: service.imageUrl.isNotEmpty
-                    ? Image.network(
-                        service.imageUrl,
-                        width: 70,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildFallbackIcon(),
-                      )
-                    : _buildFallbackIcon(),
+                child: _buildFallbackIcon(),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -45,7 +36,7 @@ class ServiceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      service.title,
+                      service.nombre,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -53,7 +44,7 @@ class ServiceCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      service.description,
+                      service.descripcion,
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -63,7 +54,7 @@ class ServiceCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '\$${service.price.toStringAsFixed(0)}',
+                '\$${service.precioBase.toStringAsFixed(0)}', // Muestra el precio base obtenido del arreglo
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -82,7 +73,11 @@ class ServiceCard extends StatelessWidget {
       width: 70,
       height: 70,
       color: Colors.teal.shade50,
-      child: const Icon(Icons.directions_car, size: 40, color: Color.fromARGB(255, 0, 30, 255)),
+      child: const Icon(
+        Icons.directions_car,
+        size: 40,
+        color: Color.fromARGB(255, 0, 30, 255),
+      ),
     );
   }
 }

@@ -74,8 +74,3 @@ export default {
   deleteVehicle
 };
 
-export default {
-  getVehiclesByUser,
-  registerVehicle,
-  deleteVehicle
-};
