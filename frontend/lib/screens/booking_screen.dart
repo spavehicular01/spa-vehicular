@@ -4,14 +4,14 @@ import '../services/appointment_service.dart';
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
   final String selectedTime;
-  final Map<String, dynamic>? usuario;
+  final Map<String, dynamic> usuario;
   final String? token;
 
   const BookingScreen({
     super.key,
     required this.selectedDate,
     required this.selectedTime,
-    this.usuario,
+    required this.usuario,
     this.token,
   });
 
@@ -74,8 +74,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
     // Preparar el cuerpo de los datos para la API
     final datosCita = {
-      'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
-      'correo': widget.usuario?['correo'],
+      'usuarioId': widget.usuario['_id'] ?? widget.usuario['id'],
+      'correo': widget.usuario['correo'],
       'hora': widget.selectedTime,
       'fechaHoraCita': widget.selectedDate.toIso8601String(),
       'servicio': _servicioSeleccionado,
@@ -88,7 +88,10 @@ class _BookingScreenState extends State<BookingScreen> {
     };
 
     // Llamada al backend Node.js
-    final respuesta = await AppointmentService.crearCita(datosCita);
+    final respuesta = await AppointmentService.crearCita(
+      datosCita,
+      token: widget.token,
+    );
 
     setState(() => _isLoading = false);
 

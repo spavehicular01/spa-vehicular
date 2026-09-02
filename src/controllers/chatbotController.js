@@ -1,7 +1,6 @@
-// src/controllers/chatbotController.js
-const { generateChatResponse } = require('../services/aiService');
+import { generateChatResponse } from '../services/aiService.js';
 
-exports.handleMessage = async (req, res) => {
+export const handleMessage = async (req, res) => {
   try {
     const { message } = req.body;
 
@@ -19,4 +18,8 @@ exports.handleMessage = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error al procesar el mensaje del chatbot.', error: error.message });
   }
+};
+
+export default {
+  handleMessage
 };

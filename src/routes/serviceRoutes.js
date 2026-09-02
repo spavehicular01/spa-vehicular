@@ -1,10 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const serviceController = require('../controllers/serviceController');
+import express from 'express';
+import serviceController from '../controllers/serviceController.js';
+import verifyToken from '../middlewares/authMiddleware.js';
 
-// Manejo del middleware de autenticación (opcional si deseas proteger la creación)
-const authModule = require('../middlewares/authMiddleware');
-const verifyToken = authModule.verifyToken || authModule;
+const router = express.Router();
 
 // GET /api/services - Obtener servicios activos
 router.get('/', serviceController.obtenerServicios);
@@ -12,4 +10,4 @@ router.get('/', serviceController.obtenerServicios);
 // POST /api/services - Crear un nuevo servicio
 router.post('/', serviceController.crearServicio);
 
-module.exports = router;
+export default router;

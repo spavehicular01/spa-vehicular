@@ -60,6 +60,8 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateModal) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
           Future<void> seleccionarImagen() async {
             final ImagePicker picker = ImagePicker();
             final XFile? image = await picker.pickImage(
@@ -87,9 +89,11 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                       height: 120,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: isDark ? const Color(0xFF1E293B) : Colors.grey[200],
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color.fromARGB(255, 0, 30, 255)),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155) : const Color.fromARGB(255, 0, 30, 255),
+                        ),
                       ),
                       child: imagenSeleccionada != null
                           ? ClipRRect(
@@ -106,15 +110,25 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                                     imageUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) =>
-                                        const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                        Icon(Icons.broken_image, size: 40, color: isDark ? Colors.grey[600] : Colors.grey),
                                   ),
                                 )
-                              : const Column(
+                              : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: Color.fromARGB(255, 2, 27, 255), size: 30),
-                                    SizedBox(height: 6),
-                                    Text('Agregar foto del lavado', style: TextStyle(fontSize: 12)),
+                                    Icon(
+                                      Icons.add_a_photo,
+                                      color: isDark ? Colors.blue.shade300 : const Color.fromARGB(255, 2, 27, 255),
+                                      size: 30,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Agregar foto del lavado',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.grey[300] : Colors.black87,
+                                      ),
+                                    ),
                                   ],
                                 ),
                     ),

@@ -11,7 +11,11 @@ export const registrarUsers = async (req, res) => {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
 
-    const existeUser = await User.findOne({ Correo_Electronico });
+    // Buscar si existe por correo electrónico (soporta esquema con 'correo' o 'Correo_Electronico')
+    const existeUser = await User.findOne({
+      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
+    });
+
     if (existeUser) {
       return res.status(400).json({ message: "El correo electrónico ya está registrado" });
     }
@@ -21,11 +25,16 @@ export const registrarUsers = async (req, res) => {
 
     const nuevoUser = new User({
       nombres: nombre,
+      Nombre: nombre,
       apellidos,
+      Apellido: apellidos,
       documentoIdentidad,
       correo: Correo_Electronico,
+      Correo_Electronico,
       celular,
+      telefono: celular,
       password,
+      passwords: password,
       codigoVerificacion: codigo,
       codigoVerificacionExpiracion: expiracion,
       isVerified: false
@@ -54,7 +63,9 @@ export const verificarCuenta = async (req, res) => {
       return res.status(400).json({ message: "El correo y el código son obligatorios" });
     }
 
-    const user = await User.findOne({ correo: Correo_Electronico });
+    const user = await User.findOne({
+      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
+    });
 
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -96,7 +107,9 @@ export const reenviarCodigoVerificacion = async (req, res) => {
       return res.status(400).json({ message: "El correo electrónico es requerido" });
     }
 
-    const user = await User.findOne({ correo: Correo_Electronico });
+    const user = await User.findOne({
+      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
+    });
 
     if (!user) {
       return res.status(404).json({ message: "No existe una cuenta con este correo" });
@@ -111,7 +124,10 @@ export const reenviarCodigoVerificacion = async (req, res) => {
     user.codigoVerificacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    await enviarCodigoVerificacion(user.correo, user.nombres, nuevoCodigo);
+    const nombreDestinatario = user.nombres || user.Nombre || "Usuario";
+    const correoDestinatario = user.correo || user.Correo_Electronico;
+
+    await enviarCodigoVerificacion(correoDestinatario, nombreDestinatario, nuevoCodigo);
 
     res.status(200).json({
       message: "Se ha enviado un nuevo código de 6 dígitos a su correo."
@@ -132,32 +148,36 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Correo y contraseña requeridos" });
     }
 
-    // 1. Buscar al usuario
-    const user = await User.findOne({ correo: Correo_Electronico });
+    // Buscar al usuario
+    const user = await User.findOne({
+      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
+    });
+
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    // 2. Verificar contraseña con bcrypt
-    const passwordCorrecto = await bcrypt.compare(passwords, user.password);
+    // Verificar contraseña con bcrypt (valida contra 'password' o 'passwords')
+    const passUser = user.password || user.passwords;
+    const passwordCorrecto = await bcrypt.compare(passwords, passUser);
     if (!passwordCorrecto) {
       return res.status(400).json({ message: "Contraseña incorrecta" });
     }
 
-    // 3. BLOQUEO: Verificar si completó el código de 6 dígitos
+    // BLOQUEO: Verificar si completó el código de 6 dígitos
     if (!user.isVerified) {
       return res.status(403).json({
         message: "Tu cuenta no está verificada. Por favor ingresa el código enviado a tu correo antes de iniciar sesión."
       });
     }
 
-    // 4. Si está verificado, acceso concedido
+    // Acceso concedido
     res.status(200).json({
       message: "Inicio de sesión exitoso",
       usuario: {
         id: user._id,
-        Nombre: user.nombres,
-        Correo_Electronico: user.correo,
+        Nombre: user.nombres || user.Nombre,
+        Correo_Electronico: user.correo || user.Correo_Electronico,
         rol: user.rol
       }
     });

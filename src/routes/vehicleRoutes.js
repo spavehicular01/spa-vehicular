@@ -1,11 +1,15 @@
-const express = require('express');
+import express from 'express';
+import vehicleController from '../controllers/vehicleController.js';
+
 const router = express.Router();
-const vehicleController = require('../controllers/vehicleController');
 
-// POST: http://localhost:3000/api/vehicles/registrar
-router.post('/registrar', vehicleController.registrarVehiculo);
+// Registrar un nuevo vehículo
+router.post('/registrar', vehicleController.registerVehicle);
 
-// GET: http://localhost:3000/api/vehicles/usuario/:usuarioId
-router.get('/usuario/:usuarioId', vehicleController.obtenerVehiculosPorUsuario);
+// Obtener vehículos de un usuario por su ID
+router.get('/usuario/:userId', vehicleController.getVehiclesByUser);
 
-module.exports = router;
+// Eliminar un vehículo por ID
+router.delete('/:id', vehicleController.deleteVehicle);
+
+export default router;

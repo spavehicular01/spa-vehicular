@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,11 +30,60 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late List<Map<String, String>> _listaVehiculos;
+  Map<String, String>? _datosUsuarioPersistidos;
+  bool _cargandoDatos = true;
 
   @override
   void initState() {
     super.initState();
     _listaVehiculos = List.from(widget.vehiculos);
+    _cargarDatosDeSesion();
+  }
+
+  /// Carga los datos reales guardados en SharedPreferences tras el inicio de sesión
+  Future<void> _cargarDatosDeSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Si guardaste el usuario en formato JSON o llaves independientes al hacer login
+    final String? userJson = prefs.getString('user_data');
+    
+    if (userJson != null && userJson.isNotEmpty) {
+      try {
+        final Map<String, dynamic> userMap = jsonDecode(userJson);
+        if (mounted) {
+          setState(() {
+            _datosUsuarioPersistidos = {
+              'nombreCompleto': userMap['nombreCompleto'] ?? userMap['nombre'] ?? userMap['name'] ?? '',
+              'correo': userMap['correo'] ?? userMap['email'] ?? '',
+              'documento': userMap['documento'] ?? userMap['cedula'] ?? userMap['dni'] ?? '',
+              'telefono': userMap['telefono'] ?? userMap['phone'] ?? userMap['celular'] ?? '',
+            };
+            _cargandoDatos = false;
+          });
+        }
+        return;
+      } catch (_) {}
+    }
+
+    // Si no hay objeto JSON, intentamos leer llaves individuales
+    final String? name = prefs.getString('user_name') ?? prefs.getString('nombreCompleto');
+    final String? email = prefs.getString('user_email') ?? prefs.getString('correo');
+    final String? doc = prefs.getString('user_doc') ?? prefs.getString('documento');
+    final String? phone = prefs.getString('user_phone') ?? prefs.getString('telefono');
+
+    if (mounted) {
+      setState(() {
+        if (name != null || email != null) {
+          _datosUsuarioPersistidos = {
+            'nombreCompleto': name ?? widget.nombreCompleto,
+            'correo': email ?? widget.correo,
+            'documento': doc ?? widget.documento,
+            'telefono': phone ?? widget.telefono,
+          };
+        }
+        _cargandoDatos = false;
+      });
+    }
   }
 
   @override
@@ -237,6 +287,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cargandoDatos) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Asignación de variables tomando la información leída localmente primero, o props como respaldo
+    final String nombreMostrar = _datosUsuarioPersistidos?['nombreCompleto']?.isNotEmpty == true
+        ? _datosUsuarioPersistidos!['nombreCompleto']!
+        : widget.nombreCompleto;
+
+    final String correoMostrar = _datosUsuarioPersistidos?['correo']?.isNotEmpty == true
+        ? _datosUsuarioPersistidos!['correo']!
+        : widget.correo;
+
+    final String documentoMostrar = _datosUsuarioPersistidos?['documento']?.isNotEmpty == true
+        ? _datosUsuarioPersistidos!['documento']!
+        : widget.documento;
+
+    final String telefonoMostrar = _datosUsuarioPersistidos?['telefono']?.isNotEmpty == true
+        ? _datosUsuarioPersistidos!['telefono']!
+        : widget.telefono;
+
     // Detectamos si la app está en modo oscuro
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -255,11 +326,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.nombreCompleto,
+            nombreMostrar,
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           Text(
-            widget.correo,
+            correoMostrar,
             style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey),
           ),
           const Divider(height: 30),
@@ -267,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(
             leading: Icon(Icons.badge, color: iconColor),
             title: const Text('Documento de Identidad'),
-            subtitle: Text(widget.documento),
+            subtitle: Text(documentoMostrar),
           ),
 
           // Tarjeta de Teléfono adaptable
@@ -278,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: ListTile(
               leading: Icon(Icons.phone_android, color: iconColor),
               title: const Text('Número de Teléfono'),
-              subtitle: Text(widget.telefono),
+              subtitle: Text(telefonoMostrar),
               trailing: Icon(Icons.touch_app, color: iconColor),
               onTap: () {
                 showModalBottomSheet(
@@ -290,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: const Text('Llamar'),
                         onTap: () {
                           Navigator.pop(ctx);
-                          _hacerLlamada(widget.telefono);
+                          _hacerLlamada(telefonoMostrar);
                         },
                       ),
                       ListTile(
@@ -298,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: const Text('WhatsApp'),
                         onTap: () {
                           Navigator.pop(ctx);
-                          _abrirWhatsApp(widget.telefono);
+                          _abrirWhatsApp(telefonoMostrar);
                         },
                       ),
                     ],

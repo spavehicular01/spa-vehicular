@@ -1,8 +1,9 @@
-const express = require('express');
-const router = express.Router();
-const appointmentController = require('../controllers/appointmentController');
+import express from 'express';
+import appointmentController from '../controllers/appointmentController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-const authMiddleware = require('../middlewares/authMiddleware');
+const router = express.Router();
+
 const verifyToken = authMiddleware.verifyToken || authMiddleware;
 
 // ==========================================
@@ -29,4 +30,4 @@ router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprograma
 router.put('/estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 
-module.exports = router;
+export default router;

@@ -4,7 +4,7 @@
  * Función para responder preguntas frecuentes del SPA Vehicular.
  * Puedes conectar esto a la API de OpenAI, Gemini o usar lógica de respuestas automáticas.
  */
-const generateChatResponse = async (userMessage) => {
+export const generateChatResponse = async (userMessage) => {
   const messageLower = userMessage.toLowerCase();
 
   // Respuestas dinámicas/reglas de negocio según palabras clave
@@ -28,4 +28,4 @@ const generateChatResponse = async (userMessage) => {
   return "Hola, soy el asistente virtual del SPA Vehicular. ¿En qué te puedo ayudar hoy? Puedes preguntarme sobre nuestros servicios, horarios o domicilios.";
 };
 
-module.exports = { generateChatResponse };
+export default generateChatResponse;

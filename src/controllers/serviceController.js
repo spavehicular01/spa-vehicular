@@ -1,7 +1,7 @@
-const Service = require('../models/Service');
+import Service from '../models/Service.js';
 
 // Obtener todos los servicios activos
-exports.obtenerServicios = async (req, res) => {
+export const obtenerServicios = async (req, res) => {
   try {
     // Si tus servicios en BD no tienen el campo 'activo', se muestran todos los existentes.
     // Si manejan 'activo', busca los que no estén explícitamente desactivados (false).
@@ -14,7 +14,7 @@ exports.obtenerServicios = async (req, res) => {
 };
 
 // Crear un nuevo servicio mapeando los datos recibidos desde Flutter
-exports.crearServicio = async (req, res) => {
+export const crearServicio = async (req, res) => {
   try {
     const { 
       nombre, 
@@ -45,7 +45,7 @@ exports.crearServicio = async (req, res) => {
 };
 
 // Actualizar un servicio existente por ID
-exports.actualizarServicio = async (req, res) => {
+export const actualizarServicio = async (req, res) => {
   try {
     const { 
       nombre, 
@@ -82,8 +82,8 @@ exports.actualizarServicio = async (req, res) => {
   }
 };
 
-// Eliminar un servicio
-exports.eliminarServicio = async (req, res) => {
+// Eliminar un servicio (o desactivarlo si manejas borrado lógico)
+export const eliminarServicio = async (req, res) => {
   try {
     const servicioEliminado = await Service.findByIdAndDelete(req.params.id);
 
@@ -96,4 +96,11 @@ exports.eliminarServicio = async (req, res) => {
     console.error('Error al eliminar servicio:', error);
     res.status(500).json({ mensaje: 'Error al eliminar servicio', error: error.message });
   }
+};
+
+export default {
+  obtenerServicios,
+  crearServicio,
+  actualizarServicio,
+  eliminarServicio
 };

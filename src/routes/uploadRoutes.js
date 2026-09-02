@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import upload from '../middlewares/upload.js';
+
 const router = express.Router();
-const upload = require('../middlewares/upload');
 
 // POST /api/upload
 router.post('/', upload.single('image'), (req, res) => {
@@ -15,4 +16,4 @@ router.post('/', upload.single('image'), (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

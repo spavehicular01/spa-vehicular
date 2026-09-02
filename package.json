@@ -2,23 +2,26 @@
   "name": "cars-wash",
   "version": "1.0.0",
   "description": "[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)\r [![Express](https://img.shields.io/badge/Express-4.x-blue.svg)](https://expressjs.com/)\r [![MongoDB](https://img.shields.io/badge/MongoDB-6.0%2B-green.svg)](https://www.mongodb.com/)\r [![License](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE)",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.3",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^1.41.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.2",
+    "multer": "^2.3.0",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^9.0.5",
     "socket.io": "^4.8.3"

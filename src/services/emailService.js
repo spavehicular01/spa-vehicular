@@ -1,5 +1,4 @@
-// src/services/emailService.js
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail', // O configura tu SMTP en variables de entorno
@@ -9,7 +8,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = async ({ to, subject, html }) => {
+export const sendEmail = async ({ to, subject, html }) => {
   try {
     const mailOptions = {
       from: `"SPA VEHICULAR" <${process.env.EMAIL_USER}>`,
@@ -27,4 +26,4 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 };
 
-module.exports = { sendEmail };
+export default sendEmail;

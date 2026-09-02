@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,8 +8,13 @@ import '../services/user_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
+  final Function(Map<String, dynamic>)? onUsuarioActualizado;
 
-  const SettingsScreen({super.key, this.usuario});
+  const SettingsScreen({
+    super.key, 
+    this.usuario,
+    this.onUsuarioActualizado,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -59,14 +65,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('modo_oscuro', value);
     themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
-    setState(() {});
   }
 
   Future<void> _cambiarTamanioLetra(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('font_scale', value);
     fontSizeNotifier.value = value;
-    setState(() {});
   }
 
   Future<void> _seleccionarFoto() async {
@@ -107,12 +111,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
 
     if (resultado['success'] == true && resultado['usuario'] != null) {
+      final Map<String, dynamic> usuarioActualizado = Map<String, dynamic>.from(resultado['usuario']);
+
       setState(() {
-        if (resultado['usuario']['avatar'] != null) {
-          _avatarUrl = resultado['usuario']['avatar'];
+        if (usuarioActualizado['avatar'] != null) {
+          _avatarUrl = usuarioActualizado['avatar'];
         }
         _imagenSeleccionada = null;
       });
+
+      // Guardar localmente para evitar desincronizaciones
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(usuarioActualizado));
+
+      // Notificar al widget padre si existe el callback
+      if (widget.onUsuarioActualizado != null) {
+        widget.onUsuarioActualizado!(usuarioActualizado);
+      }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -125,8 +140,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool esModoOscuro = themeNotifier.value == ThemeMode.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_estaAutenticado ? 'Ajustes de Perfil' : 'Ajustes y Configuración'),
@@ -275,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
             ],
 
-            // Secciones globales que permanecen activas (Modo Oscuro / Tamaño de Letra)
+            // Secciones globales con escuchadores reactivos (Modo Oscuro / Tamaño de Letra)
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -288,46 +301,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Personalización Global',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
-                    SwitchListTile(
-                      secondary: Icon(
-                        esModoOscuro ? Icons.dark_mode : Icons.light_mode,
-                        color: const Color.fromARGB(255, 0, 30, 255),
-                      ),
-                      title: const Text('Modo Oscuro'),
-                      value: esModoOscuro,
-                      onChanged: (val) => _cambiarModoOscuro(val),
+                    ValueListenableBuilder<ThemeMode>(
+                      valueListenable: themeNotifier,
+                      builder: (context, currentMode, _) {
+                        final bool esOscuro = currentMode == ThemeMode.dark;
+                        return SwitchListTile(
+                          secondary: Icon(
+                            esOscuro ? Icons.dark_mode : Icons.light_mode,
+                            color: const Color.fromARGB(255, 0, 30, 255),
+                          ),
+                          title: const Text('Modo Oscuro'),
+                          value: esOscuro,
+                          onChanged: _cambiarModoOscuro,
+                        );
+                      },
                     ),
                     const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
+                    ValueListenableBuilder<double>(
+                      valueListenable: fontSizeNotifier,
+                      builder: (context, fontScale, _) {
+                        return Column(
                           children: [
-                            Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
-                            SizedBox(width: 12),
-                            Text('Tamaño de Letra Global'),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
+                                    SizedBox(width: 12),
+                                    Text('Tamaño de Letra Global'),
+                                  ],
+                                ),
+                                Text(
+                                  '${(fontScale * 100).round()}%',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            Slider(
+                              value: fontScale,
+                              min: 0.8,
+                              max: 1.4,
+                              divisions: 6,
+                              activeColor: const Color.fromARGB(255, 0, 30, 255),
+                              onChanged: _cambiarTamanioLetra,
+                            ),
                           ],
-                        ),
-                        Text(
-                          '${(fontSizeNotifier.value * 100).round()}%',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    Slider(
-                      value: fontSizeNotifier.value,
-                      min: 0.8,
-                      max: 1.4,
-                      divisions: 6,
-                      activeColor: const Color.fromARGB(255, 0, 30, 255),
-                      onChanged: (val) => _cambiarTamanioLetra(val),
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
             ),
 
-            // El botón de "Cerrar Sesión" solo se dibuja si el usuario está autenticado
+            // El botón de "Cerrar Sesión"
             if (_estaAutenticado) ...[
               const Divider(height: 40),
               ListTile(
@@ -336,7 +364,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'Cerrar Sesión',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
-                onTap: () {
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  if (!mounted) return;
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
               ),

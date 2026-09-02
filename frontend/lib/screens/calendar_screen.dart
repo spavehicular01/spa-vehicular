@@ -41,7 +41,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       final fechaStr = _selectedDate.toIso8601String().split('T')[0];
       final citasBackend = await AppointmentService.obtenerCitasPorFecha(
-        fechaStr, 
+        fechaStr,
         token: widget.token,
       );
 
@@ -72,7 +72,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         });
       }
     } catch (e) {
-      // Manejo de error de red opcional
+      debugPrint('Error al cargar citas del día: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -81,11 +81,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
-    // 1. Validar token de autenticación antes de navegar
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('token');
 
-    if (token == null || token.trim().isEmpty || token == 'null') {
+    if (token == null ||
+        token.trim().isEmpty ||
+        token == 'null' ||
+        widget.usuario == null) {
       if (!mounted) return;
       AuthRequiredDialog.show(context);
       return;
@@ -93,20 +95,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (!mounted) return;
 
-    // 2. Si hay token, navegar a BookingScreen
     final resultado = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => BookingScreen(
           selectedDate: _selectedDate,
           selectedTime: slot['hora'],
-          usuario: widget.usuario,
+          usuario: widget.usuario!,
           token: widget.token,
         ),
       ),
     );
 
-    // Recargar citas si el usuario creó una reserva exitosamente
     if (resultado != null && resultado is Map<String, dynamic>) {
       _cargarCitasDelDia();
     }
@@ -114,7 +114,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Detectamos si la aplicación está en modo oscuro
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -125,7 +124,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       body: Column(
         children: [
-          // 1. Calendario adaptable
+          // 1. Calendario
           Card(
             margin: const EdgeInsets.all(12.0),
             elevation: 2,
@@ -176,7 +175,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     const SizedBox(width: 12),
                     Icon(
                       Icons.circle,
-                      color: isDark ? Colors.grey.shade600 : const Color.fromARGB(255, 158, 158, 158),
+                      color: isDark ? Colors.grey.shade700 : const Color.fromARGB(255, 158, 158, 158),
                       size: 12,
                     ),
                     const SizedBox(width: 4),
@@ -193,12 +192,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
 
-          // 2. Bloques de horarios adaptables al tema
+          // 2. Estado de carga o rejilla de horarios
           Expanded(
             child: _isLoading
                 ? Center(
                     child: CircularProgressIndicator(
-                      color: isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 26, 255),
+                      color: isDark ? const Color(0xFF60A5FA) : Colors.teal,
                     ),
                   )
                 : GridView.builder(
@@ -214,21 +213,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       final slot = _horariosDisponibles[index];
                       final bool estaOcupado = slot['ocupado'];
 
-                      // Colores dinámicos según el estado y el modo
-                      final Color cardBgColor = estaOcupado
-                          ? (isDark ? const Color(0xFF1E293B) : Colors.grey.shade200)
-                          : (isDark ? const Color(0xFF0F172A) : Colors.teal.shade50);
+                      // Definición de colores según el estado y el modo de pantalla
+                      final Color cardBg = estaOcupado
+                          ? (isDark ? const Color(0xFF0F172A) : Colors.grey.shade200)
+                          : (isDark ? const Color(0xFF1E293B) : Colors.teal.shade50);
 
                       final Color borderColor = estaOcupado
-                          ? (isDark ? Colors.grey.shade700 : const Color.fromARGB(255, 158, 158, 158))
-                          : (isDark ? const Color(0xFF3B82F6) : const Color.fromARGB(255, 0, 26, 255));
+                          ? (isDark ? Colors.grey.shade800 : Colors.grey.shade400)
+                          : (isDark ? const Color(0xFF3B82F6) : Colors.teal);
 
-                      final Color titleColor = estaOcupado
-                          ? (isDark ? Colors.grey.shade500 : const Color.fromARGB(255, 158, 158, 158))
+                      final Color horaColor = estaOcupado
+                          ? (isDark ? Colors.grey.shade600 : Colors.grey.shade500)
                           : (isDark ? Colors.white : const Color.fromARGB(255, 0, 11, 105));
 
-                      final Color subtitleColor = estaOcupado
-                          ? (isDark ? Colors.grey.shade500 : const Color.fromARGB(255, 158, 158, 158))
+                      final Color subtextColor = estaOcupado
+                          ? (isDark ? Colors.grey.shade600 : Colors.grey.shade500)
                           : (isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 30, 255));
 
                       return InkWell(
@@ -237,7 +236,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: cardBgColor,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: borderColor,
@@ -252,22 +251,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: titleColor,
+                                  color: horaColor,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 estaOcupado
-                                    ? (slot['servicio'].toString().isNotEmpty
-                                        ? slot['servicio']
-                                        : 'Reservado')
+                                    ? (slot['servicio'].isNotEmpty ? slot['servicio'] : 'Reservado')
                                     : 'Agendar cita',
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: subtitleColor,
+                                  color: subtextColor,
                                 ),
                               ),
                             ],
