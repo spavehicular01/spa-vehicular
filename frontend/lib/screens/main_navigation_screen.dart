@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
@@ -18,6 +20,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
   Map<String, dynamic>? _usuarioAutenticado;
+  String? _token;
+  bool _cargandoSesion = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarSesionPersistida();
+  }
+
+  // Carga el usuario y el token guardados localmente al iniciar la app
+  Future<void> _cargarSesionPersistida() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? userString = prefs.getString('user_data');
+    final String? tokenGuardado = prefs.getString('token');
+
+    if (userString != null && userString.isNotEmpty) {
+      final Map<String, dynamic> userMap = jsonDecode(userString);
+
+      // Normalizar identificador para garantizar que 'id' y '_id' existan
+      final String? idNormalizado = userMap['id'] ?? userMap['_id'];
+      if (idNormalizado != null) {
+        userMap['id'] = idNormalizado;
+        userMap['_id'] = idNormalizado;
+      }
+
+      setState(() {
+        _usuarioAutenticado = userMap;
+        _token = tokenGuardado;
+      });
+    }
+
+    setState(() {
+      _cargandoSesion = false;
+    });
+  }
 
   Widget _buildVistaBloqueada(String titulo, String descripcion) {
     return Padding(
@@ -58,16 +95,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 0:
         return const HomeScreen();
       case 1:
-        // Exige inicio de sesión para Calendario
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(
             'Agendar Citas',
             'Debes iniciar sesión para agendar citas para tu vehículo.',
           );
         }
-        return const CalendarScreen();
+        return CalendarScreen(
+          usuario: _usuarioAutenticado,
+          token: _token,
+        );
       case 2:
-        // Exige inicio de sesión para Lavadas / Historial
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(
             'Mis Lavadas e Historial',
@@ -78,41 +116,77 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 3:
         if (_usuarioAutenticado == null) {
           return LoginScreen(
-            onLoginExitoso: (datos) {
+            onLoginExitoso: (datos) async {
+              Map<String, dynamic> usuario = Map<String, dynamic>.from(
+                datos['usuario'] ?? datos,
+              );
+              final token = datos['token'];
+
+              final String? userId = datos['id'] ??
+                  datos['_id'] ??
+                  usuario['id'] ??
+                  usuario['_id'];
+
+              if (userId != null) {
+                usuario['id'] = userId;
+                usuario['_id'] = userId;
+              }
+
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('user_data', jsonEncode(usuario));
+              if (token != null) {
+                await prefs.setString('token', token);
+              }
+
               setState(() {
-                _usuarioAutenticado = datos;
+                _usuarioAutenticado = usuario;
+                _token = token;
               });
             },
           );
         } else if (_usuarioAutenticado!['rol'] == 'admin') {
-          // Si el rol es Administrador, despliega el Panel Administrativo
           return AdminDashboardScreen(
             userData: _usuarioAutenticado!,
-            onCerrarSesion: () {
+            onCerrarSesion: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('user_data');
+              await prefs.remove('token');
+
               setState(() {
                 _usuarioAutenticado = null;
+                _token = null;
                 _selectedIndex = 0;
               });
             },
           );
         } else {
-          // Si el rol es Cliente, despliega la pantalla de Perfil habitual
           return ProfileScreen(
-            nombreCompleto: _usuarioAutenticado!['nombres'] ?? '',
-            correo: _usuarioAutenticado!['correo'] ?? '',
-            documento: _usuarioAutenticado!['documento'] ?? '',
-            telefono: _usuarioAutenticado!['telefono'] ?? '',
-            vehiculos: List<Map<String, String>>.from(
-              _usuarioAutenticado!['vehiculos'] ?? [],
+            nombreCompleto: _usuarioAutenticado!['nombres'] ?? _usuarioAutenticado!['nombre'] ?? '',
+            correo: _usuarioAutenticado!['correo'] ?? _usuarioAutenticado!['email'] ?? '',
+            documento: _usuarioAutenticado!['documento'] ?? _usuarioAutenticado!['cedula'] ?? '',
+            telefono: _usuarioAutenticado!['celular'] ?? _usuarioAutenticado!['telefono'] ?? '',
+            // Convierte los elementos de forma segura a Map<String, dynamic>
+            vehiculos: List<Map<String, dynamic>>.from(
+              (_usuarioAutenticado!['vehiculos'] as List? ?? []).map(
+                (item) => Map<String, dynamic>.from(item as Map),
+              ),
             ),
-            onVehiculosChanged: (nuevosVehiculos) {
+            onVehiculosChanged: (nuevosVehiculos) async {
               setState(() {
                 _usuarioAutenticado!['vehiculos'] = nuevosVehiculos;
               });
+              // Persistir cambios en SharedPreferences
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('user_data', jsonEncode(_usuarioAutenticado));
             },
-            onCerrarSesion: () {
+            onCerrarSesion: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('user_data');
+              await prefs.remove('token');
+
               setState(() {
                 _usuarioAutenticado = null;
+                _token = null;
                 _selectedIndex = 0;
               });
             },
@@ -125,6 +199,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cargandoSesion) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -139,7 +221,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
+                  builder: (context) => SettingsScreen(
+                    usuario: _usuarioAutenticado,
+                    onUsuarioActualizado: (usuarioActualizado) async {
+                      if (usuarioActualizado.isEmpty) {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.remove('user_data');
+                        await prefs.remove('token');
+
+                        setState(() {
+                          _usuarioAutenticado = null;
+                          _token = null;
+                        });
+                      } else {
+                        final String? userId = usuarioActualizado['id'] ?? usuarioActualizado['_id'];
+                        if (userId != null) {
+                          usuarioActualizado['id'] = userId;
+                          usuarioActualizado['_id'] = userId;
+                        }
+
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('user_data', jsonEncode(usuarioActualizado));
+
+                        setState(() {
+                          _usuarioAutenticado = usuarioActualizado;
+                        });
+                      }
+                    },
+                  ),
                 ),
               );
             },
@@ -152,7 +261,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onTap: (index) => setState(() => _selectedIndex = index),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color.fromARGB(255, 0, 34, 255),
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: const Color.fromARGB(255, 158, 158, 158),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(

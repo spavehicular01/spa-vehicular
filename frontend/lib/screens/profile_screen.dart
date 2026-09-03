@@ -9,8 +9,8 @@ class ProfileScreen extends StatefulWidget {
   final String correo;
   final String documento;
   final String telefono;
-  final List<Map<String, String>> vehiculos;
-  final Function(List<Map<String, String>>) onVehiculosChanged;
+  final List<Map<String, dynamic>> vehiculos;
+  final Function(List<Map<String, dynamic>>) onVehiculosChanged;
   final VoidCallback onCerrarSesion;
 
   const ProfileScreen({
@@ -29,14 +29,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late List<Map<String, String>> _listaVehiculos;
+  late List<Map<String, dynamic>> _listaVehiculos;
   Map<String, String>? _datosUsuarioPersistidos;
   bool _cargandoDatos = true;
 
   @override
   void initState() {
     super.initState();
-    _listaVehiculos = List.from(widget.vehiculos);
+    _listaVehiculos = List<Map<String, dynamic>>.from(widget.vehiculos);
     _cargarDatosDeSesion();
   }
 
@@ -44,7 +44,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _cargarDatosDeSesion() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Si guardaste el usuario en formato JSON o llaves independientes al hacer login
     final String? userJson = prefs.getString('user_data');
     
     if (userJson != null && userJson.isNotEmpty) {
@@ -53,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           setState(() {
             _datosUsuarioPersistidos = {
-              'nombreCompleto': userMap['nombreCompleto'] ?? userMap['nombre'] ?? userMap['name'] ?? '',
+              'nombreCompleto': userMap['nombreCompleto'] ?? userMap['nombres'] ?? userMap['nombre'] ?? userMap['name'] ?? '',
               'correo': userMap['correo'] ?? userMap['email'] ?? '',
               'documento': userMap['documento'] ?? userMap['cedula'] ?? userMap['dni'] ?? '',
               'telefono': userMap['telefono'] ?? userMap['phone'] ?? userMap['celular'] ?? '',
@@ -65,7 +64,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } catch (_) {}
     }
 
-    // Si no hay objeto JSON, intentamos leer llaves individuales
     final String? name = prefs.getString('user_name') ?? prefs.getString('nombreCompleto');
     final String? email = prefs.getString('user_email') ?? prefs.getString('correo');
     final String? doc = prefs.getString('user_doc') ?? prefs.getString('documento');
@@ -90,15 +88,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.vehiculos != widget.vehiculos) {
-      _listaVehiculos = List.from(widget.vehiculos);
+      _listaVehiculos = List<Map<String, dynamic>>.from(widget.vehiculos);
     }
   }
 
-  /// Borra el token guardado y ejecuta el callback de cierre de sesión
   Future<void> _ejecutarCerrarSesion() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Limpia el token y todos los datos residuales de SharedPreferences
-    
+    await prefs.clear();
     widget.onCerrarSesion();
   }
 
@@ -118,23 +114,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _abrirAgregarEditarVehiculo({
-    Map<String, String>? vehiculo,
+    Map<String, dynamic>? vehiculo,
     int? index,
     StateSetter? setModalState,
   }) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddVehicleScreen(vehicleToEdit: vehiculo),
+        builder: (context) => AddVehicleScreen(vehicleToEdit: vehiculo?.cast<String, String>()),
       ),
     );
 
-    if (result != null && result is Map<String, String>) {
+    if (result != null && result is Map) {
+      final Map<String, dynamic> vehiculoFormateado = Map<String, dynamic>.from(result);
       setState(() {
         if (index != null) {
-          _listaVehiculos[index] = result;
+          _listaVehiculos[index] = vehiculoFormateado;
         } else {
-          _listaVehiculos.add(result);
+          _listaVehiculos.add(vehiculoFormateado);
         }
       });
 
@@ -220,12 +217,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       itemCount: _listaVehiculos.length,
                       itemBuilder: (context, index) {
                         final car = _listaVehiculos[index];
-                        final tipo = car['tipo'] ?? 'Vehículo';
-                        final marca = car['marca'] ?? '';
-                        final referencia = car['referencia'] ?? '';
-                        final placa = car['placa'] ?? '';
-                        final modelo = car['modelo'] ?? '';
-                        final color = car['color'] ?? '';
+                        final tipo = car['tipo']?.toString() ?? 'Vehículo';
+                        final marca = car['marca']?.toString() ?? '';
+                        final referencia = car['referencia']?.toString() ?? '';
+                        final placa = car['placa']?.toString() ?? '';
+                        final modelo = car['modelo']?.toString() ?? '';
+                        final color = car['color']?.toString() ?? '';
 
                         return Card(
                           elevation: 1,
@@ -291,7 +288,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Asignación de variables tomando la información leída localmente primero, o props como respaldo
     final String nombreMostrar = _datosUsuarioPersistidos?['nombreCompleto']?.isNotEmpty == true
         ? _datosUsuarioPersistidos!['nombreCompleto']!
         : widget.nombreCompleto;
@@ -308,10 +304,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? _datosUsuarioPersistidos!['telefono']!
         : widget.telefono;
 
-    // Detectamos si la app está en modo oscuro
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Colores dinámicos para las tarjetas del perfil
     final Color cardBgColor = isDark ? const Color(0xFF0F172A) : Colors.teal.shade50;
     final Color iconColor = isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 34, 255);
 
@@ -341,7 +335,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             subtitle: Text(documentoMostrar),
           ),
 
-          // Tarjeta de Teléfono adaptable
           Card(
             elevation: 0,
             color: cardBgColor,
@@ -379,7 +372,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
-          // Tarjeta de Mis Vehículos adaptable
           Card(
             elevation: 0,
             color: cardBgColor,

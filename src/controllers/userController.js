@@ -9,9 +9,9 @@ exports.actualizarPerfil = async (req, res) => {
     // Construir objeto con los datos a actualizar
     const datosActualizar = { nombres, apellidos, celular };
 
-    // Si la imagen viene procesada por Multer/Cloudinary
+    // Si la imagen viene procesada por Multer / Cloudinary
     if (req.file) {
-      datosActualizar.avatar = req.file.path;
+      datosActualizar.avatar = req.file.path || req.file.secure_url;
     } else if (req.body.avatar) {
       datosActualizar.avatar = req.body.avatar;
     }
@@ -23,25 +23,40 @@ exports.actualizarPerfil = async (req, res) => {
     );
 
     if (!usuarioActualizado) {
-      return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        ok: false, 
+        success: false, 
+        message: 'Usuario no encontrado',
+        mensaje: 'Usuario no encontrado' 
+      });
     }
 
     return res.status(200).json({
       ok: true,
+      success: true,
+      message: 'Perfil actualizado correctamente',
       mensaje: 'Perfil actualizado correctamente',
       usuario: {
         id: usuarioActualizado._id,
+        _id: usuarioActualizado._id,
         nombres: usuarioActualizado.nombres,
         apellidos: usuarioActualizado.apellidos,
         correo: usuarioActualizado.correo,
         celular: usuarioActualizado.celular,
+        telefono: usuarioActualizado.celular,
         rol: usuarioActualizado.rol,
         documentoIdentidad: usuarioActualizado.documentoIdentidad,
+        documento: usuarioActualizado.documentoIdentidad,
         avatar: usuarioActualizado.avatar
       }
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ ok: false, mensaje: 'Error al actualizar el perfil' });
+    console.error('Error al actualizar el perfil:', error);
+    return res.status(500).json({ 
+      ok: false, 
+      success: false, 
+      message: 'Error interno al actualizar el perfil',
+      mensaje: 'Error interno al actualizar el perfil' 
+    });
   }
 };

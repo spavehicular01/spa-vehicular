@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'services_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  // Paleta de azul unificada de la marca
+  static const Color azulBrand = Color(0xFF2563EB);
+  static const Color azulOscuro = Color(0xFF1E40AF);
 
   Future<void> _validarYIrAServicios(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -28,99 +33,153 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Spa Vehicular'),
-        backgroundColor: const Color.fromARGB(255, 0, 51, 255),
+        title: const Text('Spa Vehicular', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: azulBrand,
         foregroundColor: Colors.white,
         centerTitle: true,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 10),
-            // Banner de Bienvenida
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color.fromARGB(255, 0, 47, 255), Color.fromARGB(255, 0, 34, 255)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.local_car_wash, size: 64, color: Colors.white),
-                  SizedBox(height: 12),
-                  Text(
-                    '¡Bienvenido a Spa Vehicular!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'El mejor cuidado y limpieza para tu vehículo',
-                    style: TextStyle(color: Color.fromARGB(179, 0, 26, 255), fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+      body: Stack(
+        children: [
+          // Animación suave de agua en el fondo
+          Positioned.fill(
+            child: Opacity(
+              opacity: isDark ? 0.04 : 0.06,
+              child: Lottie.asset(
+                'assets/animations/water_waves.json',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox(),
               ),
             ),
-            const SizedBox(height: 30),
-            // Opción a Servicios
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: InkWell(
-                onTap: () => _validarYIrAServicios(context),
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Color.fromARGB(255, 0, 76, 255),
-                        child: Icon(Icons.cleaning_services, color: Colors.white, size: 28),
+          ),
+
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 10),
+                // Banner de Bienvenida
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [azulBrand, azulOscuro],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: azulBrand.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ],
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.local_car_wash, size: 64, color: Colors.white),
+                      SizedBox(height: 12),
+                      Text(
+                        '¡Bienvenido a Spa Vehicular!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'El mejor cuidado y limpieza para tu vehículo',
+                        style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Opción a Servicios
+                Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: borderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _validarYIrAServicios(context),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Row(
                           children: [
-                            Text(
-                              'Servicios de Lavado',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: azulBrand.withOpacity(0.12),
+                              child: const Icon(
+                                Icons.cleaning_services,
+                                color: azulBrand,
+                                size: 28,
                               ),
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Ver catálogo de servicios y precios',
-                              style: TextStyle(color: Color.fromARGB(255, 0, 64, 255)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Servicios de Lavado',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Ver catálogo de servicios y precios',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.grey.shade400,
+                              size: 18,
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, color: Color.fromARGB(255, 0, 55, 255), size: 18),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
