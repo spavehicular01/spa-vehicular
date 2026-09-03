@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/main_navigation_screen.dart';
 
-// Definición del azul eléctrico exacto
+import 'screens/main_navigation_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/verify_reset_code_screen.dart';
+
+// Definición del azul eléctrico
 const Color azulPrincipal = Color(0xFF0004FF);
 
 // Notificadores globales de estado
@@ -39,7 +43,7 @@ class SpaVehicularApp extends StatelessWidget {
               debugShowCheckedModeBanner: false,
               title: 'Spa Vehicular',
 
-              // Configuración de temas global (Modo Claro / Oscuro)
+              // Configuración de temas global
               themeMode: currentMode,
 
               // Tema Claro
@@ -104,7 +108,7 @@ class SpaVehicularApp extends StatelessWidget {
                 ),
               ),
 
-              // Configuración regional para Colombia / Español
+              // Localización (Colombia / Español)
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
@@ -115,7 +119,7 @@ class SpaVehicularApp extends StatelessWidget {
               ],
               locale: const Locale('es', 'CO'),
 
-              // Escala global del tamaño de texto en toda la app
+              // Escala de texto
               builder: (context, child) {
                 final mediaQueryData = MediaQuery.of(context);
                 return MediaQuery(
@@ -126,7 +130,55 @@ class SpaVehicularApp extends StatelessWidget {
                 );
               },
 
-              home: const MainNavigationScreen(),
+              // Pantalla inicial
+              initialRoute: '/',
+
+              // Manejo unificado de rutas con soporte para argumentos
+              onGenerateRoute: (settings) {
+                switch (settings.name) {
+                  case '/':
+                    return MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                      settings: settings,
+                    );
+
+                  case '/login':
+                    return MaterialPageRoute(
+                      builder: (context) => LoginScreen(
+                        onLoginExitoso: (userData) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/',
+                            (route) => false,
+                          );
+                        },
+                      ),
+                      settings: settings,
+                    );
+
+                  case '/registro':
+                    return MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                      settings: settings,
+                    );
+
+                  case '/verificar-codigo':
+                  case '/verificar-codigo-restablecer':
+                    final emailArg = settings.arguments as String?;
+                    return MaterialPageRoute(
+                      builder: (context) => VerifyResetCodeScreen(
+                        email: emailArg ?? '',
+                      ),
+                      settings: settings,
+                    );
+
+                  default:
+                    return MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                      settings: settings,
+                    );
+                }
+              },
             );
           },
         );
