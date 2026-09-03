@@ -31,9 +31,10 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spa Vehicular'),
-        backgroundColor: const Color.fromARGB(255, 0, 51, 255),
+        backgroundColor: const Color(0xFF0033FF),
         foregroundColor: Colors.white,
         centerTitle: true,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -41,16 +42,23 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 10),
-            // Banner de Bienvenida
+            // Banner de Bienvenida con mejor contraste
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color.fromARGB(255, 0, 47, 255), Color.fromARGB(255, 0, 34, 255)],
+                  colors: [Color(0xFF0033FF), Color(0xFF0022CC)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x332196F3), // Azul con 20% de opacidad (limpio)
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               child: const Column(
                 children: [
@@ -68,16 +76,20 @@ class HomeScreen extends StatelessWidget {
                   SizedBox(height: 8),
                   Text(
                     'El mejor cuidado y limpieza para tu vehículo',
-                    style: TextStyle(color: Color.fromARGB(179, 0, 26, 255), fontSize: 14),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-            // Opción a Servicios
+
+            // Tarjeta de Opción a Servicios
             Card(
-              elevation: 4,
+              elevation: 3,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -90,7 +102,7 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: Color.fromARGB(255, 0, 76, 255),
+                        backgroundColor: Color(0xFF004CFF),
                         child: Icon(Icons.cleaning_services, color: Colors.white, size: 28),
                       ),
                       SizedBox(width: 16),
@@ -108,12 +120,15 @@ class HomeScreen extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               'Ver catálogo de servicios y precios',
-                              style: TextStyle(color: Color.fromARGB(255, 0, 64, 255)),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, color: Color.fromARGB(255, 0, 55, 255), size: 18),
+                      Icon(Icons.arrow_forward_ios, color: Color(0xFF0033FF), size: 18),
                     ],
                   ),
                 ),

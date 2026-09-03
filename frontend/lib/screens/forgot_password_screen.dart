@@ -49,12 +49,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
 
-      // Navegar a la pantalla de verificación
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VerifyResetCodeScreen(email: email),
-        ),
+      // Navegar a la pantalla de verificación enviando el correo por constructor y arguments
+      // Si usas rutas nombradas (Navigator.pushNamed):
+      Navigator.pushNamed(
+      context,
+      '/verify-code',
+      arguments: _emailController.text.trim(), //  NO olvides .text.trim()
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +77,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.mark_email_read_outlined, size: 80, color: Color.fromARGB(255, 0, 30, 255)),
+            const Icon(
+              Icons.mark_email_read_outlined,
+              size: 80,
+              color: Color.fromARGB(255, 0, 30, 255),
+            ),
             const SizedBox(height: 16),
             const Text(
               '¿Olvidaste tu contraseña?',
@@ -112,7 +116,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Text(
                       'Enviar Código',

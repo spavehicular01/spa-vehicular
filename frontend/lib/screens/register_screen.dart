@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,9 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-
-  // Base de datos simulada en memoria para validar duplicados
-  static final List<String> _documentosRegistrados = ['123456789', '1010203040'];
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -36,75 +36,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _procesarRegistro() {
-    if (_formKey.currentState!.validate()) {
-      final doc = _documentoController.text.trim();
+  // 🚀 Procesa el registro consumiendo AuthService
+  Future<void> _procesarRegistro() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      // Validar si el número de documento ya existe
-      if (_documentosRegistrados.contains(doc)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ El número de documento ya se encuentra registrado.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+    setState(() => _isLoading = true);
 
-      // Registrar documento para evitar futuros duplicados
-      _documentosRegistrados.add(doc);
-
-      // Simulación de correo enviado "Bienvenido al SPA VEHICULAR"
-      _mostrarDialogoConfirmacionCorreo();
-    }
-  }
-
-  void _mostrarDialogoConfirmacionCorreo() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('📧 Correo de Verificación'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hemos enviado un correo a:\n${_correoController.text}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.teal.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                ' Asunto: Bienvenido al SPA VEHICULAR\n\n'
-                'Gracias por unirte. Presiona el botón a continuación para verificar tu cuenta e iniciar sesión.',
-                style: TextStyle(fontSize: 13, color: Color.fromARGB(255, 0, 34, 252)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 0, 34, 255)),
-            onPressed: () {
-              Navigator.pop(ctx); // Cierra modal
-              Navigator.pop(context, {
-                'nombres': '${_nombresController.text} ${_apellidosController.text}',
-                'correo': _correoController.text,
-                'documento': _documentoController.text,
-                'telefono': _telefonoController.text,
-              }); // Retorna datos de usuario al Login/App
-            },
-            child: const Text('Confirmar Cuenta', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final resultado = await AuthService.registrar(
+      nombres: _nombresController.text.trim(),
+      apellidos: _apellidosController.text.trim(),
+      documentoIdentidad: _documentoController.text.trim(),
+      correo: _correoController.text.trim(),
+      celular: _telefonoController.text.trim(),
+      password: _passwordController.text,
     );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (resultado['success'] == true) {
+      // Guardar información en SharedPreferences si el backend retorna token o correo
+      final prefs = await SharedPreferences.getInstance();
+      if (resultado['token'] != null) {
+        await prefs.setString('token', resultado['token']);
+      }
+      await prefs.setString('user_email', _correoController.text.trim());
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? '¡Registro exitoso! Bienvenido.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // 🟢 REDIRECCIÓN DIRECTA A LA PANTALLA PRINCIPAL
+      // Si tu backend requiere verificación por correo, cambia '/' por '/verificar-codigo'
+      if (resultado['requireVerification'] == true) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/verificar-codigo',
+          arguments: _correoController.text.trim(),
+        );
+      } else {
+        // Redirige directamente a la pantalla principal limpiando el historial de navegación
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/', // Nombre de la ruta inicial (HomeScreen)
+          (route) => false,
+        );
+      }
+    } else {
+      // Muestra el mensaje de error retornado por la API
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Error al registrar usuario.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -130,7 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.person),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Ingresa tus nombres' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tus nombres' : null,
               ),
               const SizedBox(height: 16),
 
@@ -142,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.person_outline),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Ingresa tus apellidos' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tus apellidos' : null,
               ),
               const SizedBox(height: 16),
 
@@ -171,7 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.badge),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Ingresa tu documento' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tu documento' : null,
               ),
               const SizedBox(height: 16),
 
@@ -184,7 +175,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.length < 7 ? 'Ingresa un teléfono válido' : null,
+                validator: (val) => val == null || val.trim().length < 7 ? 'Ingresa un teléfono válido' : null,
               ),
               const SizedBox(height: 16),
 
@@ -228,13 +219,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 24),
 
               ElevatedButton(
-                onPressed: _procesarRegistro,
+                onPressed: _isLoading ? null : _procesarRegistro,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 0, 30, 255),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Registrarse', style: TextStyle(fontSize: 16)),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Registrarse e Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
