@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 import '../services/socket_service.dart';
 import '../services/wash_service.dart';
 
@@ -72,7 +73,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensajeSnackBar),
-            backgroundColor: nuevoEstado == 'Completado' ? Colors.green : Colors.blue,
+            backgroundColor: nuevoEstado == 'Completado' ? Colors.green : AppTheme.azulElectrico,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 5),
           ),
@@ -92,7 +93,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
       case 'Pendiente':
         return Colors.orange;
       case 'En Proceso':
-        return Colors.blue;
+        return AppTheme.azulElectrico;
       case 'Completado':
         return Colors.green;
       case 'Cancelado':
@@ -103,9 +104,12 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
   }
 
   Widget _buildListaCitas(List<dynamic> citas, {required bool esHistorial}) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (citas.isEmpty) {
       return RefreshIndicator(
         onRefresh: _cargarCitasCliente,
+        color: AppTheme.azulElectrico,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -114,7 +118,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
               child: Center(
                 child: Text(
                   esHistorial ? 'No tienes lavadas en tu historial.' : 'No tienes citas activas.',
-                  style: const TextStyle(color: Colors.grey),
+                  style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey),
                 ),
               ),
             ),
@@ -125,6 +129,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
     return RefreshIndicator(
       onRefresh: _cargarCitasCliente,
+      color: AppTheme.azulElectrico,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
@@ -134,13 +139,16 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
           final String estado = cita['estado'] ?? 'Pendiente';
           final bool enProceso = estado == 'En Proceso';
 
+          final Color accentColor = _obtenerColorEstado(estado);
+
           return Card(
             elevation: enProceso ? 4 : 2,
+            color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
             margin: const EdgeInsets.only(bottom: 12.0),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: enProceso
-                  ? const BorderSide(color: Colors.blue, width: 2)
+                  ? BorderSide(color: isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico, width: 2)
                   : BorderSide.none,
             ),
             child: Padding(
@@ -151,21 +159,32 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        cita['servicioNombre'] ?? 'Servicio de Lavado',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Text(
+                          cita['servicioNombre'] ?? 'Servicio de Lavado',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _obtenerColorEstado(estado).withOpacity(0.15),
+                          color: (isDark && accentColor == AppTheme.azulElectrico 
+                                  ? const Color(0xFF60A5FA) 
+                                  : accentColor).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _obtenerColorEstado(estado)),
+                          border: Border.all(
+                            color: isDark && accentColor == AppTheme.azulElectrico 
+                                ? const Color(0xFF60A5FA) 
+                                : accentColor,
+                          ),
                         ),
                         child: Text(
                           estado,
                           style: TextStyle(
-                            color: _obtenerColorEstado(estado),
+                            color: isDark && accentColor == AppTheme.azulElectrico 
+                                ? const Color(0xFF60A5FA) 
+                                : accentColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -174,23 +193,36 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}'),
+                  Text(
+                    '📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}',
+                    style: TextStyle(color: isDark ? Colors.grey.shade300 : Colors.black87),
+                  ),
                   if (enProceso) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: isDark ? const Color(0xFF0F172A) : Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF3B82F6) : Colors.blue.shade200,
+                        ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.local_car_wash, color: Colors.blue),
-                          SizedBox(width: 10),
+                          Icon(
+                            Icons.local_car_wash, 
+                            color: isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico,
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               '¡Tu vehículo se encuentra actualmente en proceso de lavado!',
-                              style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: isDark ? const Color(0xFF93C5FD) : AppTheme.azulElectrico, 
+                                fontSize: 12, 
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -208,6 +240,8 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     final citasActivas = _citas
         .where((c) => c['estado'] == 'Pendiente' || c['estado'] == 'En Proceso')
         .toList();
@@ -219,15 +253,16 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
           child: Container(
-            color: const Color.fromARGB(255, 30, 0, 255),
-            child: const TabBar(
+            color: isDark ? const Color(0xFF1E293B) : AppTheme.azulElectrico,
+            child: TabBar(
               indicatorColor: Colors.white,
               labelColor: Colors.white,
-              unselectedLabelColor: Color.fromARGB(179, 255, 251, 0),
-              tabs: [
+              unselectedLabelColor: Colors.white70,
+              tabs: const [
                 Tab(icon: Icon(Icons.time_to_leave), text: 'En Curso / Próximas'),
                 Tab(icon: Icon(Icons.history), text: 'Historial'),
               ],
@@ -235,7 +270,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
           ),
         ),
         body: _cargando
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.azulElectrico))
             : TabBarView(
                 children: [
                   _buildListaCitas(citasActivas, esHistorial: false),

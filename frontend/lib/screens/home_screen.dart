@@ -7,9 +7,9 @@ import 'services_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // Paleta de azul unificada de la marca
-  static const Color azulBrand = Color(0xFF2563EB);
-  static const Color azulOscuro = Color(0xFF1E40AF);
+  // Paleta de azul unificada con la marca (#0033FF)
+  static const Color azulBrand = Color(0xFF0033FF);
+  static const Color azulOscuro = Color(0xFF0033FF);
 
   Future<void> _validarYIrAServicios(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();

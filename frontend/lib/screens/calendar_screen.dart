@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 import '../services/appointment_service.dart';
@@ -18,9 +19,6 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
-
-  // Azul puro eléctrico exacto (#0033FF)
-  static const Color azulElectrico = Color(0xFF0033FF);
 
   List<Map<String, dynamic>> _horariosDisponibles = [
     {'hora': '08:00 AM', 'ocupado': false, 'servicio': ''},
@@ -124,7 +122,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Agenda tu Cita', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : azulElectrico,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : AppTheme.azulElectrico,
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -182,7 +180,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Icon(
                           Icons.circle,
-                          color: isDark ? const Color(0xFF60A5FA) : azulElectrico,
+                          color: isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico,
                           size: 12,
                         ),
                         const SizedBox(width: 4),
@@ -217,7 +215,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(color: azulElectrico),
+                        child: CircularProgressIndicator(color: AppTheme.azulElectrico),
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
@@ -238,7 +236,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                           final Color borderColor = estaOcupado
                               ? (isDark ? Colors.grey.shade800 : Colors.grey.shade400)
-                              : (isDark ? const Color(0xFF3B82F6) : azulElectrico);
+                              : (isDark ? const Color(0xFF3B82F6) : AppTheme.azulElectrico);
 
                           final Color horaColor = estaOcupado
                               ? (isDark ? Colors.grey.shade600 : Colors.grey.shade500)
@@ -246,7 +244,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                           final Color subtextColor = estaOcupado
                               ? (isDark ? Colors.grey.shade600 : Colors.grey.shade500)
-                              : (isDark ? const Color(0xFF60A5FA) : azulElectrico);
+                              : (isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico);
 
                           return InkWell(
                             onTap: estaOcupado ? null : () => _irAFormularioReserva(slot),

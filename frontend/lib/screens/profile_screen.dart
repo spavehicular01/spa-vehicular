@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_theme.dart';
 import 'add_vehicle_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -231,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: ListTile(
                             leading: Icon(
                               Icons.directions_car, 
-                              color: isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 30, 255),
+                              color: isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico,
                             ),
                             title: Text('$marca $referencia ($placa)'),
                             subtitle: Text('Tipo: $tipo | Año: $modelo | Color: $color'),
@@ -239,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  icon: const Icon(Icons.edit, color: AppTheme.azulElectrico),
                                   onPressed: () {
                                     _abrirAgregarEditarVehiculo(
                                       vehiculo: car,
@@ -268,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: const Icon(Icons.add),
                     label: const Text('Registrar Nuevo Vehículo'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? const Color(0xFF2563EB) : const Color.fromARGB(255, 0, 21, 178),
+                      backgroundColor: AppTheme.azulElectrico,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -285,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_cargandoDatos) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: AppTheme.azulElectrico));
     }
 
     final String nombreMostrar = _datosUsuarioPersistidos?['nombreCompleto']?.isNotEmpty == true
@@ -306,8 +307,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final Color cardBgColor = isDark ? const Color(0xFF0F172A) : Colors.teal.shade50;
-    final Color iconColor = isDark ? const Color(0xFF60A5FA) : const Color.fromARGB(255, 0, 34, 255);
+    final Color cardBgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+    final Color iconColor = isDark ? const Color(0xFF60A5FA) : AppTheme.azulElectrico;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
@@ -315,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           CircleAvatar(
             radius: 40,
-            backgroundColor: isDark ? const Color(0xFF2563EB) : const Color.fromARGB(255, 0, 21, 255),
+            backgroundColor: AppTheme.azulElectrico,
             child: const Icon(Icons.person, size: 50, color: Colors.white),
           ),
           const SizedBox(height: 12),
@@ -350,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (ctx) => Wrap(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.phone, color: Color.fromRGBO(0, 255, 229, 1)),
+                        leading: const Icon(Icons.phone, color: AppTheme.azulElectrico),
                         title: const Text('Llamar'),
                         onTap: () {
                           Navigator.pop(ctx);

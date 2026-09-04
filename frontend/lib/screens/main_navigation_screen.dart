@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
@@ -63,7 +64,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_outline, size: 80, color: Color.fromARGB(255, 0, 34, 255)),
+          const Icon(Icons.lock_outline, size: 80, color: AppTheme.azulElectrico),
           const SizedBox(height: 16),
           Text(
             titulo,
@@ -80,7 +81,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ElevatedButton(
             onPressed: () => setState(() => _selectedIndex = 3),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 0, 34, 255),
+              backgroundColor: AppTheme.azulElectrico,
               foregroundColor: Colors.white,
             ),
             child: const Text('Ir a Iniciar Sesión'),
@@ -165,7 +166,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             correo: _usuarioAutenticado!['correo'] ?? _usuarioAutenticado!['email'] ?? '',
             documento: _usuarioAutenticado!['documento'] ?? _usuarioAutenticado!['cedula'] ?? '',
             telefono: _usuarioAutenticado!['celular'] ?? _usuarioAutenticado!['telefono'] ?? '',
-            // Convierte los elementos de forma segura a Map<String, dynamic>
             vehiculos: List<Map<String, dynamic>>.from(
               (_usuarioAutenticado!['vehiculos'] as List? ?? []).map(
                 (item) => Map<String, dynamic>.from(item as Map),
@@ -175,7 +175,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               setState(() {
                 _usuarioAutenticado!['vehiculos'] = nuevosVehiculos;
               });
-              // Persistir cambios en SharedPreferences
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('user_data', jsonEncode(_usuarioAutenticado));
             },
@@ -202,66 +201,69 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (_cargandoSesion) {
       return const Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: AppTheme.azulElectrico),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
-        ),
-        backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsScreen(
-                    usuario: _usuarioAutenticado,
-                    onUsuarioActualizado: (usuarioActualizado) async {
-                      if (usuarioActualizado.isEmpty) {
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.remove('user_data');
-                        await prefs.remove('token');
+      // Ocultamos el AppBar si estamos en Inicio (index 0) para no duplicarlo con el de HomeScreen
+      appBar: _selectedIndex == 0
+          ? null
+          : AppBar(
+              title: Text(
+                ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
+              ),
+              backgroundColor: AppTheme.azulElectrico,
+              foregroundColor: Colors.white,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SettingsScreen(
+                          usuario: _usuarioAutenticado,
+                          onUsuarioActualizado: (usuarioActualizado) async {
+                            if (usuarioActualizado.isEmpty) {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.remove('user_data');
+                              await prefs.remove('token');
 
-                        setState(() {
-                          _usuarioAutenticado = null;
-                          _token = null;
-                        });
-                      } else {
-                        final String? userId = usuarioActualizado['id'] ?? usuarioActualizado['_id'];
-                        if (userId != null) {
-                          usuarioActualizado['id'] = userId;
-                          usuarioActualizado['_id'] = userId;
-                        }
+                              setState(() {
+                                _usuarioAutenticado = null;
+                                _token = null;
+                              });
+                            } else {
+                              final String? userId = usuarioActualizado['id'] ?? usuarioActualizado['_id'];
+                              if (userId != null) {
+                                usuarioActualizado['id'] = userId;
+                                usuarioActualizado['_id'] = userId;
+                              }
 
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setString('user_data', jsonEncode(usuarioActualizado));
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setString('user_data', jsonEncode(usuarioActualizado));
 
-                        setState(() {
-                          _usuarioAutenticado = usuarioActualizado;
-                        });
-                      }
-                    },
-                  ),
+                              setState(() {
+                                _usuarioAutenticado = usuarioActualizado;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ],
-      ),
+              ],
+            ),
       body: _getPage(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color.fromARGB(255, 0, 34, 255),
-        unselectedItemColor: const Color.fromARGB(255, 158, 158, 158),
+        selectedItemColor: AppTheme.azulElectrico,
+        unselectedItemColor: const Color(0xFF9E9E9E),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(

@@ -157,10 +157,12 @@ class _ServicesScreenState extends State<ServicesScreen> {
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4.0),
-                          style: TextStyle(
-                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                          child: Text(
+                            item.description,
+                            style: TextStyle(
+                              color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                            ),
                           ),
-                          child: Text(item.description),
                         ),
                         trailing: Text(
                           '\$${item.price.toStringAsFixed(0)}',

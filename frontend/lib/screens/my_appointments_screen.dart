@@ -22,7 +22,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
   // Azul eléctrico unificado de la marca (#0033FF)
   static const Color azulBrand = Color(0xFF0033FF);
-  static const Color azulOscuro = Color(0xFF001A80);
 
   @override
   void initState() {
@@ -32,7 +31,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
   Future<void> _obtenerCitas() async {
     setState(() => _isLoading = true);
-    final userId = widget.usuario['_id'] ?? widget.usuario['id'];
+    final String userId = (widget.usuario['_id'] ?? widget.usuario['id'] ?? '').toString();
 
     final resultado = await AppointmentService.obtenerCitasPorUsuario(
       userId,
@@ -42,7 +41,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     if (mounted) {
       setState(() {
         _isLoading = false;
-        if (resultado['success']) {
+        if (resultado['success'] == true) {
           _citas = resultado['citas'] ?? [];
         }
       });
@@ -90,7 +89,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
     if (!mounted) return;
 
-    if (res['success']) {
+    if (res['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cita cancelada con éxito'), backgroundColor: Colors.green),
       );
@@ -149,7 +148,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                         itemCount: _citas.length,
                         itemBuilder: (context, index) {
                           final cita = _citas[index];
-                          final String citaId = cita['_id'] ?? cita['id'] ?? '';
+                          final String citaId = (cita['_id'] ?? cita['id'] ?? '').toString();
                           final String servicio = cita['servicio'] ?? 'Servicio de Lavado';
                           final String vehiculo = cita['vehiculo'] ?? 'Vehículo registrado';
                           final String hora = cita['hora'] ?? '';
@@ -158,7 +157,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
                           DateTime? fecha;
                           if (cita['fechaHoraCita'] != null) {
-                            fecha = DateTime.tryParse(cita['fechaHoraCita']);
+                            fecha = DateTime.tryParse(cita['fechaHoraCita'].toString());
                           }
 
                           final String fechaTexto = fecha != null
@@ -224,7 +223,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                                   const SizedBox(height: 6),
                                   _buildInfoRow(
                                     cita['modalidad'] == 'A domicilio' ? Icons.home : Icons.store,
-                                    cita['modalidad'] + (direccion != null ? ' ($direccion)' : ''),
+                                    '${cita['modalidad']}' + (direccion != null ? ' ($direccion)' : ''),
                                     isDark,
                                   ),
                                 ],

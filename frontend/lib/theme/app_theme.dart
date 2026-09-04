@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Azul puro exacto de tu imagen: #0033FF
+  // Único azul eléctrico de marca: #0033FF
   static const Color azulElectrico = Color(0xFF0033FF);
-  static const Color azulOscuro = Color(0xFF0022FF);
+  // Color azul oscuro para degradados
+  static const Color azulOscuro = Color(0xFF001A80);
 
   static ThemeData get lightTheme {
     return ThemeData(

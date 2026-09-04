@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import '../theme/app_theme.dart';
 import 'booking_screen.dart';
 
 class SelectDateTimeScreen extends StatefulWidget {
@@ -20,10 +21,6 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedTime;
 
-  // Paleta de azul uniforme de la marca
-  final Color azulBrand = const Color(0xFF2563EB);
-  final Color azulOscuro = const Color(0xFF1E40AF);
-
   // Horarios disponibles simulados
   final List<String> _horariosDisponibles = [
     '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
@@ -41,7 +38,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Seleccionar Cita', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: azulBrand,
+        backgroundColor: AppTheme.azulElectrico,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -77,7 +74,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_month, color: azulBrand),
+                          const Icon(Icons.calendar_month, color: AppTheme.azulElectrico),
                           const SizedBox(width: 8),
                           Text(
                             'Fecha del Servicio',
@@ -115,7 +112,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.access_time_filled, color: azulBrand),
+                          const Icon(Icons.access_time_filled, color: AppTheme.azulElectrico),
                           const SizedBox(width: 8),
                           Text(
                             'Horarios Disponibles',
@@ -132,7 +129,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                           return ChoiceChip(
                             label: Text(hora),
                             selected: isSelected,
-                            selectedColor: azulBrand,
+                            selectedColor: AppTheme.azulElectrico,
                             backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             labelStyle: TextStyle(
                               color: isSelected ? Colors.white : textColor,
@@ -141,7 +138,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                               side: BorderSide(
-                                color: isSelected ? azulBrand : borderColor,
+                                color: isSelected ? AppTheme.azulElectrico : borderColor,
                               ),
                             ),
                             onSelected: (selected) {
@@ -163,8 +160,8 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   child: ElevatedButton(
                     onPressed: _selectedTime == null
                         ? null
-                        : () {
-                            Navigator.push(
+                        : () async {
+                            final resultado = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => BookingScreen(
@@ -175,17 +172,25 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                                 ),
                               ),
                             );
+
+                            if (resultado != null && context.mounted) {
+                              Navigator.pop(context, resultado);
+                            }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: azulBrand,
-                      disabledBackgroundColor: Colors.grey.shade400,
+                      backgroundColor: AppTheme.azulElectrico,
+                      disabledBackgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade400,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: const Text(
                       'Continuar a Detalles',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),

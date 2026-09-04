@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../main.dart'; // Importante para acceder a los Notifier globales
+import '../main.dart'; // Notificadores globales
+import '../theme/app_theme.dart';
 import '../services/user_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -31,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
 
-  // Comprueba si existe una sesión activa
   bool get _estaAutenticado => widget.usuario != null && widget.usuario!.isNotEmpty;
 
   @override
@@ -139,7 +139,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Diálogo para Cambiar Contraseña
   void _mostrarDialogoCambiarPassword() {
     final actualCtrl = TextEditingController();
     final nuevaCtrl = TextEditingController();
@@ -180,6 +179,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.azulElectrico,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: enviando
                       ? null
                       : () async {
@@ -226,7 +229,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(_estaAutenticado ? 'Ajustes de Perfil' : 'Ajustes y Configuración'),
       ),
@@ -235,14 +241,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // SI ESTÁ AUTENTICADO: Se muestra la gestión del perfil
             if (_estaAutenticado) ...[
               Center(
                 child: Stack(
                   children: [
                     CircleAvatar(
                       radius: 48,
-                      backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                      backgroundColor: AppTheme.azulElectrico,
                       backgroundImage: _imagenSeleccionada != null
                           ? FileImage(_imagenSeleccionada!)
                           : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
@@ -260,7 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
-                            color: Colors.blueAccent,
+                            color: AppTheme.azulElectrico,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
@@ -275,11 +280,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextField(
                 controller: _documentoController,
                 enabled: false,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Documento de Identidad (No editable)',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                  border: const OutlineInputBorder(),
                   filled: true,
+                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
                 ),
               ),
               const SizedBox(height: 16),
@@ -318,7 +324,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _guardarCambios,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                  backgroundColor: AppTheme.azulElectrico,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -332,37 +338,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Botón de Cambiar Contraseña
               OutlinedButton.icon(
                 onPressed: _mostrarDialogoCambiarPassword,
-                icon: const Icon(Icons.lock_reset),
-                label: const Text('Cambiar Contraseña'),
+                icon: const Icon(Icons.lock_reset, color: AppTheme.azulElectrico),
+                label: const Text('Cambiar Contraseña', style: TextStyle(color: AppTheme.azulElectrico)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: AppTheme.azulElectrico),
                 ),
               ),
               const SizedBox(height: 24),
-            ] 
-            // SI NO HA INICIADO SESIÓN: Se muestra el panel para iniciar sesión
-            else ...[
+            ] else ...[
               Card(
                 elevation: 3,
+                color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      const Icon(Icons.account_circle, size: 70, color: Color.fromARGB(255, 0, 30, 255)),
+                      const Icon(Icons.account_circle, size: 70, color: AppTheme.azulElectrico),
                       const SizedBox(height: 12),
                       const Text(
                         '¡Bienvenido a Spa Vehicular!',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Inicia sesión para gestionar tus datos personales, consultar tus vehículos y reservar servicios.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
@@ -372,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: const Icon(Icons.login),
                         label: const Text('Iniciar Sesión / Registrarse'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                          backgroundColor: AppTheme.azulElectrico,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -385,9 +390,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
             ],
 
-            // Secciones globales (Modo Oscuro / Tamaño de Letra)
             Card(
               elevation: 2,
+              color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -405,10 +410,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return SwitchListTile(
                           secondary: Icon(
                             esOscuro ? Icons.dark_mode : Icons.light_mode,
-                            color: const Color.fromARGB(255, 0, 30, 255),
+                            color: AppTheme.azulElectrico,
                           ),
                           title: const Text('Modo Oscuro'),
                           value: esOscuro,
+                          activeColor: AppTheme.azulElectrico,
                           onChanged: _cambiarModoOscuro,
                         );
                       },
@@ -424,7 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 const Row(
                                   children: [
-                                    Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
+                                    Icon(Icons.format_size, color: AppTheme.azulElectrico),
                                     SizedBox(width: 12),
                                     Text('Tamaño de Letra Global'),
                                   ],
@@ -440,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               min: 0.8,
                               max: 1.4,
                               divisions: 6,
-                              activeColor: const Color.fromARGB(255, 0, 30, 255),
+                              activeColor: AppTheme.azulElectrico,
                               onChanged: _cambiarTamanioLetra,
                             ),
                           ],
@@ -452,7 +458,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
-            // El botón de "Cerrar Sesión"
             if (_estaAutenticado) ...[
               const Divider(height: 40),
               ListTile(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../services/appointment_service.dart';
+import '../theme/app_theme.dart';
 
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -23,10 +24,6 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-
-  // Azul eléctrico de marca (#0033FF) y azul marino profundo
-  static const Color azulBrand = Color(0xFF0033FF); 
-  static const Color azulOscuro = Color(0xFF001A80);
 
   late List<String> _misVehiculos;
   String? _vehiculoSeleccionado;
@@ -121,10 +118,13 @@ class _BookingScreenState extends State<BookingScreen> {
     if (!mounted) return;
 
     if (respuesta['success']) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -137,34 +137,42 @@ class _BookingScreenState extends State<BookingScreen> {
                   errorBuilder: (context, error, stackTrace) => const Icon(
                     Icons.check_circle,
                     size: 80,
-                    color: azulBrand,
+                    color: AppTheme.azulElectrico,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 '¡Cita Agendada!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Tu servicio de "$_servicioSeleccionado" ha sido programado con éxito.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: azulBrand,
+                    backgroundColor: AppTheme.azulElectrico,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
                     Navigator.pop(context, respuesta['cita'] ?? datosCita);
                   },
-                  child: const Text('Aceptar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -194,14 +202,13 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Detalles de la Cita', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : azulBrand,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : AppTheme.azulElectrico,
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
       ),
       body: Stack(
         children: [
-          // Animación suave de fondo
           Positioned.fill(
             child: Opacity(
               opacity: isDark ? 0.04 : 0.06,
@@ -212,7 +219,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
             ),
           ),
-
           SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Form(
@@ -220,18 +226,18 @@ class _BookingScreenState extends State<BookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Banner Azul Principal (Fecha y Hora)
+                  // BANNER INFORMATIVO (Corregido sin 'const' en métodos dinámicos)
                   Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [azulBrand, azulOscuro],
+                        colors: [AppTheme.azulElectrico, AppTheme.azulOscuro],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: azulBrand.withOpacity(0.3),
+                          color: AppTheme.azulElectrico.withOpacity(0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -268,7 +274,6 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Tarjeta Formulario Estilizada
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -346,13 +351,12 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Botón Azul Agendar Cita
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _confirmarReserva,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: azulBrand,
+                        backgroundColor: AppTheme.azulElectrico,
                         elevation: 3,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -388,7 +392,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-      prefixIcon: Icon(icon, color: azulBrand),
+      prefixIcon: Icon(icon, color: AppTheme.azulElectrico),
       filled: true,
       fillColor: bg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -398,7 +402,7 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: azulBrand, width: 2),
+        borderSide: const BorderSide(color: AppTheme.azulElectrico, width: 2),
       ),
     );
   }
@@ -411,16 +415,16 @@ class _BookingScreenState extends State<BookingScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? azulBrand.withOpacity(0.12) : bg,
+          color: isSelected ? AppTheme.azulElectrico.withOpacity(0.12) : bg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? azulBrand : border, width: isSelected ? 2 : 1),
+          border: Border.all(color: isSelected ? AppTheme.azulElectrico : border, width: isSelected ? 2 : 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? azulBrand : Colors.grey, size: 18),
+            Icon(icon, color: isSelected ? AppTheme.azulElectrico : Colors.grey, size: 18),
             const SizedBox(width: 6),
-            Text(title, style: TextStyle(color: isSelected ? azulBrand : textColor, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            Text(title, style: TextStyle(color: isSelected ? AppTheme.azulElectrico : textColor, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
           ],
         ),
       ),
