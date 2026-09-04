@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_dashboard_screen.dart';
+import '../widgets/chat_bottom_sheet.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -18,6 +19,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
   Map<String, dynamic>? _usuarioAutenticado;
+
+  void _abrirChatAsesor() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const ChatBottomSheet(),
+    );
+  }
 
   Widget _buildVistaBloqueada(String titulo, String descripcion) {
     return Padding(
@@ -56,9 +66,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget _getPage(int index) {
     switch (index) {
       case 0:
-        return const HomeScreen();
+        // Se envía el estado de autenticación a la pantalla de Inicio
+        return HomeScreen(usuarioAutenticado: _usuarioAutenticado);
       case 1:
-        // Exige inicio de sesión para Calendario
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(
             'Agendar Citas',
@@ -67,7 +77,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         }
         return const CalendarScreen();
       case 2:
-        // Exige inicio de sesión para Lavadas / Historial
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(
             'Mis Lavadas e Historial',
@@ -85,7 +94,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             },
           );
         } else if (_usuarioAutenticado!['rol'] == 'admin') {
-          // Si el rol es Administrador, despliega el Panel Administrativo
           return AdminDashboardScreen(
             userData: _usuarioAutenticado!,
             onCerrarSesion: () {
@@ -96,7 +104,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             },
           );
         } else {
-          // Si el rol es Cliente, despliega la pantalla de Perfil habitual
           return ProfileScreen(
             nombreCompleto: _usuarioAutenticado!['nombres'] ?? '',
             correo: _usuarioAutenticado!['correo'] ?? '',
@@ -119,7 +126,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           );
         }
       default:
-        return const HomeScreen();
+        return HomeScreen(usuarioAutenticado: _usuarioAutenticado);
     }
   }
 
@@ -147,6 +154,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ],
       ),
       body: _getPage(_selectedIndex),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_btn_asesor_chat',
+        backgroundColor: const Color.fromARGB(255, 0, 34, 255),
+        elevation: 4,
+        shape: const CircleBorder(),
+        tooltip: 'Consultar al Asesor Virtual',
+        onPressed: _abrirChatAsesor,
+        child: const Icon(
+          Icons.directions_car_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),

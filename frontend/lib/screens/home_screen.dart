@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'services_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final Map<String, dynamic>? usuarioAutenticado;
 
-  Future<void> _validarYIrAServicios(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('token');
+  const HomeScreen({super.key, this.usuarioAutenticado});
 
-    // Muestra alerta si no hay sesión activa
-    if (token == null || token.trim().isEmpty || token == 'null') {
-      if (!context.mounted) return;
+  void _validarYIrAServicios(BuildContext context) {
+    // Si no hay sesión activa en la app, bloquea el paso y muestra la alerta
+    if (usuarioAutenticado == null) {
       AuthRequiredDialog.show(context);
       return;
     }
 
-    if (!context.mounted) return;
+    // Si está autenticado, navega al catálogo
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -42,7 +39,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 10),
-            // Banner de Bienvenida con mejor contraste
+            // Banner de Bienvenida
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -54,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x332196F3), // Azul con 20% de opacidad (limpio)
+                    color: Color(0x332196F3),
                     blurRadius: 10,
                     offset: Offset(0, 4),
                   ),

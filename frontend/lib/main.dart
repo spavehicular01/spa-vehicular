@@ -6,6 +6,7 @@ import 'screens/main_navigation_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
+// Import del chat
 
 // Definición del azul eléctrico
 const Color azulPrincipal = Color(0xFF0004FF);
