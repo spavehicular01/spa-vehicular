@@ -37,7 +37,7 @@ class SpaVehicularApp extends StatelessWidget {
           builder: (_, fontScale, __) {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
-              title: 'Spa Vehicular',
+              title: 'SPA VEHICULAR',
 
               // Configuración de temas global (Modo Claro / Oscuro)
               themeMode: currentMode,

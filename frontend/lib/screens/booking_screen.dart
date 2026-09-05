@@ -117,7 +117,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
     if (!mounted) return;
 
-    if (respuesta['success']) {
+    if (respuesta['success'] == true) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
 
       showDialog(
@@ -226,7 +226,6 @@ class _BookingScreenState extends State<BookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // BANNER INFORMATIVO (Corregido sin 'const' en métodos dinámicos)
                   Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(

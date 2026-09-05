@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/wash_api_service.dart';
+import '../theme/app_theme.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -48,25 +49,42 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   }
 
   Future<void> _seleccionarImagen(ImageSource source) async {
-    final XFile? imagen = await _picker.pickImage(
-      source: source,
-      imageQuality: 80,
-    );
-    if (imagen != null) {
-      setState(() {
-        _imagenSeleccionada = imagen;
-      });
+    try {
+      final XFile? imagen = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+      if (imagen != null) {
+        setState(() {
+          _imagenSeleccionada = imagen;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al seleccionar imagen: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   void _mostrarOpcionesImagen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library),
+              leading: const Icon(Icons.photo_library, color: AppTheme.azulElectrico),
               title: const Text('Galería'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -74,7 +92,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera),
+              leading: const Icon(Icons.photo_camera, color: AppTheme.azulElectrico),
               title: const Text('Cámara'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -99,7 +117,10 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       if (usuarioId == null || usuarioId.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Usuario no autenticado')),
+            const SnackBar(
+              content: Text('Error: Usuario no autenticado'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         setState(() => _subiendo = false);
@@ -107,8 +128,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       }
 
       String? imagenUrl = _imagenUrlExistente;
-      
-      // Subir nueva foto si se seleccionó una
+
       if (_imagenSeleccionada != null) {
         imagenUrl = await WashApiService.subirImagen(_imagenSeleccionada!);
       }
@@ -121,15 +141,25 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         'imagenUrl': imagenUrl ?? '',
       };
 
-      final exito = await WashApiService.registrarVehiculo(datosVehiculo);
+      final bool esEdicion = widget.vehicleToEdit != null;
+
+      if (esEdicion) {
+        datosVehiculo['id'] = widget.vehicleToEdit!['_id'] ?? widget.vehicleToEdit!['id'];
+      }
+
+      final bool exito = await WashApiService.registrarVehiculo(datosVehiculo);
 
       if (mounted) {
         setState(() => _subiendo = false);
         if (exito) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vehículo guardado correctamente'),
-              backgroundColor: Color.fromARGB(255, 91, 122, 179),
+            SnackBar(
+              content: Text(
+                esEdicion
+                    ? 'Vehículo actualizado correctamente'
+                    : 'Vehículo guardado correctamente',
+              ),
+              backgroundColor: Colors.green,
             ),
           );
           Navigator.pop(context, true);
@@ -146,7 +176,10 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       if (mounted) {
         setState(() => _subiendo = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -154,105 +187,146 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final esEdicion = widget.vehicleToEdit != null;
+    final bool esEdicion = widget.vehicleToEdit != null;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
-        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: _mostrarOpcionesImagen,
-                child: Container(
-                  height: 160,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color.fromARGB(255, 0, 76, 255)),
-                  ),
-                  child: _imagenSeleccionada != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            File(_imagenSeleccionada!.path),
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : (_imagenUrlExistente != null && _imagenUrlExistente!.isNotEmpty)
+        child: Card(
+          elevation: 2,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GestureDetector(
+                    onTap: _mostrarOpcionesImagen,
+                    child: Container(
+                      height: 170,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.azulElectrico.withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: _imagenSeleccionada != null
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                _imagenUrlExistente!,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(_imagenSeleccionada!.path),
                                 fit: BoxFit.cover,
+                                width: double.infinity,
                               ),
                             )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.add_a_photo, size: 40, color: Colors.teal),
-                                SizedBox(height: 8),
-                                Text('Toca para agregar foto del vehículo'),
-                              ],
-                            ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _placaController,
-                decoration: const InputDecoration(
-                  labelText: 'Placa (Ej. ABC123)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _marcaController,
-                decoration: const InputDecoration(
-                  labelText: 'Marca (Ej. Toyota)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _modeloController,
-                decoration: const InputDecoration(
-                  labelText: 'Modelo (Ej. Corolla 2022)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _subiendo ? null : _guardarVehiculo,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 0, 17, 255),
-                    foregroundColor: Colors.white,
+                          : (_imagenUrlExistente != null && _imagenUrlExistente!.isNotEmpty)
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    _imagenUrlExistente!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder: (ctx, err, stack) => const Center(
+                                      child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 42,
+                                      color: AppTheme.azulElectrico,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Toca para agregar foto del vehículo',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                    ),
                   ),
-                  child: _subiendo
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _placaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Placa',
+                      hintText: 'Ej. ABC123',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    validator: (val) =>
+                        val == null || val.trim().isEmpty ? 'Ingresa la placa del vehículo' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _marcaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Marca',
+                      hintText: 'Ej. Toyota',
+                      prefixIcon: Icon(Icons.branding_watermark_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (val) =>
+                        val == null || val.trim().isEmpty ? 'Ingresa la marca' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _modeloController,
+                    decoration: const InputDecoration(
+                      labelText: 'Modelo / Referencia',
+                      hintText: 'Ej. Corolla 2022',
+                      prefixIcon: Icon(Icons.directions_car_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (val) =>
+                        val == null || val.trim().isEmpty ? 'Ingresa el modelo o referencia' : null,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.azulElectrico,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: _subiendo ? null : _guardarVehiculo,
+                    child: _subiendo
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

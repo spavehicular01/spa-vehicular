@@ -22,17 +22,28 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     _cargarVehiculos();
   }
 
-  void _cargarVehiculos() async {
+  Future<void> _cargarVehiculos() async {
     setState(() => _isLoading = true);
-    final userId = widget.usuario['id'] ?? widget.usuario['_id'];
-    final vehiculos = await VehicleService.obtenerVehiculos(userId, token: widget.token);
-    setState(() {
-      _vehiculos = vehiculos;
-      _isLoading = false;
-    });
+    try {
+      final userId = widget.usuario['id'] ?? widget.usuario['_id'];
+      final vehiculos = await VehicleService.obtenerVehiculos(userId, token: widget.token);
+      if (mounted) {
+        setState(() {
+          _vehiculos = vehiculos;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar vehículos: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  void _eliminarVehiculo(String id) async {
+  Future<void> _eliminarVehiculo(String id) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -55,11 +66,16 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     if (confirmar != true) return;
 
     final exito = await VehicleService.eliminarVehiculo(id, token: widget.token);
+    if (!mounted) return;
+
     if (exito) {
       _cargarVehiculos();
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vehículo eliminado'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Vehículo eliminado con éxito'), backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo eliminar el vehículo'), backgroundColor: Colors.red),
       );
     }
   }
@@ -145,7 +161,11 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                       items: tiposVehiculo.keys.map((tipo) {
                         return DropdownMenuItem(value: tipo, child: Text(tipo));
                       }).toList(),
-                      onChanged: (val) => setModalState(() => tipoSeleccionado = val!),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => tipoSeleccionado = val);
+                        }
+                      },
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -155,10 +175,10 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: () async {
-                        if (placaCtrl.text.isEmpty ||
-                            marcaCtrl.text.isEmpty ||
-                            referenciaCtrl.text.isEmpty ||
-                            modeloCtrl.text.isEmpty) {
+                        if (placaCtrl.text.trim().isEmpty ||
+                            marcaCtrl.text.trim().isEmpty ||
+                            referenciaCtrl.text.trim().isEmpty ||
+                            modeloCtrl.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Por favor completa todos los campos'), backgroundColor: Colors.red),
                           );
@@ -180,8 +200,11 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                         if (!context.mounted) return;
                         Navigator.pop(context);
 
-                        if (res['success']) {
+                        if (res['success'] == true) {
                           _cargarVehiculos();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vehículo registrado correctamente'), backgroundColor: Colors.green),
+                          );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(res['message'] ?? 'Error al registrar'), backgroundColor: Colors.red),
@@ -225,43 +248,47 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _vehiculos.length,
-                  itemBuilder: (context, index) {
-                    final item = _vehiculos[index];
-                    final tipo = item['tipoVehiculo'] ?? '';
+              : RefreshIndicator(
+                  onRefresh: _cargarVehiculos,
+                  color: AppTheme.azulElectrico,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _vehiculos.length,
+                    itemBuilder: (context, index) {
+                      final item = _vehiculos[index];
+                      final tipo = item['tipoVehiculo'] ?? '';
 
-                    return Card(
-                      elevation: 2,
-                      color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.azulElectrico.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                      return Card(
+                        elevation: 2,
+                        color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.azulElectrico.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              tipo == 'moto' ? Icons.two_wheeler : Icons.directions_car,
+                              color: AppTheme.azulElectrico,
+                              size: 28,
+                            ),
                           ),
-                          child: Icon(
-                            tipo == 'moto' ? Icons.two_wheeler : Icons.directions_car,
-                            color: AppTheme.azulElectrico,
-                            size: 28,
+                          title: Text(
+                            '${item['marca']} ${item['referencia'] ?? ''}'.trim(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('Placa: ${item['placa']} • Modelo: ${item['modelo'] ?? 'N/A'}'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            onPressed: () => _eliminarVehiculo(item['_id']),
                           ),
                         ),
-                        title: Text(
-                          '${item['marca']} ${item['referencia'] ?? ''}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('Placa: ${item['placa']} • Modelo: ${item['modelo'] ?? 'N/A'}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () => _eliminarVehiculo(item['_id']),
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.azulElectrico,
