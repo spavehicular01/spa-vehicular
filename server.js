@@ -11,7 +11,7 @@ import userRoutes from './src/routes/userRoutes.js';
 import vehicleRoutes from './src/routes/vehicleRoutes.js';
 import appointmentRoutes from './src/routes/appointmentRoutes.js';
 import serviceRoutes from './src/routes/serviceRoutes.js';
-import chatbotRoutes from './src/routes/chatbotRoutes.js';
+import chatbotRoutes from './src/routes/chatbotRoutes.js'; 
 import uploadRoutes from './src/routes/uploadRoutes.js';
 
 const app = express();
@@ -63,7 +63,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
-app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/chat', chatbotRoutes); // Puedes usar /api/chat o /api/chatbot según prefieras para la petición
 app.use('/api/upload', uploadRoutes);
 
 // Ruta raíz

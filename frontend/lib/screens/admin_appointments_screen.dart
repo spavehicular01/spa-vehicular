@@ -26,7 +26,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
       final citas = await ApiService.obtenerTodasLasCitas();
       if (!mounted) return;
       setState(() {
-        _citas = citas ?? [];
+        _citas = citas;
         _cargando = false;
       });
     } catch (e) {

@@ -1,5 +1,10 @@
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import { enviarCodigoRecuperacion, enviarCodigoVerificacion } from '../utils/mailer.js';
+
+// Clave secreta para firmar tokens JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_cars_wash';
 
 // 1. Iniciar Sesión (Login)
 export const login = async (req, res) => {
@@ -31,22 +36,37 @@ export const login = async (req, res) => {
     }
 
     const passUser = user.password || user.passwords;
-    if (passUser !== password) {
+    
+    // Comparación segura con bcrypt
+    const passwordValida = await bcrypt.compare(password, passUser);
+
+    if (!passwordValida) {
       return res.status(400).json({ ok: false, mensaje: 'Contraseña incorrecta' });
     }
 
+    // Estructuración del objeto usuario
+    const usuario = {
+      id: user._id,
+      nombres: user.nombres || user.Nombre,
+      apellidos: user.apellidos || user.Apellido,
+      correo: user.correo || user.Correo_Electronico,
+      rol: user.rol,
+      documentoIdentidad: user.documentoIdentidad,
+      celular: user.celular || user.telefono
+    };
+
+    // Generación del Token JWT
+    const token = jwt.sign(
+      { id: user._id, correo: usuario.correo, rol: user.rol },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     return res.status(200).json({
       ok: true,
-      mensaje: 'Inicio de sesión exitoso',
-      usuario: {
-        id: user._id,
-        nombres: user.nombres || user.Nombre,
-        apellidos: user.apellidos || user.Apellido,
-        correo: user.correo || user.Correo_Electronico,
-        rol: user.rol,
-        documentoIdentidad: user.documentoIdentidad,
-        celular: user.celular || user.telefono
-      }
+      mensaje: 'Login exitoso',
+      usuario,
+      token
     });
   } catch (error) {
     return res.status(500).json({ 
@@ -99,6 +119,9 @@ export const registro = async (req, res) => {
       });
     }
 
+    // Encriptación de contraseña con bcrypt
+    const passwordHasheada = await bcrypt.hash(passVal, 10);
+
     // Código de activación y expiración de 10 minutos
     const codigoVerif = Math.floor(100000 + Math.random() * 900000).toString();
     const expiracionVerif = new Date(Date.now() + 10 * 60 * 1000);
@@ -109,7 +132,7 @@ export const registro = async (req, res) => {
       apellidos: apellidosVal,
       correo: emailVal,
       celular: celularVal,
-      password: passVal,
+      password: passwordHasheada,
       documentoIdentidad: docVal,
       rol: rolDefinido,
 
@@ -117,7 +140,7 @@ export const registro = async (req, res) => {
       Apellido: apellidosVal,
       Correo_Electronico: emailVal,
       telefono: celularVal,
-      passwords: passVal,
+      passwords: passwordHasheada,
 
       isVerified: false,
       codigoVerificacion: codigoVerif,
@@ -127,7 +150,7 @@ export const registro = async (req, res) => {
 
     await nuevoUsuario.save();
 
-    // Envío seguro a mailer (Garantizando el orden correcto de parámetros o fallback)
+    // Envío seguro a mailer
     try {
       await enviarCodigoVerificacion(emailVal, codigoVerif, nombresVal);
       console.log(`[CÓDIGO DE VERIFICACIÓN ENVIADO A ${emailVal}]: ${codigoVerif}`);
@@ -303,8 +326,11 @@ export const restablecerPassword = async (req, res) => {
       return res.status(400).json({ ok: false, mensaje: 'El código ha expirado' });
     }
 
-    user.password = nuevaPassword;
-    if (user.passwords !== undefined) user.passwords = nuevaPassword;
+    // Encriptación de la nueva contraseña con bcrypt
+    const passwordHasheada = await bcrypt.hash(nuevaPassword, 10);
+
+    user.password = passwordHasheada;
+    if (user.passwords !== undefined) user.passwords = passwordHasheada;
     user.resetPasswordCode = null;
     user.resetPasswordExpires = null;
     await user.save();

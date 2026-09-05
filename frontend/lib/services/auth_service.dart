@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static const String _baseUrl = 'http://10.0.2.2:3000/api/auth';
@@ -13,8 +14,15 @@ class AuthService {
       );
 
       final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200;
+
+      if (exito && data['token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', data['token']);
+      }
+
       return {
-        'success': response.statusCode == 200,
+        'success': exito,
         'message': data['mensaje'] ?? data['message'] ?? 'Error al iniciar sesión',
         'usuario': data['usuario'],
       };

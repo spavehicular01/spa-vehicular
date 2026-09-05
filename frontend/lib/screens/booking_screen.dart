@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/appointment_service.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -22,8 +24,9 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String? _authToken;
 
-  // Lista de vehículos registrados (debería venir de MongoDB con su _id)
+  // Lista de vehículos registrados (dinámicos / fallback)
   final List<Map<String, String>> _misVehiculos = [
     {'id': '64b0f1a23c8e4d001234567a', 'nombre': 'Mazda 3 - ABC-123'},
     {'id': '64b0f1a23c8e4d001234567b', 'nombre': 'Toyota Hilux - XYZ-789'},
@@ -31,7 +34,7 @@ class _BookingScreenState extends State<BookingScreen> {
   ];
   String? _vehiculoSeleccionadoId;
 
-  // Lista de servicios registrados (debería venir de MongoDB con su _id)
+  // Lista de servicios registrados (dinámicos / fallback)
   final List<Map<String, String>> _servicios = [
     {'id': '64b0f2a23c8e4d001234568a', 'nombre': 'Lavado Básico (30 min)'},
     {'id': '64b0f2a23c8e4d001234568b', 'nombre': 'Lavado Especial (45 min)'},
@@ -58,8 +61,25 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
-    _vehiculoSeleccionadoId = _misVehiculos.first['id'];
-    _servicioSeleccionadoId = _servicios.first['id'];
+    _inicializarDatos();
+  }
+
+  Future<void> _inicializarDatos() async {
+    // Si no se pasó el token por parámetro, se recupera de SharedPreferences
+    if (widget.token == null || widget.token!.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      _authToken = prefs.getString('token') ?? '';
+    } else {
+      _authToken = widget.token;
+    }
+
+    if (_misVehiculos.isNotEmpty) {
+      _vehiculoSeleccionadoId = _misVehiculos.first['id'];
+    }
+    if (_servicios.isNotEmpty) {
+      _servicioSeleccionadoId = _servicios.first['id'];
+    }
+    setState(() {});
   }
 
   @override
@@ -82,36 +102,50 @@ class _BookingScreenState extends State<BookingScreen> {
         widget.selectedDate.day,
       ).toIso8601String();
 
+      // Búsqueda segura de nombres seleccionados
+      final vehiculoSel = _misVehiculos.firstWhere(
+        (v) => v['id'] == _vehiculoSeleccionadoId,
+        orElse: () => {'id': '', 'nombre': 'Vehículo Seleccionado'},
+      );
+
+      final servicioSel = _servicios.firstWhere(
+        (s) => s['id'] == _servicioSeleccionadoId,
+        orElse: () => {'id': '', 'nombre': 'Servicio Seleccionado'},
+      );
+
       // Construcción del Payload normalizado para Node.js y Mongoose
       final datosCita = {
         'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
         'vehiculoId': _vehiculoSeleccionadoId,
         'servicioId': _servicioSeleccionadoId,
-        'vehiculo': _misVehiculos.firstWhere((v) => v['id'] == _vehiculoSeleccionadoId)['nombre'],
-        'servicio': _servicios.firstWhere((s) => s['id'] == _servicioSeleccionadoId)['nombre'],
+        'vehiculo': vehiculoSel['nombre'],
+        'servicio': servicioSel['nombre'],
         'fechaHoraCita': fechaCitaIso,
         'hora': widget.selectedTime,
         'correo': widget.usuario?['correo'],
         'modalidad': _modalidad == 'A domicilio' ? 'a_domicilio' : 'en_spa',
-        'direccion': _modalidad == 'A domicilio' ? _direccionController.text : null,
+        'direccion': _modalidad == 'A domicilio' ? _direccionController.text.trim() : null,
         'metodoPago': _metodoPago,
-        'especificaciones': _notasController.text,
+        'especificaciones': _notasController.text.trim(),
         'estado': 'Pendiente',
       };
 
-      print('--> PAYLOAD ENVIADO AL BACKEND: $datosCita');
-      print('--> TOKEN JWT ENVIADO: ${widget.token}');
+      debugPrint('--> PAYLOAD ENVIADO AL BACKEND: $datosCita');
+      debugPrint('--> TOKEN JWT ENVIADO: $_authToken');
 
-      // Pasar datos y token JWT al servicio
-      final respuesta = await AppointmentService.crearCita(datosCita, token: widget.token);
+      // Pasar datos y token JWT al servicio de agendamiento
+      final respuesta = await AppointmentService.crearCita(datosCita, token: _authToken);
 
-      print('--> RESPUESTA DEL SERVIDOR: $respuesta');
+      debugPrint('--> RESPUESTA DEL SERVIDOR: $respuesta');
 
       setState(() => _isLoading = false);
 
       if (!mounted) return;
 
-      if (respuesta['success'] == true || respuesta['status'] == 201 || respuesta['status'] == 200) {
+      final bool exito = respuesta['success'] == true ||
+          respuesta['status'] == 201 ||
+          respuesta['status'] == 200;
+      if (exito) {
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -139,17 +173,20 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         );
       } else {
+       final mensajeError = respuesta['message'] ??
+            respuesta['error'] ??
+            'Error al agendar cita. Verifica los datos.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(respuesta['message'] ?? respuesta['error'] ?? 'Error al agendar cita'),
+            content: Text(mensajeError),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e, stackTrace) {
       setState(() => _isLoading = false);
-      print('--> EXCEPCIÓN AL AGENDAR: $e');
-      print('--> STACKTRACE: $stackTrace');
+      debugPrint('--> EXCEPCIÓN AL AGENDAR: $e');
+      debugPrint('--> STACKTRACE: $stackTrace');
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

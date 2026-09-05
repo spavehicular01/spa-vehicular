@@ -70,10 +70,11 @@ export const actualizarServicio = async (req, res) => {
       ...(duracionEstimadaMinutos !== undefined && { duracionEstimadaMinutos: Number(duracionEstimadaMinutos) })
     };
 
+    // Reemplazamos { new: true } por { returnDocument: 'after' } para eliminar el warning de Mongoose
     const servicioActualizado = await Service.findByIdAndUpdate(
       req.params.id, 
       datosActualizados, 
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!servicioActualizado) {

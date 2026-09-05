@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -17,21 +17,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _cargando = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  Map<String, dynamic>? _registeredUserData;
-
-  // Credenciales oficiales del Administrador (SPA)
-  static const String _adminEmail = 'spavehicular01@gmail.com';
-  static const String _adminPassword = 'spa_veh_01';
-
-  // Usuarios cliente simulados
-  final List<String> _usuariosValidos = [
-    'diegobeltran0207@gmail.com',
-    'admin@carwash.com',
-    'didiercediel58@gmail.com',
-  ];
 
   @override
   void dispose() {
@@ -54,64 +42,42 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 1. VALIDACIÓN PARA EL ADMINISTRADOR
-    if (email == _adminEmail) {
-      if (password != _adminPassword) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Contraseña de administrador incorrecta'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+    setState(() => _cargando = true);
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', 'token_auth_valido_12345');
-      await prefs.setString('user_email', email);
+    final resultado = await AuthService.login(email, password);
+
+    setState(() => _cargando = false);
+
+    if (!mounted) return;
+
+    // Acepta 'ok' (procedente del backend Node.js/bcrypt) o 'success'
+    final esExitoso = resultado['ok'] == true || resultado['success'] == true;
+
+    if (esExitoso) {
+      final usuario = resultado['usuario'] ?? {};
 
       widget.onLoginExitoso({
-        'nombres': 'Administrador SPA',
-        'correo': email,
-        'rol': 'admin',
-        'documento': '0000000000',
-        'telefono': '3000000000',
-        'vehiculos': [],
+        'id': usuario['id'] ?? usuario['_id'] ?? '',
+        'nombres': usuario['nombres'] ?? 'Usuario',
+        'apellidos': usuario['apellidos'] ?? '',
+        'correo': usuario['correo'] ?? usuario['email'] ?? email,
+        'rol': usuario['rol'] ?? 'cliente',
+        'documento': usuario['documentoIdentidad'] ?? usuario['documento'] ?? '',
+        'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
+        'vehiculos': usuario['vehiculos'] ?? [],
         'citas': [],
         'historial': [],
       });
-      return;
-    }
-
-    // 2. VALIDACIÓN PARA CLIENTES
-    final bool existe = _usuariosValidos.contains(email) ||
-        (_registeredUserData != null && _registeredUserData!['correo'] == email);
-
-    if (!existe) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Este usuario no existe. Por favor regístrate.'),
+        SnackBar(
+          content: Text(
+            resultado['mensaje'] ?? resultado['message'] ?? 'Error al iniciar sesión',
+          ),
           backgroundColor: Colors.red,
         ),
       );
-      return;
     }
-
-    // Guarda la sesión localmente
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', 'token_auth_valido_12345');
-    await prefs.setString('user_email', email);
-
-    widget.onLoginExitoso({
-      'nombres': _registeredUserData?['nombres'] ?? 'Usuario',
-      'correo': email,
-      'rol': 'cliente',
-      'documento': _registeredUserData?['documento'] ?? '1077856793',
-      'telefono': _registeredUserData?['telefono'] ?? '3202819751',
-      'vehiculos': _registeredUserData?['vehiculos'] ?? [],
-      'citas': [],
-      'historial': [],
-    });
   }
 
   @override
@@ -157,8 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: const OutlineInputBorder(),
                 ),
               ),
-              
-              // Enlace: Restablecer Contraseña
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -180,23 +144,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: _iniciarSesion,
+                onPressed: _cargando ? null : _iniciarSesion,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0011FF),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text(
-                  'Iniciar Sesión',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _cargando
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Iniciar Sesión',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
               const SizedBox(height: 24),
-              
-              // 🚀 BOTÓN REGISTRARSE: REDIRIGE DIRECTO TRAS REGISTRO
               OutlinedButton(
                 onPressed: () async {
                   final result = await Navigator.push(
@@ -206,7 +176,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   );
 
-                  // Si el registro retorna los datos del usuario, ingresa de inmediato a la App
                   if (result != null && result is Map<String, dynamic>) {
                     widget.onLoginExitoso(result);
                   }

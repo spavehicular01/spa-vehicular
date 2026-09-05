@@ -83,12 +83,19 @@ class AppointmentService {
         body: jsonEncode(datosCita),
       );
 
+      // Logs de depuración para inspeccionar la respuesta en consola
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('BODY: ${response.body}');
+
       final data = jsonDecode(response.body);
       final bool exito = response.statusCode == 201 || response.statusCode == 200;
 
       return {
         'success': exito,
-        'message': data['mensaje'] ?? data['message'] ?? (exito ? 'Cita agendada exitosamente' : 'Error al agendar cita'),
+        'message': data['mensaje'] ??
+            data['message'] ??
+            data['error'] ??
+            (exito ? 'Cita agendada exitosamente' : 'Error al agendar cita'),
         'cita': data['cita'] ?? data,
       };
     } catch (e) {
