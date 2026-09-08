@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/custom_button.dart';
+import '../widgets/custom_input.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -245,7 +247,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.add_a_photo_outlined,
                                       size: 42,
                                       color: AppTheme.azulElectrico,
@@ -263,66 +265,34 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  TextFormField(
+                  CustomInput(
+                    label: 'Placa',
+                    icon: Icons.badge_outlined,
                     controller: _placaController,
-                    decoration: const InputDecoration(
-                      labelText: 'Placa',
-                      hintText: 'Ej. ABC123',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.characters,
                     validator: (val) =>
                         val == null || val.trim().isEmpty ? 'Ingresa la placa del vehículo' : null,
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
+                  CustomInput(
+                    label: 'Marca',
+                    icon: Icons.branding_watermark_outlined,
                     controller: _marcaController,
-                    decoration: const InputDecoration(
-                      labelText: 'Marca',
-                      hintText: 'Ej. Toyota',
-                      prefixIcon: Icon(Icons.branding_watermark_outlined),
-                      border: OutlineInputBorder(),
-                    ),
                     validator: (val) =>
                         val == null || val.trim().isEmpty ? 'Ingresa la marca' : null,
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
+                  CustomInput(
+                    label: 'Modelo / Referencia',
+                    icon: Icons.directions_car_outlined,
                     controller: _modeloController,
-                    decoration: const InputDecoration(
-                      labelText: 'Modelo / Referencia',
-                      hintText: 'Ej. Corolla 2022',
-                      prefixIcon: Icon(Icons.directions_car_outlined),
-                      border: OutlineInputBorder(),
-                    ),
                     validator: (val) =>
                         val == null || val.trim().isEmpty ? 'Ingresa el modelo o referencia' : null,
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.azulElectrico,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: _subiendo ? null : _guardarVehiculo,
-                    child: _subiendo
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+                  CustomButton(
+                    text: esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
+                    isLoading: _subiendo,
+                    onPressed: _guardarVehiculo,
                   ),
                 ],
               ),
