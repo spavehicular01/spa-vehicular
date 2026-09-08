@@ -67,7 +67,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     switch (index) {
       case 0:
         // Se envía el estado de autenticación a la pantalla de Inicio
-        return HomeScreen(usuarioAutenticado: _usuarioAutenticado);
+        return HomeScreen(
+          usuarioAutenticado: _usuarioAutenticado,
+          // 👇 nuevo: mismo motivo que en CalendarScreen — sin esto, el
+          // login disparado desde el diálogo de "Atención" en Inicio no
+          // actualizaba el estado real de la app.
+          onLoginExitoso: (datos) {
+            setState(() {
+              _usuarioAutenticado = datos;
+            });
+          },
+        );
       case 1:
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(
@@ -75,7 +85,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             'Debes iniciar sesión para agendar citas para tu vehículo.',
           );
         }
-        return const CalendarScreen();
+        // 👇 antes: const CalendarScreen() sin parámetros, por eso
+        // 'usuario' llegaba null hasta BookingScreen.
+        return CalendarScreen(
+          usuario: _usuarioAutenticado,
+          token: _usuarioAutenticado?['token'],
+          // 👇 nuevo: si el login ocurre desde el AuthRequiredDialog
+          // (ej. token expirado a mitad de sesión), esto sí actualiza
+          // el estado real de MainNavigationScreen.
+          onLoginExitoso: (datos) {
+            setState(() {
+              _usuarioAutenticado = datos;
+            });
+          },
+        );
       case 2:
         if (_usuarioAutenticado == null) {
           return _buildVistaBloqueada(

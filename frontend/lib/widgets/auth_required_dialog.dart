@@ -3,13 +3,22 @@ import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 
 class AuthRequiredDialog extends StatelessWidget {
-  const AuthRequiredDialog({super.key});
+  final void Function(Map<String, dynamic> datos) onLoginExitoso;
 
-  /// Función estática auxiliar para mostrar el diálogo de forma fácil desde cualquier pantalla
-  static void show(BuildContext context) {
+  const AuthRequiredDialog({super.key, required this.onLoginExitoso});
+
+  /// Función estática auxiliar para mostrar el diálogo de forma fácil desde
+  /// cualquier pantalla. Requiere el callback real que actualiza el estado
+  /// de sesión en MainNavigationScreen, para que el login realmente "cuente".
+  static void show(
+    BuildContext context, {
+    required void Function(Map<String, dynamic> datos) onLoginExitoso,
+  }) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) => const AuthRequiredDialog(),
+      builder: (BuildContext dialogContext) => AuthRequiredDialog(
+        onLoginExitoso: onLoginExitoso,
+      ),
     );
   }
 
@@ -45,24 +54,24 @@ class AuthRequiredDialog extends StatelessWidget {
           child: const Text('Registrarse'),
         ),
         ElevatedButton(
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.teal,
-    foregroundColor: Colors.white,
-  ),
-  onPressed: () {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoginScreen(
-          onLoginExitoso: (_) {
-            // El (_) ignora el parámetro enviado por LoginScreen
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
             Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LoginScreen(
+                  onLoginExitoso: (datos) {
+                    onLoginExitoso(datos); // 👈 ahora sí propaga los datos reales hacia arriba
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            );
           },
-        ),
-      ),
-    );
-  },
           child: const Text('Iniciar Sesión'),
         ),
       ],

@@ -4,13 +4,34 @@ import 'services_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final Map<String, dynamic>? usuarioAutenticado;
+  // 👇 nuevo: callback real que actualiza el estado de sesión en
+  // MainNavigationScreen, para propagarlo si el login ocurre desde aquí.
+  final void Function(Map<String, dynamic> datos)? onLoginExitoso;
 
-  const HomeScreen({super.key, this.usuarioAutenticado});
+  const HomeScreen({
+    super.key,
+    this.usuarioAutenticado,
+    this.onLoginExitoso,
+  });
 
   void _validarYIrAServicios(BuildContext context) {
     // Si no hay sesión activa en la app, bloquea el paso y muestra la alerta
     if (usuarioAutenticado == null) {
-      AuthRequiredDialog.show(context);
+      AuthRequiredDialog.show(
+        context,
+        onLoginExitoso: (datos) {
+          // Propaga hacia MainNavigationScreen para que _usuarioAutenticado
+          // se actualice de verdad y toda la app se entere de la sesión.
+          onLoginExitoso?.call(datos);
+
+          // Extra: una vez logueado, lo llevamos directo al catálogo,
+          // que era la intención original al tocar esta tarjeta.
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ServicesScreen()),
+          );
+        },
+      );
       return;
     }
 

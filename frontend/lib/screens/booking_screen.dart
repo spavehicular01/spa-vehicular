@@ -1,7 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/appointment_service.dart';
+
+import '../widgets/booking/appointment_summary_card.dart';
+import '../widgets/booking/vehicle_selector.dart';
+import '../widgets/booking/service_selector.dart';
+import '../widgets/booking/modality_selector.dart';
+import '../widgets/booking/payment_method_selector.dart';
+import '../widgets/booking/notes_field.dart';
+import '../widgets/booking/confirm_booking_button.dart';
 
 class BookingScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -35,17 +42,18 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _vehiculoSeleccionadoId;
 
   // Lista de servicios registrados (dinámicos / fallback)
-  final List<Map<String, String>> _servicios = [
-    {'id': '64b0f2a23c8e4d001234568a', 'nombre': 'Lavado Básico (30 min)'},
-    {'id': '64b0f2a23c8e4d001234568b', 'nombre': 'Lavado Especial (45 min)'},
-    {'id': '64b0f2a23c8e4d001234568c', 'nombre': 'Lavado General / Chasis (60 min)'},
-    {'id': '64b0f2a23c8e4d001234568d', 'nombre': 'Polichado y Encerado (90 min)'},
-    {'id': '64b0f2a23c8e4d001234568e', 'nombre': 'Coctel / Tapicería Profunda (120 min)'},
+  // 'minutos' es obligatorio porque el backend requiere tiempoEstimadoMinutos
+  final List<Map<String, dynamic>> _servicios = [
+    {'id': '64b0f2a23c8e4d001234568a', 'nombre': 'Lavado Básico (30 min)', 'minutos': 30},
+    {'id': '64b0f2a23c8e4d001234568b', 'nombre': 'Lavado Especial (45 min)', 'minutos': 45},
+    {'id': '64b0f2a23c8e4d001234568c', 'nombre': 'Lavado General / Chasis (60 min)', 'minutos': 60},
+    {'id': '64b0f2a23c8e4d001234568d', 'nombre': 'Polichado y Encerado (90 min)', 'minutos': 90},
+    {'id': '64b0f2a23c8e4d001234568e', 'nombre': 'Coctel / Tapicería Profunda (120 min)', 'minutos': 120},
   ];
   String? _servicioSeleccionadoId;
 
-  // Modalidad
-  String _modalidad = 'Llevo el vehículo';
+  // Modalidad (valor mostrado en UI, se traduce al enum del backend al enviar)
+  String _modalidad = ModalitySelector.valorSpa;
   final _direccionController = TextEditingController();
 
   // Pago
@@ -73,11 +81,15 @@ class _BookingScreenState extends State<BookingScreen> {
       _authToken = widget.token;
     }
 
+    // 🔍 DEBUG: confirma si el mapa 'usuario' llegó correctamente a esta pantalla
+    debugPrint('--> USUARIO RECIBIDO EN BookingScreen: ${widget.usuario}');
+    debugPrint('--> usuarioId resuelto: ${widget.usuario?['_id'] ?? widget.usuario?['id']}');
+
     if (_misVehiculos.isNotEmpty) {
       _vehiculoSeleccionadoId = _misVehiculos.first['id'];
     }
     if (_servicios.isNotEmpty) {
-      _servicioSeleccionadoId = _servicios.first['id'];
+      _servicioSeleccionadoId = _servicios.first['id'] as String;
     }
     setState(() {});
   }
@@ -92,17 +104,27 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _confirmarReserva() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final usuarioId = widget.usuario?['_id'] ?? widget.usuario?['id'];
+
+    if (usuarioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontró tu sesión. Vuelve a iniciar sesión e intenta de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // Formatear la fecha y hora seleccionada en ISO 8601
       final fechaCitaIso = DateTime(
         widget.selectedDate.year,
         widget.selectedDate.month,
         widget.selectedDate.day,
       ).toIso8601String();
 
-      // Búsqueda segura de nombres seleccionados
       final vehiculoSel = _misVehiculos.firstWhere(
         (v) => v['id'] == _vehiculoSeleccionadoId,
         orElse: () => {'id': '', 'nombre': 'Vehículo Seleccionado'},
@@ -110,30 +132,31 @@ class _BookingScreenState extends State<BookingScreen> {
 
       final servicioSel = _servicios.firstWhere(
         (s) => s['id'] == _servicioSeleccionadoId,
-        orElse: () => {'id': '', 'nombre': 'Servicio Seleccionado'},
+        orElse: () => {'id': '', 'nombre': 'Servicio Seleccionado', 'minutos': 30},
       );
 
-      // Construcción del Payload normalizado para Node.js y Mongoose
+      final bool esDomicilio = _modalidad == ModalitySelector.valorDomicilio;
+
       final datosCita = {
-        'usuarioId': widget.usuario?['_id'] ?? widget.usuario?['id'],
+        'usuarioId': usuarioId,
         'vehiculoId': _vehiculoSeleccionadoId,
         'servicioId': _servicioSeleccionadoId,
         'vehiculo': vehiculoSel['nombre'],
         'servicio': servicioSel['nombre'],
+        'tiempoEstimadoMinutos': servicioSel['minutos'],
         'fechaHoraCita': fechaCitaIso,
         'hora': widget.selectedTime,
         'correo': widget.usuario?['correo'],
-        'modalidad': _modalidad == 'A domicilio' ? 'a_domicilio' : 'en_spa',
-        'direccion': _modalidad == 'A domicilio' ? _direccionController.text.trim() : null,
+        'modalidad': esDomicilio ? 'domicilio' : 'presencial',
+        'direccion': esDomicilio ? _direccionController.text.trim() : null,
         'metodoPago': _metodoPago,
         'especificaciones': _notasController.text.trim(),
-        'estado': 'Pendiente',
+        // 'estado' se omite intencionalmente: el schema ya tiene default: 'pendiente'
       };
 
       debugPrint('--> PAYLOAD ENVIADO AL BACKEND: $datosCita');
       debugPrint('--> TOKEN JWT ENVIADO: $_authToken');
 
-      // Pasar datos y token JWT al servicio de agendamiento
       final respuesta = await AppointmentService.crearCita(datosCita, token: _authToken);
 
       debugPrint('--> RESPUESTA DEL SERVIDOR: $respuesta');
@@ -145,42 +168,15 @@ class _BookingScreenState extends State<BookingScreen> {
       final bool exito = respuesta['success'] == true ||
           respuesta['status'] == 201 ||
           respuesta['status'] == 200;
+
       if (exito) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('¡Cita Confirmada! 🎉'),
-            content: Text(
-              'Tu servicio ha sido programado con éxito para el '
-              '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
-              'a las ${widget.selectedTime}.\n\n'
-              'Modalidad: $_modalidad\n'
-              'Pago: $_metodoPago',
-            ),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 32, 150),
-                ),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pop(context, true);
-                },
-                child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        );
+        _mostrarDialogoExito();
       } else {
-       final mensajeError = respuesta['message'] ??
+        final mensajeError = respuesta['message'] ??
             respuesta['error'] ??
             'Error al agendar cita. Verifica los datos.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(mensajeError),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(mensajeError), backgroundColor: Colors.red),
         );
       }
     } catch (e, stackTrace) {
@@ -198,6 +194,35 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
+  void _mostrarDialogoExito() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¡Cita Confirmada! 🎉'),
+        content: Text(
+          'Tu servicio ha sido programado con éxito para el '
+          '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
+          'a las ${widget.selectedTime}.\n\n'
+          'Modalidad: $_modalidad\n'
+          'Pago: $_metodoPago',
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 0, 32, 150),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context, true);
+            },
+            child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,162 +238,46 @@ class _BookingScreenState extends State<BookingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
-                color: Colors.teal.shade50,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Color.fromARGB(255, 0, 34, 255)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.event_available, color: Color.fromARGB(255, 0, 34, 255), size: 36),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Hora del cupo: ${widget.selectedTime}',
-                            style: const TextStyle(color: Color.fromARGB(255, 0, 30, 255), fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+              AppointmentSummaryCard(
+                selectedDate: widget.selectedDate,
+                selectedTime: widget.selectedTime,
               ),
               const SizedBox(height: 20),
 
-              const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _vehiculoSeleccionadoId,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.directions_car),
-                ),
-                items: _misVehiculos.map((vehiculo) {
-                  return DropdownMenuItem(
-                    value: vehiculo['id'],
-                    child: Text(vehiculo['nombre']!),
-                  );
-                }).toList(),
+              VehicleSelector(
+                vehiculos: _misVehiculos,
+                vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
                 onChanged: (val) => setState(() => _vehiculoSeleccionadoId = val),
               ),
               const SizedBox(height: 20),
 
-              const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _servicioSeleccionadoId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.local_car_wash),
-                ),
-                items: _servicios.map((serv) {
-                  return DropdownMenuItem(
-                    value: serv['id'],
-                    child: Text(serv['nombre']!),
-                  );
-                }).toList(),
+              ServiceSelector(
+                servicios: _servicios,
+                servicioSeleccionadoId: _servicioSeleccionadoId,
                 onChanged: (val) => setState(() => _servicioSeleccionadoId = val),
               ),
               const SizedBox(height: 20),
 
-              const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
-              RadioListTile<String>(
-                title: const Text('Llevo el vehículo al spa'),
-                value: 'Llevo el vehículo',
-                groupValue: _modalidad,
-                activeColor: const Color.fromARGB(255, 0, 26, 255),
+              ModalitySelector(
+                modalidad: _modalidad,
                 onChanged: (val) => setState(() => _modalidad = val!),
+                direccionController: _direccionController,
               ),
-              RadioListTile<String>(
-                title: const Text('A domicilio'),
-                value: 'A domicilio',
-                groupValue: _modalidad,
-                activeColor: const Color.fromARGB(255, 0, 26, 255),
-                onChanged: (val) => setState(() => _modalidad = val!),
-              ),
-
-              if (_modalidad == 'A domicilio') ...[
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _direccionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección de residencia / entrega',
-                    prefixIcon: Icon(Icons.home),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (val) {
-                    if (_modalidad == 'A domicilio' && (val == null || val.trim().isEmpty)) {
-                      return 'Ingresa tu dirección para el domicilio';
-                    }
-                    return null;
-                  },
-                ),
-              ],
               const SizedBox(height: 20),
 
-              const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _metodoPago,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.payment),
-                ),
-                items: _opcionesPago.map((metodo) {
-                  return DropdownMenuItem(value: metodo, child: Text(metodo));
-                }).toList(),
+              PaymentMethodSelector(
+                metodoPago: _metodoPago,
+                opciones: _opcionesPago,
                 onChanged: (val) => setState(() => _metodoPago = val!),
               ),
               const SizedBox(height: 20),
 
-              const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _notasController,
-                maxLength: 500,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Ej. Cuidado especial con el retrovisor derecho, manchas en el tapizado trasero...',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-              ),
+              NotesField(controller: _notasController),
               const SizedBox(height: 24),
 
-              ElevatedButton(
-                onPressed: _isLoading ? null : _confirmarReserva,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Confirmar y Agendar',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+              ConfirmBookingButton(
+                isLoading: _isLoading,
+                onPressed: _confirmarReserva,
               ),
             ],
           ),

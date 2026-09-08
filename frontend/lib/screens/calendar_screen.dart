@@ -4,11 +4,23 @@ import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 import '../services/appointment_service.dart';
 
+import '../widgets/calendar/date_picker_card.dart';
+import '../widgets/calendar/slots_header.dart';
+import '../widgets/calendar/time_slot_grid.dart';
+
 class CalendarScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
   final String? token;
+  // 👇 nuevo: callback real que actualiza el estado de sesión en
+  // MainNavigationScreen, para propagarlo si el login ocurre desde aquí.
+  final void Function(Map<String, dynamic> datos)? onLoginExitoso;
 
-  const CalendarScreen({super.key, this.usuario, this.token});
+  const CalendarScreen({
+    super.key,
+    this.usuario,
+    this.token,
+    this.onLoginExitoso,
+  });
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -32,6 +44,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('--> USUARIO RECIBIDO EN CalendarScreen: ${widget.usuario}');
     _cargarCitasDelDia();
   }
 
@@ -41,7 +54,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       final fechaStr = _selectedDate.toIso8601String().split('T')[0];
       final citasBackend = await AppointmentService.obtenerCitasPorFecha(
-        fechaStr, 
+        fechaStr,
         token: widget.token,
       );
 
@@ -86,11 +99,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (token == null || token.trim().isEmpty || token == 'null') {
       if (!mounted) return;
-      AuthRequiredDialog.show(context);
+      AuthRequiredDialog.show(
+        context,
+        onLoginExitoso: (datos) {
+          // Propaga hacia MainNavigationScreen para que _usuarioAutenticado
+          // se actualice de verdad y toda la app se entere de la sesión.
+          widget.onLoginExitoso?.call(datos);
+        },
+      );
       return;
     }
 
     if (!mounted) return;
+
+    debugPrint('--> usuario que se enviará a BookingScreen: ${widget.usuario}');
 
     final resultado = await Navigator.push(
       context,
@@ -104,7 +126,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
-    // Recargar citas si el usuario creó una reserva exitosamente
     if (resultado != null && resultado is Map<String, dynamic>) {
       _cargarCitasDelDia();
     }
@@ -120,118 +141,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       body: Column(
         children: [
-          // 1. Calendario con selección de fecha dinámica
-          Card(
-            margin: const EdgeInsets.all(12.0),
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: CalendarDatePicker(
-              initialDate: _selectedDate,
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 90)),
-              onDateChanged: (newDate) {
-                setState(() {
-                  _selectedDate = newDate;
-                });
-                _cargarCitasDelDia(); // Recarga las citas desde la API al cambiar la fecha
-              },
-            ),
+          DatePickerCard(
+            selectedDate: _selectedDate,
+            onDateChanged: (newDate) {
+              setState(() => _selectedDate = newDate);
+              _cargarCitasDelDia();
+            },
           ),
-
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Cupos del día',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.circle, color: Color.fromARGB(255, 0, 34, 255), size: 12),
-                    SizedBox(width: 4),
-                    Text('Disponible', style: TextStyle(fontSize: 12)),
-                    SizedBox(width: 12),
-                    Icon(Icons.circle, color: Color.fromARGB(255, 158, 158, 158), size: 12),
-                    SizedBox(width: 4),
-                    Text('Ocupado', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 2. Bloques de horarios con feedback de carga
+          const SlotsHeader(),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 0, 26, 255)))
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 2.3,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: _horariosDisponibles.length,
-                    itemBuilder: (context, index) {
-                      final slot = _horariosDisponibles[index];
-                      final bool estaOcupado = slot['ocupado'];
-
-                      return InkWell(
-                        onTap: estaOcupado ? null : () => _irAFormularioReserva(slot),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: estaOcupado
-                                ? Colors.grey.shade200
-                                : Colors.teal.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: estaOcupado
-                                  ? const Color.fromARGB(255, 158, 158, 158)
-                                  : const Color.fromARGB(255, 0, 26, 255),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                slot['hora'],
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: estaOcupado
-                                      ? const Color.fromARGB(255, 158, 158, 158)
-                                      : const Color.fromARGB(255, 0, 11, 105),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                estaOcupado
-                                    ? (slot['servicio'].isNotEmpty
-                                        ? slot['servicio']
-                                        : 'Reservado')
-                                    : 'Agendar cita',
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: estaOcupado
-                                      ? const Color.fromARGB(255, 158, 158, 158)
-                                      : const Color.fromARGB(255, 0, 30, 255),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            child: TimeSlotGrid(
+              horarios: _horariosDisponibles,
+              isLoading: _isLoading,
+              onSlotTap: _irAFormularioReserva,
+            ),
           ),
         ],
       ),
