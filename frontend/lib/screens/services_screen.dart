@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/service_model.dart';
 import '../services/wash_service.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'calendar_screen.dart';
 import '../widgets/service_card.dart';
+import '../main.dart'; // usuarioActualNotifier, guardarSesionUsuario
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -33,37 +33,40 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return token != null && token.trim().isNotEmpty && token.trim() != 'null';
   }
 
-  void _irACalendario(String token) {
+  // 🟢 FIX: ahora también recibe y pasa el usuario, no solo el token.
+  void _irACalendario(String token, Map<String, dynamic>? usuario) {
     if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CalendarScreen(token: token),
+        builder: (context) => CalendarScreen(
+          token: token,
+          usuario: usuario,
+        ),
       ),
     );
   }
 
   Future<void> _validarSesionYAgendar(ServiceModel item) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('token');
+    final String? token = usuarioActualNotifier.value?['token'] as String?;
+    final Map<String, dynamic>? usuario = usuarioActualNotifier.value;
 
     if (!_tokenEsValido(token)) {
       if (!mounted) return;
       AuthRequiredDialog.show(
         context,
-        onLoginExitoso: (Map<String, dynamic> datos) {
-          // 'datos' viene del login exitoso; ajusta la key según lo que
-          // realmente devuelva tu LoginScreen (ej: datos['token']).
+        onLoginExitoso: (Map<String, dynamic> datos) async {
+          await guardarSesionUsuario(datos);
           final nuevoToken = datos['token'] as String?;
           if (nuevoToken != null) {
-            _irACalendario(nuevoToken);
+            _irACalendario(nuevoToken, datos); // 🟢 ahora también pasa 'datos' como usuario
           }
         },
       );
       return;
     }
 
-    _irACalendario(token!);
+    _irACalendario(token!, usuario); // 🟢 ahora también pasa 'usuario'
   }
 
   @override
@@ -112,7 +115,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
               itemBuilder: (context, index) {
                 final item = lavados[index];
                 return ServiceCard(
-                  key: ValueKey(item.id), // ajusta al campo id real de ServiceModel
+                  key: ValueKey(item.id),
                   service: item,
                   onTap: () => _validarSesionYAgendar(item),
                 );

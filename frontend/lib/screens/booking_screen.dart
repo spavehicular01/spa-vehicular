@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../services/appointment_service.dart';
+import '../controllers/booking_controller.dart';
+import '../models/booking_static_data.dart';
 
 import '../widgets/booking/appointment_summary_card.dart';
 import '../widgets/booking/vehicle_selector.dart';
@@ -31,32 +31,15 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  String? _authToken;
 
-  // Lista de vehículos registrados (dinámicos / fallback)
-  final List<Map<String, String>> _misVehiculos = [
-    {'id': '64b0f1a23c8e4d001234567a', 'nombre': 'Mazda 3 - ABC-123'},
-    {'id': '64b0f1a23c8e4d001234567b', 'nombre': 'Toyota Hilux - XYZ-789'},
-    {'id': '64b0f1a23c8e4d001234567c', 'nombre': 'Chevrolet Onix - FGH-456'},
-  ];
+  late final BookingController _controller;
+
   String? _vehiculoSeleccionadoId;
-
-  // Lista de servicios registrados (dinámicos / fallback)
-  // 'minutos' es obligatorio porque el backend requiere tiempoEstimadoMinutos
-  final List<Map<String, dynamic>> _servicios = [
-    {'id': '64b0f2a23c8e4d001234568a', 'nombre': 'Lavado Básico (30 min)', 'minutos': 30},
-    {'id': '64b0f2a23c8e4d001234568b', 'nombre': 'Lavado Especial (45 min)', 'minutos': 45},
-    {'id': '64b0f2a23c8e4d001234568c', 'nombre': 'Lavado General / Chasis (60 min)', 'minutos': 60},
-    {'id': '64b0f2a23c8e4d001234568d', 'nombre': 'Polichado y Encerado (90 min)', 'minutos': 90},
-    {'id': '64b0f2a23c8e4d001234568e', 'nombre': 'Coctel / Tapicería Profunda (120 min)', 'minutos': 120},
-  ];
   String? _servicioSeleccionadoId;
 
-  // Modalidad (valor mostrado en UI, se traduce al enum del backend al enviar)
   String _modalidad = ModalitySelector.valorSpa;
   final _direccionController = TextEditingController();
 
-  // Pago
   String _metodoPago = 'Efectivo';
   final List<String> _opcionesPago = [
     'Efectivo',
@@ -69,27 +52,18 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
+    _controller = BookingController(usuario: widget.usuario, tokenInicial: widget.token);
     _inicializarDatos();
   }
 
   Future<void> _inicializarDatos() async {
-    // Si no se pasó el token por parámetro, se recupera de SharedPreferences
-    if (widget.token == null || widget.token!.isEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      _authToken = prefs.getString('token') ?? '';
-    } else {
-      _authToken = widget.token;
-    }
+    await _controller.resolverToken();
 
-    // 🔍 DEBUG: confirma si el mapa 'usuario' llegó correctamente a esta pantalla
-    debugPrint('--> USUARIO RECIBIDO EN BookingScreen: ${widget.usuario}');
-    debugPrint('--> usuarioId resuelto: ${widget.usuario?['_id'] ?? widget.usuario?['id']}');
-
-    if (_misVehiculos.isNotEmpty) {
-      _vehiculoSeleccionadoId = _misVehiculos.first['id'];
+    if (BookingStaticData.misVehiculos.isNotEmpty) {
+      _vehiculoSeleccionadoId = BookingStaticData.misVehiculos.first['id'];
     }
-    if (_servicios.isNotEmpty) {
-      _servicioSeleccionadoId = _servicios.first['id'] as String;
+    if (BookingStaticData.servicios.isNotEmpty) {
+      _servicioSeleccionadoId = BookingStaticData.servicios.first['id'] as String;
     }
     setState(() {});
   }
@@ -104,9 +78,7 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _confirmarReserva() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final usuarioId = widget.usuario?['_id'] ?? widget.usuario?['id'];
-
-    if (usuarioId == null) {
+    if (_controller.usuarioId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No se encontró tu sesión. Vuelve a iniciar sesión e intenta de nuevo.'),
@@ -119,57 +91,26 @@ class _BookingScreenState extends State<BookingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final fechaCitaIso = DateTime(
-        widget.selectedDate.year,
-        widget.selectedDate.month,
-        widget.selectedDate.day,
-      ).toIso8601String();
-
-      final vehiculoSel = _misVehiculos.firstWhere(
-        (v) => v['id'] == _vehiculoSeleccionadoId,
-        orElse: () => {'id': '', 'nombre': 'Vehículo Seleccionado'},
+      final datosCita = _controller.construirPayload(
+        selectedDate: widget.selectedDate,
+        selectedTime: widget.selectedTime,
+        vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
+        servicioSeleccionadoId: _servicioSeleccionadoId,
+        misVehiculos: BookingStaticData.misVehiculos,
+        servicios: BookingStaticData.servicios,
+        modalidad: _modalidad,
+        direccion: _direccionController.text,
+        metodoPago: _metodoPago,
+        notas: _notasController.text,
       );
 
-      final servicioSel = _servicios.firstWhere(
-        (s) => s['id'] == _servicioSeleccionadoId,
-        orElse: () => {'id': '', 'nombre': 'Servicio Seleccionado', 'minutos': 30},
-      );
-
-      final bool esDomicilio = _modalidad == ModalitySelector.valorDomicilio;
-
-      final datosCita = {
-        'usuarioId': usuarioId,
-        'vehiculoId': _vehiculoSeleccionadoId,
-        'servicioId': _servicioSeleccionadoId,
-        'vehiculo': vehiculoSel['nombre'],
-        'servicio': servicioSel['nombre'],
-        'tiempoEstimadoMinutos': servicioSel['minutos'],
-        'fechaHoraCita': fechaCitaIso,
-        'hora': widget.selectedTime,
-        'correo': widget.usuario?['correo'],
-        'modalidad': esDomicilio ? 'domicilio' : 'presencial',
-        'direccion': esDomicilio ? _direccionController.text.trim() : null,
-        'metodoPago': _metodoPago,
-        'especificaciones': _notasController.text.trim(),
-        // 'estado' se omite intencionalmente: el schema ya tiene default: 'pendiente'
-      };
-
-      debugPrint('--> PAYLOAD ENVIADO AL BACKEND: $datosCita');
-      debugPrint('--> TOKEN JWT ENVIADO: $_authToken');
-
-      final respuesta = await AppointmentService.crearCita(datosCita, token: _authToken);
-
-      debugPrint('--> RESPUESTA DEL SERVIDOR: $respuesta');
+      final respuesta = await _controller.confirmarReserva(datosCita);
 
       setState(() => _isLoading = false);
 
       if (!mounted) return;
 
-      final bool exito = respuesta['success'] == true ||
-          respuesta['status'] == 201 ||
-          respuesta['status'] == 200;
-
-      if (exito) {
+      if (_controller.fueExitosa(respuesta)) {
         _mostrarDialogoExito();
       } else {
         final mensajeError = respuesta['message'] ??
@@ -245,14 +186,14 @@ class _BookingScreenState extends State<BookingScreen> {
               const SizedBox(height: 20),
 
               VehicleSelector(
-                vehiculos: _misVehiculos,
+                vehiculos: BookingStaticData.misVehiculos,
                 vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
                 onChanged: (val) => setState(() => _vehiculoSeleccionadoId = val),
               ),
               const SizedBox(height: 20),
 
               ServiceSelector(
-                servicios: _servicios,
+                servicios: BookingStaticData.servicios,
                 servicioSeleccionadoId: _servicioSeleccionadoId,
                 onChanged: (val) => setState(() => _servicioSeleccionadoId = val),
               ),

@@ -25,6 +25,7 @@ class AuthService {
         'success': exito,
         'message': data['mensaje'] ?? data['message'] ?? 'Error al iniciar sesión',
         'usuario': data['usuario'],
+        'token': data['token'], // 🟢 FIX: ahora el token viaja junto con el resto de la respuesta
       };
     } catch (e) {
       return {'success': false, 'message': 'Error de conexión con el servidor'};

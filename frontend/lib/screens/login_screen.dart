@@ -28,6 +28,28 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // 🟢 TEMPORAL: diálogo persistente de depuración. Muestra el mapa
+  // completo que devuelve AuthService.login, sin importar si fue
+  // éxito o error, para diagnosticar qué está pasando exactamente.
+  // Quitar esto una vez resuelto el problema.
+  void _mostrarDebugDialog(String titulo, Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titulo),
+        content: SingleChildScrollView(
+          child: Text(data.toString()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _iniciarSesion() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -42,6 +64,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // 🟢 TEMPORAL: mostramos EXACTAMENTE qué vamos a enviar,
+    // con corchetes para detectar espacios invisibles.
+    debugPrint('🔍 [FLUTTER LOGIN] email a enviar: [$email] (longitud: ${email.length})');
+    debugPrint('🔍 [FLUTTER LOGIN] password a enviar: [$password] (longitud: ${password.length})');
+
     setState(() => _cargando = true);
 
     final resultado = await AuthService.login(email, password);
@@ -50,7 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    // Acepta 'ok' (procedente del backend Node.js/bcrypt) o 'success'
+    // 🟢 TEMPORAL: siempre mostramos el resultado completo antes de
+    // decidir qué hacer, para ver EXACTAMENTE qué devolvió el backend.
+    _mostrarDebugDialog('Respuesta del login (debug)', resultado);
+
     final esExitoso = resultado['ok'] == true || resultado['success'] == true;
 
     if (esExitoso) {
@@ -65,6 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
         'documento': usuario['documentoIdentidad'] ?? usuario['documento'] ?? '',
         'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
         'vehiculos': usuario['vehiculos'] ?? [],
+        'token': resultado['token'],
         'citas': [],
         'historial': [],
       });

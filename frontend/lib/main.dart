@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,12 @@ const Color azulPrincipal = Color(0xFF0004FF);
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 final ValueNotifier<double> fontSizeNotifier = ValueNotifier(1.0);
 
+// 🟢 NUEVO: Notificador global del usuario autenticado.
+// Cualquier pantalla puede leer usuarioActualNotifier.value para
+// obtener el usuario actual (o null si no hay sesión).
+final ValueNotifier<Map<String, dynamic>?> usuarioActualNotifier =
+    ValueNotifier(null);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,7 +33,37 @@ void main() async {
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   fontSizeNotifier.value = fontScale;
 
+  // 🟢 NUEVO: Recuperar sesión de usuario guardada (si existe),
+  // para que sobreviva a un reinicio de la app.
+  final usuarioGuardadoStr = prefs.getString('usuario');
+  if (usuarioGuardadoStr != null && usuarioGuardadoStr.isNotEmpty) {
+    try {
+      usuarioActualNotifier.value =
+          jsonDecode(usuarioGuardadoStr) as Map<String, dynamic>;
+    } catch (_) {
+      // Si el JSON guardado está corrupto, se ignora y se sigue sin sesión.
+      usuarioActualNotifier.value = null;
+    }
+  }
+
   runApp(const SpaVehicularApp());
+}
+
+// 🟢 NUEVO: Helper reutilizable para guardar la sesión completa
+// (usuario en memoria + disco). Úsalo en cualquier parte donde el
+// login sea exitoso (login normal o registro con login automático).
+Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
+  usuarioActualNotifier.value = userData;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('usuario', jsonEncode(userData));
+}
+
+// 🟢 NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
+Future<void> cerrarSesionUsuario() async {
+  usuarioActualNotifier.value = null;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('usuario');
+  await prefs.remove('token');
 }
 
 class SpaVehicularApp extends StatelessWidget {
@@ -146,7 +183,12 @@ class SpaVehicularApp extends StatelessWidget {
                   case '/login':
                     return MaterialPageRoute(
                       builder: (context) => LoginScreen(
-                        onLoginExitoso: (userData) {
+                        onLoginExitoso: (userData) async {
+                          // 🟢 CAMBIO CLAVE: ahora sí guardamos el usuario
+                          // en memoria y en disco antes de navegar.
+                          await guardarSesionUsuario(userData);
+
+                          if (!context.mounted) return;
                           Navigator.pushNamedAndRemoveUntil(
                             context,
                             '/',

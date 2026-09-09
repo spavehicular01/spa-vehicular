@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 import '../services/appointment_service.dart';
@@ -11,8 +10,6 @@ import '../widgets/calendar/time_slot_grid.dart';
 class CalendarScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
   final String? token;
-  // 👇 nuevo: callback real que actualiza el estado de sesión en
-  // MainNavigationScreen, para propagarlo si el login ocurre desde aquí.
   final void Function(Map<String, dynamic> datos)? onLoginExitoso;
 
   const CalendarScreen({
@@ -94,16 +91,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('token');
+    // 🟢 FIX: usar directamente widget.token (viene de la sesión
+    // centralizada usuarioActualNotifier) en vez de leer una copia
+    // aislada e inconsistente desde SharedPreferences.
+    final String? token = widget.token;
 
-    if (token == null || token.trim().isEmpty || token == 'null') {
+    final bool hayToken = token != null && token.trim().isNotEmpty && token != 'null';
+    final bool hayUsuario = widget.usuario != null &&
+        (widget.usuario!['_id'] != null || widget.usuario!['id'] != null);
+
+    if (!hayToken || !hayUsuario) {
       if (!mounted) return;
+
       AuthRequiredDialog.show(
         context,
         onLoginExitoso: (datos) {
-          // Propaga hacia MainNavigationScreen para que _usuarioAutenticado
-          // se actualice de verdad y toda la app se entere de la sesión.
           widget.onLoginExitoso?.call(datos);
         },
       );
@@ -121,7 +123,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           selectedDate: _selectedDate,
           selectedTime: slot['hora'],
           usuario: widget.usuario,
-          token: widget.token,
+          token: token,
         ),
       ),
     );
