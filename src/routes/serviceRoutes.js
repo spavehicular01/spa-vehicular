@@ -10,4 +10,10 @@ router.get('/', serviceController.obtenerServicios);
 // POST /api/services - Crear un nuevo servicio
 router.post('/', serviceController.crearServicio);
 
+// PUT /api/services/:id - Actualizar un servicio existente por ID
+router.put('/:id', serviceController.actualizarServicio);
+
+// DELETE /api/services/:id - Eliminar un servicio por ID
+router.delete('/:id', serviceController.eliminarServicio);
+
 export default router;

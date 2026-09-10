@@ -5,15 +5,14 @@ import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
 
-// Importación de Rutas
-// ✅ AHORA (Correcto desde server.js):
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import vehicleRoutes from './routes/vehicleRoutes.js';
-import appointmentRoutes from './routes/appointmentRoutes.js';
-import serviceRoutes from './routes/serviceRoutes.js';
-import chatbotRoutes from './routes/chatbotRoutes.js';
-import uploadRoutes from './routes/uploadRoutes.js';
+// Importación de Rutas (con extensión .js obligatoria en ES Modules)
+import authRoutes from './src/routes/authRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
+import vehicleRoutes from './src/routes/vehicleRoutes.js';
+import appointmentRoutes from './src/routes/appointmentRoutes.js';
+import serviceRoutes from './src/routes/serviceRoutes.js';
+import chatbotRoutes from './src/routes/chatbotRoutes.js'; 
+import uploadRoutes from './src/routes/uploadRoutes.js';
 
 const app = express();
 
@@ -69,7 +68,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/appointments/', appointmentRoutes);
 
 app.use('/api/services', serviceRoutes);
-app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/chat', chatbotRoutes); // Puedes usar /api/chat o /api/chatbot según prefieras para la petición
 app.use('/api/upload', uploadRoutes);
 
 // Ruta raíz

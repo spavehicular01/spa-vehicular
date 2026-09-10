@@ -7,7 +7,12 @@ const router = express.Router();
 router.post('/login', authController.login);
 router.post('/registrar', authController.registro);
 
-// 2. Recuperación de contraseña
+// 2. Verificación de cuenta (Mapeo de ambas rutas para soporte total)
+router.post('/verificar-cuenta', authController.confirmarCuenta);
+router.post('/confirmar', authController.confirmarCuenta);
+router.post('/reenviar-codigo', authController.reenviarCodigoVerificacion);
+
+// 3. Recuperación de contraseña
 router.post('/recuperar/solicitar-codigo', authController.solicitarCodigoRecuperacion);
 router.post('/recuperar/restablecer-password', authController.restablecerPassword);
 

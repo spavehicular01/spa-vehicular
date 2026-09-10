@@ -1,14 +1,26 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/main_navigation_screen.dart';
 
-// Definición del azul eléctrico exacto
+import 'screens/main_navigation_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/verify_reset_code_screen.dart';
+// Import del chat
+
+// Definición del azul eléctrico
 const Color azulPrincipal = Color(0xFF0004FF);
 
 // Notificadores globales de estado
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 final ValueNotifier<double> fontSizeNotifier = ValueNotifier(1.0);
+
+// 🟢 NUEVO: Notificador global del usuario autenticado.
+// Cualquier pantalla puede leer usuarioActualNotifier.value para
+// obtener el usuario actual (o null si no hay sesión).
+final ValueNotifier<Map<String, dynamic>?> usuarioActualNotifier =
+    ValueNotifier(null);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +33,37 @@ void main() async {
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   fontSizeNotifier.value = fontScale;
 
+  // 🟢 NUEVO: Recuperar sesión de usuario guardada (si existe),
+  // para que sobreviva a un reinicio de la app.
+  final usuarioGuardadoStr = prefs.getString('usuario');
+  if (usuarioGuardadoStr != null && usuarioGuardadoStr.isNotEmpty) {
+    try {
+      usuarioActualNotifier.value =
+          jsonDecode(usuarioGuardadoStr) as Map<String, dynamic>;
+    } catch (_) {
+      // Si el JSON guardado está corrupto, se ignora y se sigue sin sesión.
+      usuarioActualNotifier.value = null;
+    }
+  }
+
   runApp(const SpaVehicularApp());
+}
+
+// 🟢 NUEVO: Helper reutilizable para guardar la sesión completa
+// (usuario en memoria + disco). Úsalo en cualquier parte donde el
+// login sea exitoso (login normal o registro con login automático).
+Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
+  usuarioActualNotifier.value = userData;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('usuario', jsonEncode(userData));
+}
+
+// 🟢 NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
+Future<void> cerrarSesionUsuario() async {
+  usuarioActualNotifier.value = null;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('usuario');
+  await prefs.remove('token');
 }
 
 class SpaVehicularApp extends StatelessWidget {
@@ -39,7 +81,7 @@ class SpaVehicularApp extends StatelessWidget {
               debugShowCheckedModeBanner: false,
               title: 'SPA VEHICULAR',
 
-              // Configuración de temas global (Modo Claro / Oscuro)
+              // Configuración de temas global
               themeMode: currentMode,
 
               // Tema Claro
@@ -104,7 +146,7 @@ class SpaVehicularApp extends StatelessWidget {
                 ),
               ),
 
-              // Configuración regional para Colombia / Español
+              // Localización (Colombia / Español)
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
@@ -115,7 +157,7 @@ class SpaVehicularApp extends StatelessWidget {
               ],
               locale: const Locale('es', 'CO'),
 
-              // Escala global del tamaño de texto en toda la app
+              // Escala de texto
               builder: (context, child) {
                 final mediaQueryData = MediaQuery.of(context);
                 return MediaQuery(
@@ -126,7 +168,60 @@ class SpaVehicularApp extends StatelessWidget {
                 );
               },
 
-              home: const MainNavigationScreen(),
+              // Pantalla inicial
+              initialRoute: '/',
+
+              // Manejo unificado de rutas con soporte para argumentos
+              onGenerateRoute: (settings) {
+                switch (settings.name) {
+                  case '/':
+                    return MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                      settings: settings,
+                    );
+
+                  case '/login':
+                    return MaterialPageRoute(
+                      builder: (context) => LoginScreen(
+                        onLoginExitoso: (userData) async {
+                          // 🟢 CAMBIO CLAVE: ahora sí guardamos el usuario
+                          // en memoria y en disco antes de navegar.
+                          await guardarSesionUsuario(userData);
+
+                          if (!context.mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/',
+                            (route) => false,
+                          );
+                        },
+                      ),
+                      settings: settings,
+                    );
+
+                  case '/registro':
+                    return MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                      settings: settings,
+                    );
+
+                  case '/verificar-codigo':
+                  case '/verificar-codigo-restablecer':
+                    final emailArg = settings.arguments as String?;
+                    return MaterialPageRoute(
+                      builder: (context) => VerifyResetCodeScreen(
+                        email: emailArg ?? '',
+                      ),
+                      settings: settings,
+                    );
+
+                  default:
+                    return MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                      settings: settings,
+                    );
+                }
+              },
             );
           },
         );

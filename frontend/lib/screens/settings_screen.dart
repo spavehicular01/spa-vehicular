@@ -7,6 +7,11 @@ import '../main.dart'; // Notificadores globales
 import '../theme/app_theme.dart';
 import '../services/user_service.dart';
 
+import '../widgets/settings/profile_avatar.dart';
+import '../widgets/settings/profile_form.dart';
+import '../widgets/settings/login_prompt_card.dart';
+import '../widgets/settings/global_settings_card.dart';
+
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
   final Function(Map<String, dynamic>)? onUsuarioActualizado;
@@ -47,7 +52,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       text: widget.usuario?['celular'] ?? widget.usuario?['telefono'] ?? '',
     );
     _documentoController = TextEditingController(
-      text: widget.usuario?['documento'] ?? widget.usuario?['cedula'] ?? widget.usuario?['documentoIdentidad'] ?? 'Sin Documento',
+      text: widget.usuario?['documento'] ??
+          widget.usuario?['cedula'] ??
+          widget.usuario?['documentoIdentidad'] ??
+          'Sin Documento',
     );
     _avatarUrl = widget.usuario?['avatar'] ?? widget.usuario?['imagenUrl'];
   }
@@ -83,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _guardarCambios() async {
+  Future<void> _guardarCambios() async {
     final userId = widget.usuario?['id'] ?? widget.usuario?['_id'];
 
     if (userId == null) {
@@ -242,220 +250,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_estaAutenticado) ...[
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppTheme.azulElectrico,
-                      backgroundImage: _imagenSeleccionada != null
-                          ? FileImage(_imagenSeleccionada!)
-                          : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                              ? NetworkImage(_avatarUrl!) as ImageProvider
-                              : null,
-                      child: (_imagenSeleccionada == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
-                          ? const Icon(Icons.person, size: 55, color: Colors.white)
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _seleccionarFoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.azulElectrico,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              ProfileAvatar(
+                imagenSeleccionada: _imagenSeleccionada,
+                avatarUrl: _avatarUrl,
+                onTapCambiarFoto: _seleccionarFoto,
               ),
               const SizedBox(height: 24),
-
-              TextField(
-                controller: _documentoController,
-                enabled: false,
-                decoration: InputDecoration(
-                  labelText: 'Documento de Identidad (No editable)',
-                  prefixIcon: const Icon(Icons.badge_outlined),
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _nombresController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombres',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _apellidosController,
-                decoration: const InputDecoration(
-                  labelText: 'Apellidos',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _celularController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Celular',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: _isLoading ? null : _guardarCambios,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.azulElectrico,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text('Guardar Cambios', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 12),
-
-              OutlinedButton.icon(
-                onPressed: _mostrarDialogoCambiarPassword,
-                icon: const Icon(Icons.lock_reset, color: AppTheme.azulElectrico),
-                label: const Text('Cambiar Contraseña', style: TextStyle(color: AppTheme.azulElectrico)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: const BorderSide(color: AppTheme.azulElectrico),
-                ),
+              ProfileForm(
+                documentoController: _documentoController,
+                nombresController: _nombresController,
+                apellidosController: _apellidosController,
+                celularController: _celularController,
+                isLoading: _isLoading,
+                onGuardar: _guardarCambios,
               ),
               const SizedBox(height: 24),
             ] else ...[
-              Card(
-                elevation: 3,
-                color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.account_circle, size: 70, color: AppTheme.azulElectrico),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '¡Bienvenido a Spa Vehicular!',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Inicia sesión para gestionar tus datos personales, consultar tus vehículos y reservar servicios.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        },
-                        icon: const Icon(Icons.login),
-                        label: const Text('Iniciar Sesión / Registrarse'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.azulElectrico,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              LoginPromptCard(
+                onIniciarSesion: () {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                },
               ),
               const SizedBox(height: 24),
             ],
 
-            Card(
-              elevation: 2,
-              color: isDark ? const Color(0xFF1E293B) : Theme.of(context).cardColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Personalización Global',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                    ValueListenableBuilder<ThemeMode>(
-                      valueListenable: themeNotifier,
-                      builder: (context, currentMode, _) {
-                        final bool esOscuro = currentMode == ThemeMode.dark;
-                        return SwitchListTile(
-                          secondary: Icon(
-                            esOscuro ? Icons.dark_mode : Icons.light_mode,
-                            color: AppTheme.azulElectrico,
-                          ),
-                          title: const Text('Modo Oscuro'),
-                          value: esOscuro,
-                          activeColor: AppTheme.azulElectrico,
-                          onChanged: _cambiarModoOscuro,
-                        );
-                      },
-                    ),
-                    const Divider(),
-                    ValueListenableBuilder<double>(
-                      valueListenable: fontSizeNotifier,
-                      builder: (context, fontScale, _) {
-                        return Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(Icons.format_size, color: AppTheme.azulElectrico),
-                                    SizedBox(width: 12),
-                                    Text('Tamaño de Letra Global'),
-                                  ],
-                                ),
-                                Text(
-                                  '${(fontScale * 100).round()}%',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            Slider(
-                              value: fontScale,
-                              min: 0.8,
-                              max: 1.4,
-                              divisions: 6,
-                              activeColor: AppTheme.azulElectrico,
-                              onChanged: _cambiarTamanioLetra,
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+            GlobalSettingsCard(
+              esModoOscuro: esModoOscuro,
+              fontScale: fontSizeNotifier.value,
+              onCambiarModoOscuro: _cambiarModoOscuro,
+              onCambiarTamanioLetra: _cambiarTamanioLetra,
             ),
 
             if (_estaAutenticado) ...[
