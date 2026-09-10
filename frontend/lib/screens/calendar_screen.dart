@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 import '../services/appointment_service.dart';
-
+import '../theme/app_theme.dart';
 import '../widgets/calendar/date_picker_card.dart';
 import '../widgets/calendar/slots_header.dart';
 import '../widgets/calendar/time_slot_grid.dart';
@@ -50,9 +50,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     try {
       final fechaStr = _selectedDate.toIso8601String().split('T')[0];
+      
+      // 🟢 CORRECCIÓN: Llamada estática directa sin paréntesis ()
       final citasBackend = await AppointmentService.obtenerCitasPorFecha(
         fechaStr,
-        token: widget.token,
+        widget.token ?? '',
       );
 
       final listadoActualizado = [
@@ -91,9 +93,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
-    // 🟢 FIX: usar directamente widget.token (viene de la sesión
-    // centralizada usuarioActualNotifier) en vez de leer una copia
-    // aislada e inconsistente desde SharedPreferences.
     final String? token = widget.token;
 
     final bool hayToken = token != null && token.trim().isNotEmpty && token != 'null';
@@ -146,7 +145,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Stack(
+      body: Column(
         children: [
           DatePickerCard(
             selectedDate: _selectedDate,

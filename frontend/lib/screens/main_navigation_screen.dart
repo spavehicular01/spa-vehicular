@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
@@ -10,7 +8,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_dashboard_screen.dart';
 import '../widgets/chat_bottom_sheet.dart';
-import '../main.dart'; // 🟢 usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
+import '../main.dart'; // usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -21,13 +19,6 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-
-  // 🔴 ELIMINADO: Map<String, dynamic>? _usuarioAutenticado;
-  // Ya no existe estado local de usuario. Toda la app lee/escribe
-  // usuarioActualNotifier (definido en main.dart), así que sin importar
-  // desde dónde se dispare el login (diálogo "Atención", tab Perfil,
-  // AuthRequiredDialog en Calendario, etc.) el estado queda sincronizado
-  // en toda la aplicación, incluso si esta pantalla se reconstruye.
 
   void _abrirChatAsesor() {
     showModalBottomSheet(
@@ -78,7 +69,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         return HomeScreen(
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos); // 🟢 antes: setState local
+            guardarSesionUsuario(datos);
           },
         );
       case 1:
@@ -92,7 +83,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos); // 🟢 antes: setState local
+            guardarSesionUsuario(datos);
           },
         );
       case 2:
@@ -107,14 +98,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         if (usuarioAutenticado == null) {
           return LoginScreen(
             onLoginExitoso: (datos) {
-              guardarSesionUsuario(datos); // 🟢 antes: setState local
+              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
           return AdminDashboardScreen(
             userData: usuarioAutenticado,
             onCerrarSesion: () {
-              cerrarSesionUsuario(); // 🟢 antes: setState local
+              cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
           );
@@ -128,13 +119,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               usuarioAutenticado['vehiculos'] ?? [],
             ),
             onVehiculosChanged: (nuevosVehiculos) {
-              // 🟢 Actualiza el mapa y vuelve a guardar la sesión completa
               final actualizado = Map<String, dynamic>.from(usuarioAutenticado);
               actualizado['vehiculos'] = nuevosVehiculos;
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
-              cerrarSesionUsuario(); // 🟢 antes: setState local
+              cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
           );
@@ -146,10 +136,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 ValueListenableBuilder: reconstruye automáticamente esta pantalla
-    // (y por lo tanto Calendar/Home/Profile) cada vez que
-    // usuarioActualNotifier cambie, sin importar desde dónde se
-    // haya disparado el login o logout.
     return ValueListenableBuilder<Map<String, dynamic>?>(
       valueListenable: usuarioActualNotifier,
       builder: (context, usuarioAutenticado, _) {

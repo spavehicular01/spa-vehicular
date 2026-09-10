@@ -4,8 +4,6 @@ import 'services_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final Map<String, dynamic>? usuarioAutenticado;
-  // 👇 nuevo: callback real que actualiza el estado de sesión en
-  // MainNavigationScreen, para propagarlo si el login ocurre desde aquí.
   final void Function(Map<String, dynamic> datos)? onLoginExitoso;
 
   const HomeScreen({
@@ -15,17 +13,12 @@ class HomeScreen extends StatelessWidget {
   });
 
   void _validarYIrAServicios(BuildContext context) {
-    // Si no hay sesión activa en la app, bloquea el paso y muestra la alerta
     if (usuarioAutenticado == null) {
       AuthRequiredDialog.show(
         context,
         onLoginExitoso: (datos) {
-          // Propaga hacia MainNavigationScreen para que _usuarioAutenticado
-          // se actualice de verdad y toda la app se entere de la sesión.
           onLoginExitoso?.call(datos);
 
-          // Extra: una vez logueado, lo llevamos directo al catálogo,
-          // que era la intención original al tocar esta tarjeta.
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ServicesScreen()),
@@ -35,7 +28,6 @@ class HomeScreen extends StatelessWidget {
       return;
     }
 
-    // Si está autenticado, navega al catálogo
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -47,9 +39,6 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
@@ -156,10 +145,10 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

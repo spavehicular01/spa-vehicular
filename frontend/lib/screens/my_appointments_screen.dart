@@ -20,7 +20,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   bool _isLoading = true;
   List<dynamic> _citas = [];
 
-  // Azul eléctrico unificado de la marca (#0033FF)
   static const Color azulBrand = Color(0xFF0033FF);
 
   @override
@@ -33,6 +32,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     setState(() => _isLoading = true);
     final String userId = (widget.usuario['_id'] ?? widget.usuario['id'] ?? '').toString();
 
+    // 🟢 Corrección: Sin () porque los métodos de AppointmentService son estáticos
     final resultado = await AppointmentService.obtenerCitasPorUsuario(
       userId,
       token: widget.token,
@@ -85,6 +85,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
     if (confirmar != true) return;
 
+    // 🟢 Corrección: Sin () porque los métodos de AppointmentService son estáticos
     final res = await AppointmentService.cancelarCita(citaId, token: widget.token);
 
     if (!mounted) return;
