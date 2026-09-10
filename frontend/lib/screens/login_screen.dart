@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'verify_reset_code_screen.dart'; // 🟢 ajusta el path si está en otra carpeta
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,28 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // 🟢 TEMPORAL: diálogo persistente de depuración. Muestra el mapa
-  // completo que devuelve AuthService.login, sin importar si fue
-  // éxito o error, para diagnosticar qué está pasando exactamente.
-  // Quitar esto una vez resuelto el problema.
-  void _mostrarDebugDialog(String titulo, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo),
-        content: SingleChildScrollView(
-          child: Text(data.toString()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _iniciarSesion() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -64,11 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 🟢 TEMPORAL: mostramos EXACTAMENTE qué vamos a enviar,
-    // con corchetes para detectar espacios invisibles.
-    debugPrint('🔍 [FLUTTER LOGIN] email a enviar: [$email] (longitud: ${email.length})');
-    debugPrint('🔍 [FLUTTER LOGIN] password a enviar: [$password] (longitud: ${password.length})');
-
     setState(() => _cargando = true);
 
     final resultado = await AuthService.login(email, password);
@@ -76,10 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _cargando = false);
 
     if (!mounted) return;
-
-    // 🟢 TEMPORAL: siempre mostramos el resultado completo antes de
-    // decidir qué hacer, para ver EXACTAMENTE qué devolvió el backend.
-    _mostrarDebugDialog('Respuesta del login (debug)', resultado);
 
     final esExitoso = resultado['ok'] == true || resultado['success'] == true;
 
@@ -99,6 +69,16 @@ class _LoginScreenState extends State<LoginScreen> {
         'citas': [],
         'historial': [],
       });
+    } else if (resultado['requiereVerificacion'] == true) {
+      // 🟢 Cuenta sin verificar → llevar a la pantalla de código
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerifyResetCodeScreen(
+            email: resultado['email'] ?? email,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

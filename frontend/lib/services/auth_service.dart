@@ -25,7 +25,9 @@ class AuthService {
         'success': exito,
         'message': data['mensaje'] ?? data['message'] ?? 'Error al iniciar sesión',
         'usuario': data['usuario'],
-        'token': data['token'], // 🟢 FIX: ahora el token viaja junto con el resto de la respuesta
+        'token': data['token'],
+        'requiereVerificacion': data['requiereVerificacion'] == true,
+        'email': data['email'] ?? email,
       };
     } catch (e) {
       return {'success': false, 'message': 'Error de conexión con el servidor'};
@@ -48,17 +50,16 @@ class AuthService {
           'nombres': nombres,
           'apellidos': apellidos,
           'documentoIdentidad': documentoIdentidad,
-          'email': correo,   // Envia 'email' por si el backend lo espera así
-          'correo': correo,  // Envia 'correo' por compatibilidad
+          'email': correo,
+          'correo': correo,
           'celular': celular,
-          'telefono': celular, // Envia 'telefono' por compatibilidad
+          'telefono': celular,
           'password': password,
         }),
       );
 
       final data = jsonDecode(response.body);
 
-      // 🔍 IMPRESIONES DE DEPURACIÓN EN CONSOLA (DEBUG)
       print('=== DEBUG REGISTRO ===');
       print('Status Code: ${response.statusCode}');
       print('Respuesta Servidor: $data');
@@ -75,7 +76,6 @@ class AuthService {
     }
   }
 
-  // 🟢 Método para verificar el código enviando correo y código de 6 dígitos
   static Future<Map<String, dynamic>> verificarCuenta({
     required String email,
     required String codigo,
@@ -101,7 +101,6 @@ class AuthService {
     }
   }
 
-  // 🔄 Método para reenviar el código de verificación
   static Future<Map<String, dynamic>> reenviarCodigo({
     required String email,
   }) async {

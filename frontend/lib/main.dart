@@ -22,6 +22,10 @@ final ValueNotifier<double> fontSizeNotifier = ValueNotifier(1.0);
 final ValueNotifier<Map<String, dynamic>?> usuarioActualNotifier =
     ValueNotifier(null);
 
+// 🟢 NUEVO: Observador global de rutas, para que las pantallas puedan
+// enterarse cuando vuelven a quedar visibles (ej. al volver de agendar).
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -80,6 +84,7 @@ class SpaVehicularApp extends StatelessWidget {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
               title: 'Spa Vehicular',
+              navigatorObservers: [routeObserver], // 🟢 NUEVO
 
               // Configuración de temas global
               themeMode: currentMode,

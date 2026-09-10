@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../services/socket_service.dart';
 import '../services/wash_service.dart';
+import '../main.dart'; // routeObserver
 
 class WashManagementScreen extends StatefulWidget {
   const WashManagementScreen({super.key});
@@ -10,7 +12,8 @@ class WashManagementScreen extends StatefulWidget {
   State<WashManagementScreen> createState() => _WashManagementScreenState();
 }
 
-class _WashManagementScreenState extends State<WashManagementScreen> {
+class _WashManagementScreenState extends State<WashManagementScreen>
+    with RouteAware {
   final SocketService _socketService = SocketService();
   List<dynamic> _citas = [];
   bool _cargando = true;
@@ -22,13 +25,43 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
     _iniciarEscuchaSockets();
   }
 
-  Future<void> _cargarCitasCliente() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+  }
+
+  // Se llama automáticamente cuando esta pantalla vuelve a quedar visible
+  // (ej. al volver de BookingScreen tras agendar).
+  @override
+  void didPopNext() {
+    _cargarCitasCliente();
+  }
+
+  // 🟢 NUEVO: obtiene el id del usuario desde la sesión guardada por
+  // guardarSesionUsuario() en main.dart (clave 'usuario', JSON completo).
+  Future<String?> _obtenerUsuarioIdGuardado() async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuarioStr = prefs.getString('usuario');
+
+    if (usuarioStr == null || usuarioStr.isEmpty) return null;
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? usuarioId = prefs.getString('userId');
+      final usuario = jsonDecode(usuarioStr) as Map<String, dynamic>;
+      return usuario['id']?.toString() ?? usuario['_id']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _cargarCitasCliente() async {
+    if (mounted) setState(() => _cargando = true);
+
+    try {
+      final usuarioId = await _obtenerUsuarioIdGuardado();
 
       if (usuarioId != null && usuarioId.isNotEmpty) {
-        final citas = await WashApiService.getCitasProgramadas();
+        final citas = await WashApiService.getCitasPorUsuario(usuarioId);
         if (mounted) {
           setState(() {
             _citas = citas;
@@ -37,7 +70,10 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         }
       } else {
         if (mounted) {
-          setState(() => _cargando = false);
+          setState(() {
+            _citas = [];
+            _cargando = false;
+          });
         }
       }
     } catch (e) {
@@ -61,10 +97,11 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         }
       });
 
+      final estadoLower = nuevoEstado.toLowerCase();
       String mensajeSnackBar = '';
-      if (nuevoEstado == 'En Proceso') {
+      if (estadoLower == 'en_proceso') {
         mensajeSnackBar = '🧼 ¡Atención! Tu servicio de lavado ha comenzado.';
-      } else if (nuevoEstado == 'Completado') {
+      } else if (estadoLower == 'finalizada') {
         mensajeSnackBar = '✅ ¡Tu vehículo está listo! Revisa la pestaña Historial.';
       }
 
@@ -72,7 +109,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensajeSnackBar),
-            backgroundColor: nuevoEstado == 'Completado' ? Colors.green : Colors.blue,
+            backgroundColor: estadoLower == 'finalizada' ? Colors.green : Colors.blue,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 5),
           ),
@@ -83,26 +120,51 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _socketService.desconectar();
     super.dispose();
   }
 
+  // Colores y etiquetas legibles para los valores reales del enum del schema:
+  // ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada']
   Color _obtenerColorEstado(String? estado) {
-    switch (estado) {
-      case 'Pendiente':
+    switch ((estado ?? '').toLowerCase()) {
+      case 'pendiente':
         return Colors.orange;
-      case 'En Proceso':
+      case 'confirmada':
+        return Colors.indigo;
+      case 'en_proceso':
         return Colors.blue;
-      case 'Completado':
+      case 'finalizada':
         return Colors.green;
-      case 'Cancelado':
+      case 'cancelada':
         return Colors.red;
+      case 'reprogramada':
+        return Colors.purple;
       default:
         return Colors.grey;
     }
   }
 
-  // Funciones auxiliares para obtener nombre y descripción seguros
+  String _obtenerEtiquetaEstado(String? estado) {
+    switch ((estado ?? '').toLowerCase()) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'confirmada':
+        return 'Confirmada';
+      case 'en_proceso':
+        return 'En Proceso';
+      case 'finalizada':
+        return 'Finalizada';
+      case 'cancelada':
+        return 'Cancelada';
+      case 'reprogramada':
+        return 'Reprogramada';
+      default:
+        return estado ?? 'Pendiente';
+    }
+  }
+
   String _obtenerNombreServicio(Map<String, dynamic> cita) {
     if (cita['servicioNombre'] != null && cita['servicioNombre'].toString().isNotEmpty) {
       return cita['servicioNombre'];
@@ -158,8 +220,8 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
         itemCount: citas.length,
         itemBuilder: (context, index) {
           final cita = citas[index];
-          final String estado = cita['estado'] ?? 'Pendiente';
-          final bool enProceso = estado == 'En Proceso';
+          final String estado = (cita['estado'] ?? 'pendiente').toString();
+          final bool enProceso = estado.toLowerCase() == 'en_proceso';
 
           final String nombreServicio = _obtenerNombreServicio(cita);
           final String descripcionServicio = _obtenerDescripcionServicio(cita);
@@ -197,7 +259,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
                           border: Border.all(color: _obtenerColorEstado(estado)),
                         ),
                         child: Text(
-                          estado,
+                          _obtenerEtiquetaEstado(estado),
                           style: TextStyle(
                             color: _obtenerColorEstado(estado),
                             fontWeight: FontWeight.bold,
@@ -249,13 +311,20 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final citasActivas = _citas
-        .where((c) => c['estado'] == 'Pendiente' || c['estado'] == 'En Proceso')
-        .toList();
+    // Filtros con los valores REALES del enum del schema de Appointment:
+    // ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada']
+    final citasActivas = _citas.where((c) {
+  final estado = (c['estado'] ?? '').toString().toLowerCase();
+  return estado == 'pendiente' ||
+      estado == 'confirmada' ||
+      estado == 'en_proceso' ||
+      estado == 'reprogramada'; // 🟢 agregada aquí
+}).toList();
 
-    final citasHistorial = _citas
-        .where((c) => c['estado'] == 'Completado' || c['estado'] == 'Cancelado')
-        .toList();
+final citasHistorial = _citas.where((c) {
+  final estado = (c['estado'] ?? '').toString().toLowerCase();
+  return estado == 'finalizada' || estado == 'cancelada';
+}).toList();
 
     return DefaultTabController(
       length: 2,
