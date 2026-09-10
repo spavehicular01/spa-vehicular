@@ -13,6 +13,7 @@ import appointmentRoutes from './src/routes/appointmentRoutes.js';
 import serviceRoutes from './src/routes/serviceRoutes.js';
 import chatbotRoutes from './src/routes/chatbotRoutes.js'; 
 import uploadRoutes from './src/routes/uploadRoutes.js';
+import { crearAdminSemilla } from './src/utils/seedAdmin.js'; // 🟢 NUEVO
 
 const app = express();
 
@@ -39,7 +40,10 @@ app.use((req, res, next) => {
 console.log('URI leída desde .env:', process.env.MONGO_URI);
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Conectado exitosamente a MongoDB Atlas'))
+  .then(async () => {
+    console.log('✅ Conectado exitosamente a MongoDB Atlas');
+    await crearAdminSemilla(); // 🟢 NUEVO: crea el admin si aún no existe
+  })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
 // Middleware de rastreo de peticiones
@@ -63,7 +67,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
-app.use('/api/chat', chatbotRoutes); // Puedes usar /api/chat o /api/chatbot según prefieras para la petición
+app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Ruta raíz

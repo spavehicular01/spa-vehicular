@@ -31,6 +31,8 @@ export const login = async (req, res) => {
     if (user.isVerified === false) {
       return res.status(401).json({
         ok: false,
+        requiereVerificacion: true,
+        email: user.correo || user.Correo_Electronico,
         mensaje: 'Debes verificar tu cuenta con el código enviado a tu correo antes de iniciar sesión.'
       });
     }

@@ -14,7 +14,7 @@ export const verifyToken = (req, res, next) => {
   }
 
   try {
-    const verified = jwt.verify(token, process.env.SECRET_KEY || 'secreto_super_seguro');
+    const verified = jwt.verify(token, process.env.JWT_SECRET || 'mi_clave_secreta_cars_wash');
     req.user = verified;
     next();
   } catch (error) {
