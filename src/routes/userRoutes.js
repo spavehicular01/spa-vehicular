@@ -6,11 +6,9 @@ import {
   login,
   cambiarPassword,
   solicitarRecuperacionPassword,
-  restablecerPassword
+  restablecerPassword,
+  actualizarPerfil // 🟢 Se importa desde el mismo controlador User.js
 } from "../controllers/User.js";
-
-// Importar la función del controlador de usuario
-import { actualizarPerfil } from "../controllers/userController.js";
 
 // Middleware de subida de imágenes
 import upload from "../middlewares/upload.js";

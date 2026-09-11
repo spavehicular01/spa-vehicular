@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../main.dart'; // Notificadores globales
+import '../main.dart';
 import '../theme/app_theme.dart';
 import '../services/user_service.dart';
 
@@ -95,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userId = widget.usuario?['id'] ?? widget.usuario?['_id'];
 
     if (userId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: No se encontró el ID del usuario'),
@@ -114,9 +115,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       imagen: _imagenSeleccionada,
     );
 
-    setState(() => _isLoading = false);
-
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
     if (resultado['success'] == true && resultado['usuario'] != null) {
       final Map<String, dynamic> usuarioActualizado = Map<String, dynamic>.from(resultado['usuario']);
@@ -183,7 +183,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: enviando ? null : () => Navigator.pop(dialogContext),
+                  onPressed: enviando
+                      ? null
+                      : () {
+                          actualCtrl.dispose();
+                          nuevaCtrl.dispose();
+                          Navigator.pop(dialogContext);
+                        },
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
@@ -206,10 +212,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
 
                           setDialogState(() => enviando = false);
+                          actualCtrl.dispose();
+                          nuevaCtrl.dispose();
+
                           if (!dialogContext.mounted) return;
                           Navigator.pop(dialogContext);
 
-                          ScaffoldMessenger.of(this.context).showSnackBar(
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(res['message'] ?? 'Procesado'),
                               backgroundColor: res['success'] == true ? Colors.green : Colors.red,
@@ -264,6 +274,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isLoading: _isLoading,
                 onGuardar: _guardarCambios,
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _mostrarDialogoCambiarPassword,
+                icon: const Icon(Icons.key),
+                label: const Text('Cambiar Contraseña'),
+              ),
               const SizedBox(height: 24),
             ] else ...[
               LoginPromptCard(
@@ -274,11 +290,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
             ],
 
-            GlobalSettingsCard(
-              esModoOscuro: esModoOscuro,
-              fontScale: fontSizeNotifier.value,
-              onCambiarModoOscuro: _cambiarModoOscuro,
-              onCambiarTamanioLetra: _cambiarTamanioLetra,
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: themeNotifier,
+              builder: (context, currentThemeMode, _) {
+                final bool modoOscuroActivo = currentThemeMode == ThemeMode.dark;
+
+                return ValueListenableBuilder<double>(
+                  valueListenable: fontSizeNotifier,
+                  builder: (context, currentFontScale, _) {
+                    return GlobalSettingsCard(
+                      esModoOscuro: modoOscuroActivo,
+                      fontScale: currentFontScale,
+                      onCambiarModoOscuro: _cambiarModoOscuro,
+                      onCambiarTamanioLetra: _cambiarTamanioLetra,
+                    );
+                  },
+                );
+              },
             ),
 
             if (_estaAutenticado) ...[
@@ -293,7 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.remove('user_data');
                   await prefs.remove('token');
-                  
+
                   if (!mounted) return;
 
                   widget.onUsuarioActualizado?.call({});

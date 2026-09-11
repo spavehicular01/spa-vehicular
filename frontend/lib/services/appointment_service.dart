@@ -3,6 +3,43 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 
 class AppointmentService {
+  // 🟢 Crear / Agendar una nueva cita (Usado en BookingController)
+  static Future<Map<String, dynamic>> crearCita(
+    Map<String, dynamic> datosCita, {
+    String? token,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/appointments'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(datosCita),
+      );
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Cita agendada con éxito',
+          'cita': data['cita'] ?? data,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Error al agendar la cita (${response.statusCode})',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error de conexión al crear cita: $e',
+      };
+    }
+  }
+
   // 🟢 Obtener citas de una fecha específica (usado en CalendarScreen)
   static Future<List<dynamic>> obtenerCitasPorFecha(
     String fecha,

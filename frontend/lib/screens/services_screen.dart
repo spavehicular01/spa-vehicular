@@ -1,4 +1,3 @@
-import '../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
 import '../services/wash_service.dart';
@@ -34,19 +33,18 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return token != null && token.trim().isNotEmpty && token.trim() != 'null';
   }
 
-  // 🟢 Pasa el token, el usuario y el servicio seleccionado a la pantalla de agendamiento
   void _irACalendario(String token, Map<String, dynamic>? usuario) {
-  if (!mounted) return;
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => CalendarScreen(
-        token: token,
-        usuario: usuario,
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CalendarScreen(
+          token: token,
+          usuario: usuario,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _validarSesionYAgendar(ServiceModel item) async {
     final String? token = usuarioActualNotifier.value?['token'] as String?;
@@ -60,14 +58,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
           await guardarSesionUsuario(datos);
           final nuevoToken = datos['token'] as String?;
           if (nuevoToken != null) {
-            _irACalendario(nuevoToken, datos, item);
+            _irACalendario(nuevoToken, datos);
           }
         },
       );
       return;
     }
 
-    _irACalendario(token!, usuario, item);
+    _irACalendario(token!, usuario);
   }
 
   @override
@@ -78,8 +76,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Servicios de Lavado', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF0033FF), // O el tono azul que estés utilizando
-
+        backgroundColor: const Color(0xFF0033FF),
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,

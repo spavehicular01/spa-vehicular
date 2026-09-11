@@ -168,6 +168,7 @@ class _WashManagementScreenState extends State<WashManagementScreen> {
 
           final String nombreServicio = _obtenerNombreServicio(cita);
           final String descripcionServicio = _obtenerDescripcionServicio(cita);
+          final Color accentColor = _obtenerColorEstado(estado);
 
           return Card(
             elevation: enProceso ? 4 : 2,

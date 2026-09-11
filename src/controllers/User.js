@@ -22,7 +22,6 @@ export const registrarUsers = async (req, res) => {
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     const expiracion = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Encriptar la contraseña antes de guardar
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
@@ -316,5 +315,62 @@ export const restablecerPassword = async (req, res) => {
   } catch (error) {
     console.error("Error al restablecer contraseña:", error);
     res.status(500).json({ message: "Error interno al restablecer la contraseña" });
+  }
+};
+
+// 8. ACTUALIZAR PERFIL DE USUARIO
+export const actualizarPerfil = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, nombres, apellidos, celular, telefono } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const nombreFinal = nombre || nombres;
+    if (nombreFinal) {
+      user.nombres = nombreFinal;
+      user.Nombre = nombreFinal;
+    }
+
+    if (apellidos) {
+      user.apellidos = apellidos;
+      user.Apellido = apellidos;
+    }
+
+    const celularFinal = celular || telefono;
+    if (celularFinal) {
+      user.celular = celularFinal;
+      user.telefono = celularFinal;
+    }
+
+    if (req.file) {
+      user.avatar = req.file.path || req.file.secure_url;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      ok: true,
+      success: true,
+      message: "Perfil actualizado correctamente",
+      usuario: {
+        id: user._id,
+        _id: user._id,
+        nombres: user.nombres || user.Nombre,
+        apellidos: user.apellidos || user.Apellido,
+        correo: user.correo || user.Correo_Electronico,
+        celular: user.celular || user.telefono,
+        documentoIdentidad: user.documentoIdentidad,
+        rol: user.rol,
+        avatar: user.avatar
+      }
+    });
+
+  } catch (error) {
+    console.error("Error al actualizar perfil:", error);
+    res.status(500).json({ message: "Error interno al actualizar el perfil" });
   }
 };
