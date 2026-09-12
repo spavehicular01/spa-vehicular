@@ -7,13 +7,12 @@ import cors from 'cors';
 
 // Importación de Rutas (con extensión .js obligatoria en ES Modules)
 import authRoutes from './src/routes/authRoutes.js';
-import userRoutes from './src/routes/userRoutes.js';
 import vehicleRoutes from './src/routes/vehicleRoutes.js';
 import appointmentRoutes from './src/routes/appointmentRoutes.js';
 import serviceRoutes from './src/routes/serviceRoutes.js';
 import chatbotRoutes from './src/routes/chatbotRoutes.js'; 
 import uploadRoutes from './src/routes/uploadRoutes.js';
-import { crearAdminSemilla } from './src/utils/seedAdmin.js'; // 🟢 NUEVO
+import { crearAdminSemilla } from './src/utils/seedAdmin.js';
 
 const app = express();
 
@@ -42,7 +41,7 @@ console.log('URI leída desde .env:', process.env.MONGO_URI);
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ Conectado exitosamente a MongoDB Atlas');
-    await crearAdminSemilla(); // 🟢 NUEVO: crea el admin si aún no existe
+    await crearAdminSemilla();
   })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
@@ -61,9 +60,8 @@ io.on('connection', (socket) => {
   });
 });
 
-// Rutas base de la API
+// Rutas base de la API (Consolidadas)
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
@@ -74,6 +72,36 @@ app.use('/api/upload', uploadRoutes);
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API Cars-Wash funcionando correctamente 🚀' });
 });
+
+// Función para listar rutas de un router específico con su prefijo conocido
+function extraerRutasRouter(router, prefijo) {
+  const rutas = [];
+  const stack = router.stack || router?.router?.stack || [];
+  stack.forEach((capa) => {
+    if (capa.route) {
+      const metodos = Object.keys(capa.route.methods)
+        .filter((m) => capa.route.methods[m])
+        .map((m) => m.toUpperCase())
+        .join(', ');
+      const path = capa.route.path === '/' ? '' : capa.route.path;
+      rutas.push({ metodo: metodos, ruta: prefijo + path });
+    }
+  });
+  return rutas;
+}
+
+const todasLasRutas = [
+  ...extraerRutasRouter(authRoutes, '/api/auth'),
+  ...extraerRutasRouter(vehicleRoutes, '/api/vehicles'),
+  ...extraerRutasRouter(appointmentRoutes, '/api/appointments'),
+  ...extraerRutasRouter(serviceRoutes, '/api/services'),
+  ...extraerRutasRouter(chatbotRoutes, '/api/chat'),
+  ...extraerRutasRouter(uploadRoutes, '/api/upload'),
+  { metodo: 'GET', ruta: '/' }, // ruta raíz
+];
+
+console.log('\n📋 Rutas disponibles en la API:\n');
+console.table(todasLasRutas);
 
 // Manejador 404
 app.use((req, res) => {

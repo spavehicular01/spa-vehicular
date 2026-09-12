@@ -56,18 +56,36 @@ void main() async {
 // 🟢 NUEVO: Helper reutilizable para guardar la sesión completa
 // (usuario en memoria + disco). Úsalo en cualquier parte donde el
 // login sea exitoso (login normal o registro con login automático).
+//
+// 🔧 CORREGIDO: además de guardar el objeto 'usuario' completo como JSON,
+// ahora también guarda 'userId' y 'token' como claves sueltas en
+// SharedPreferences, que es lo que esperan AddVehicleScreen y
+// WashApiService al leer la sesión.
 Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
   usuarioActualNotifier.value = userData;
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('usuario', jsonEncode(userData));
+
+  final userId =
+      userData['id']?.toString() ?? userData['_id']?.toString() ?? '';
+  final token = userData['token']?.toString() ?? '';
+
+  if (userId.isNotEmpty) {
+    await prefs.setString('userId', userId);
+  }
+  if (token.isNotEmpty) {
+    await prefs.setString('token', token);
+  }
 }
 
 // 🟢 NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
+// 🔧 CORREGIDO: ahora también elimina 'userId' al cerrar sesión.
 Future<void> cerrarSesionUsuario() async {
   usuarioActualNotifier.value = null;
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('usuario');
   await prefs.remove('token');
+  await prefs.remove('userId');
 }
 
 class SpaVehicularApp extends StatelessWidget {

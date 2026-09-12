@@ -17,7 +17,17 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
+  late TextEditingController _referenciaController; // 🟢 NUEVO
   late TextEditingController _modeloController;
+
+  // 🟢 NUEVO: el backend exige tipoVehiculo como campo obligatorio.
+  final Map<String, String> _tiposVehiculo = {
+    'Automóvil': 'automovil',
+    'Motocicleta': 'moto',
+    'Camioneta': 'camioneta',
+    'SUV': 'SUV',
+  };
+  String _tipoSeleccionado = 'Automóvil';
 
   XFile? _imagenSeleccionada;
   String? _imagenUrlExistente;
@@ -33,9 +43,23 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     _marcaController = TextEditingController(
       text: widget.vehicleToEdit?['marca'] ?? '',
     );
+    _referenciaController = TextEditingController(
+      text: widget.vehicleToEdit?['referencia'] ?? '',
+    );
     _modeloController = TextEditingController(
       text: widget.vehicleToEdit?['modelo'] ?? '',
     );
+
+    // Si estamos editando, intenta preseleccionar el tipo de vehículo existente.
+    final tipoExistente = widget.vehicleToEdit?['tipoVehiculo'];
+    if (tipoExistente != null) {
+      final entry = _tiposVehiculo.entries.firstWhere(
+        (e) => e.value == tipoExistente,
+        orElse: () => _tiposVehiculo.entries.first,
+      );
+      _tipoSeleccionado = entry.key;
+    }
+
     _imagenUrlExistente = widget.vehicleToEdit?['imagenUrl'];
   }
 
@@ -43,6 +67,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   void dispose() {
     _placaController.dispose();
     _marcaController.dispose();
+    _referenciaController.dispose();
     _modeloController.dispose();
     super.dispose();
   }
@@ -107,17 +132,21 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       }
 
       String? imagenUrl = _imagenUrlExistente;
-      
+
       // Subir nueva foto si se seleccionó una
       if (_imagenSeleccionada != null) {
         imagenUrl = await WashApiService.subirImagen(_imagenSeleccionada!);
       }
 
+      // 🔧 CORREGIDO: el backend espera 'usuarioId' (no 'usuario'), y
+      // exige también 'referencia' y 'tipoVehiculo' como obligatorios.
       final Map<String, dynamic> datosVehiculo = {
-        'usuario': usuarioId,
+        'usuarioId': usuarioId,
         'placa': _placaController.text.trim().toUpperCase(),
         'marca': _marcaController.text.trim(),
+        'referencia': _referenciaController.text.trim(),
         'modelo': _modeloController.text.trim(),
+        'tipoVehiculo': _tiposVehiculo[_tipoSeleccionado]!,
         'imagenUrl': imagenUrl ?? '',
       };
 
@@ -176,7 +205,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color.fromARGB(255, 0, 76, 255)),
+                    border: Border.all(
+                        color: const Color.fromARGB(255, 0, 76, 255)),
                   ),
                   child: _imagenSeleccionada != null
                       ? ClipRRect(
@@ -186,7 +216,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             fit: BoxFit.cover,
                           ),
                         )
-                      : (_imagenUrlExistente != null && _imagenUrlExistente!.isNotEmpty)
+                      : (_imagenUrlExistente != null &&
+                              _imagenUrlExistente!.isNotEmpty)
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Image.network(
@@ -197,7 +228,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: const [
-                                Icon(Icons.add_a_photo, size: 40, color: Colors.teal),
+                                Icon(Icons.add_a_photo,
+                                    size: 40, color: Colors.teal),
                                 SizedBox(height: 8),
                                 Text('Toca para agregar foto del vehículo'),
                               ],
@@ -225,14 +257,44 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
               const SizedBox(height: 12),
+              // 🟢 NUEVO: campo Referencia, obligatorio en el backend.
               TextFormField(
-                controller: _modeloController,
+                controller: _referenciaController,
                 decoration: const InputDecoration(
-                  labelText: 'Modelo (Ej. Corolla 2022)',
+                  labelText: 'Referencia (Ej. Corolla)',
                   border: OutlineInputBorder(),
                 ),
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _modeloController,
+                decoration: const InputDecoration(
+                  labelText: 'Modelo / Año (Ej. 2022)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              // 🟢 NUEVO: selector de Tipo de Vehículo, obligatorio en el backend.
+              DropdownButtonFormField<String>(
+                initialValue: _tipoSeleccionado,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Vehículo',
+                  border: OutlineInputBorder(),
+                ),
+                items: _tiposVehiculo.keys
+                    .map((tipo) =>
+                        DropdownMenuItem(value: tipo, child: Text(tipo)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _tipoSeleccionado = val);
+                  }
+                },
               ),
               const SizedBox(height: 20),
               SizedBox(
