@@ -13,7 +13,7 @@ import serviceRoutes from './src/routes/serviceRoutes.js';
 import chatbotRoutes from './src/routes/chatbotRoutes.js'; 
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import { crearAdminSemilla } from './src/utils/seedAdmin.js';
-
+import userRoutes from './src/routes/userRoutes.js';
 const app = express();
 
 // Creación del Servidor HTTP y Socket.io
@@ -67,7 +67,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);
-
+app.use('/api/users', userRoutes);
 // Ruta raíz
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API Cars-Wash funcionando correctamente 🚀' });
@@ -97,6 +97,7 @@ const todasLasRutas = [
   ...extraerRutasRouter(serviceRoutes, '/api/services'),
   ...extraerRutasRouter(chatbotRoutes, '/api/chat'),
   ...extraerRutasRouter(uploadRoutes, '/api/upload'),
+  ...extraerRutasRouter(userRoutes, '/api/users'),
   { metodo: 'GET', ruta: '/' }, // ruta raíz
 ];
 

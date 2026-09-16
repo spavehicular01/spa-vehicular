@@ -60,6 +60,21 @@ const userSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Virtual: normaliza el nombre completo sin importar qué campo "sombra" tenga datos
+userSchema.virtual('nombreCompleto').get(function () {
+  const nombre = this.nombres || this.Nombre || '';
+  const apellido = this.apellidos || this.Apellido || '';
+  return `${nombre} ${apellido}`.trim();
+});
+
+// Virtual: normaliza el correo sin importar cuál de los dos campos se usó
+userSchema.virtual('correoNormalizado').get(function () {
+  return this.correo || this.Correo_Electronico || '';
+});
+
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
 // Middleware asíncrono sin 'next'
 userSchema.pre("save", async function () {
   // Si la contraseña en 'password' fue modificada y no está hasheada

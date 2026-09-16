@@ -1,7 +1,8 @@
-const User = require('../models/User');
+import User from '../models/User.js';
+import Vehicle from '../models/Vehicle.js';
 
 // Actualizar perfil de usuario
-exports.actualizarPerfil = async (req, res) => {
+export const actualizarPerfil = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombres, apellidos, celular } = req.body;
@@ -44,4 +45,43 @@ exports.actualizarPerfil = async (req, res) => {
     console.error(error);
     return res.status(500).json({ ok: false, mensaje: 'Error al actualizar el perfil' });
   }
+};
+
+// Obtener todos los clientes con sus vehículos (Panel Admin)
+export const obtenerClientes = async (req, res) => {
+  try {
+    const clientes = await User.find({
+      rol: { $in: ['usuario', 'cliente', 'USUARIO', 'CLIENTE'] }
+    })
+      .select('nombres Nombre apellidos Apellido correo Correo_Electronico celular telefono documentoIdentidad avatar')
+      .lean();
+
+    const clienteIds = clientes.map(c => c._id);
+    const vehiculos = await Vehicle.find({ usuarioId: { $in: clienteIds } }).lean();
+
+    const vehiculosPorUsuario = {};
+    vehiculos.forEach(v => {
+      const key = v.usuarioId.toString();
+      if (!vehiculosPorUsuario[key]) vehiculosPorUsuario[key] = [];
+      vehiculosPorUsuario[key].push(v);
+    });
+
+    const clientesConVehiculos = clientes.map(c => ({
+      ...c,
+      nombreCompleto: `${c.nombres || c.Nombre || ''} ${c.apellidos || c.Apellido || ''}`.trim(),
+      correoNormalizado: c.correo || c.Correo_Electronico || '',
+      telefonoNormalizado: c.celular || c.telefono || '',
+      vehiculos: vehiculosPorUsuario[c._id.toString()] || []
+    }));
+
+    res.status(200).json(clientesConVehiculos);
+  } catch (error) {
+    console.error('Error en obtenerClientes:', error);
+    res.status(500).json({ mensaje: 'Error al obtener clientes', error: error.message });
+  }
+};
+
+export default {
+  actualizarPerfil,
+  obtenerClientes
 };

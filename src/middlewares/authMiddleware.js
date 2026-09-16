@@ -23,4 +23,14 @@ export const verifyToken = (req, res, next) => {
   }
 };
 
+// Solo permite continuar si el usuario autenticado tiene rol de administrador.
+// Debe usarse siempre DESPUÉS de verifyToken en la cadena de middlewares.
+export const esAdmin = (req, res, next) => {
+  const rol = (req.user?.rol || '').toLowerCase();
+  if (rol !== 'admin') {
+    return res.status(403).json({ error: 'Acceso restringido a administradores' });
+  }
+  next();
+};
+
 export default verifyToken;

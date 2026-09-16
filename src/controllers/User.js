@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Vehicle from "../models/Vehicle.js";
 import bcrypt from "bcryptjs";
 import { enviarCodigoVerificacion } from "../utils/mailer.js";
 
@@ -11,7 +12,6 @@ export const registrarUsers = async (req, res) => {
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
     }
 
-    // Buscar si existe por correo electrónico (soporta esquema con 'correo' o 'Correo_Electronico')
     const existeUser = await User.findOne({
       $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
     });
@@ -148,7 +148,6 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Correo y contraseña requeridos" });
     }
 
-    // Buscar al usuario
     const user = await User.findOne({
       $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
     });
@@ -157,21 +156,18 @@ export const login = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    // Verificar contraseña con bcrypt (valida contra 'password' o 'passwords')
     const passUser = user.password || user.passwords;
     const passwordCorrecto = await bcrypt.compare(passwords, passUser);
     if (!passwordCorrecto) {
       return res.status(400).json({ message: "Contraseña incorrecta" });
     }
 
-    // BLOQUEO: Verificar si completó el código de 6 dígitos
     if (!user.isVerified) {
       return res.status(403).json({
         message: "Tu cuenta no está verificada. Por favor ingresa el código enviado a tu correo antes de iniciar sesión."
       });
     }
 
-    // Acceso concedido
     res.status(200).json({
       message: "Inicio de sesión exitoso",
       usuario: {
@@ -185,5 +181,39 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Error en login:", error);
     res.status(500).json({ message: "Error interno en el inicio de sesión" });
+  }
+};
+
+// 5. OBTENER TODOS LOS CLIENTES CON SUS VEHÍCULOS (Panel Admin)
+export const obtenerClientes = async (req, res) => {
+  try {
+    const clientes = await User.find({
+      rol: { $in: ['usuario', 'cliente', 'USUARIO', 'CLIENTE'] }
+    })
+      .select('nombres Nombre apellidos Apellido correo Correo_Electronico celular telefono documentoIdentidad avatar')
+      .lean();
+
+    const clienteIds = clientes.map(c => c._id);
+    const vehiculos = await Vehicle.find({ usuarioId: { $in: clienteIds } }).lean();
+
+    const vehiculosPorUsuario = {};
+    vehiculos.forEach(v => {
+      const key = v.usuarioId.toString();
+      if (!vehiculosPorUsuario[key]) vehiculosPorUsuario[key] = [];
+      vehiculosPorUsuario[key].push(v);
+    });
+
+    const clientesConVehiculos = clientes.map(c => ({
+      ...c,
+      nombreCompleto: `${c.nombres || c.Nombre || ''} ${c.apellidos || c.Apellido || ''}`.trim(),
+      correoNormalizado: c.correo || c.Correo_Electronico || '',
+      telefonoNormalizado: c.celular || c.telefono || '',
+      vehiculos: vehiculosPorUsuario[c._id.toString()] || []
+    }));
+
+    res.status(200).json(clientesConVehiculos);
+  } catch (error) {
+    console.error('Error en obtenerClientes:', error);
+    res.status(500).json({ mensaje: 'Error al obtener clientes', error: error.message });
   }
 };
