@@ -1,9 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static const String _baseUrl = 'http://10.0.2.2:3000/api/auth';
+
+  // 🟢 Reemplaza con tu Client ID de tipo "Web" (el mismo que usa GOOGLE_CLIENT_ID en tu backend)
+  static const String _webClientId = '903465087225-moalp2u8tjmuhe4ffct48nq0mnlucvi6.apps.googleusercontent.com';
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: _webClientId,
+  );
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -31,6 +39,52 @@ class AuthService {
       };
     } catch (e) {
       return {'success': false, 'message': 'Error de conexión con el servidor'};
+    }
+  }
+
+  // 🟢 NUEVO: Login con Google
+  static Future<Map<String, dynamic>> loginConGoogle() async {
+    try {
+      // 1. Abre el selector de cuentas de Google
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // El usuario canceló el selector
+        return {'success': false, 'message': 'Inicio de sesión cancelado'};
+      }
+
+      // 2. Obtiene el idToken (JWT) que espera tu backend
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        return {'success': false, 'message': 'No se pudo obtener el token de Google'};
+      }
+
+      // 3. Manda el idToken a tu backend (ruta real: /login-google)
+      final response = await http.post(
+        Uri.parse('$_baseUrl/login-google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+
+      final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200;
+
+      if (exito && data['token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', data['token']);
+      }
+
+      return {
+        'success': exito,
+        'message': data['message'] ?? data['mensaje'] ?? 'Error al iniciar sesión con Google',
+        'usuario': data['usuario'],
+        'token': data['token'],
+      };
+    } catch (e) {
+      print('⚠️ ERROR LOGIN GOOGLE: $e');
+      return {'success': false, 'message': 'Error de conexión con Google: $e'};
     }
   }
 

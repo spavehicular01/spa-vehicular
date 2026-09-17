@@ -1,4 +1,6 @@
 import Appointment from '../models/Appointment.js';
+import Vehicle from '../models/Vehicle.js';
+import Service from '../models/Service.js';
 import { sendEmail } from '../services/emailService.js';
 
 const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
@@ -76,6 +78,20 @@ export const crearCita = async (req, res) => {
       detallesDomicilio,
       correo
     } = req.body;
+
+    // 🟢 Validar que el vehículo y el servicio existan antes de crear la cita
+    const [vehiculoExiste, servicioExiste] = await Promise.all([
+      Vehicle.findById(vehiculoId),
+      Service.findById(servicioId)
+    ]);
+
+    if (!vehiculoExiste) {
+      return res.status(400).json({ mensaje: 'El vehículo indicado no existe' });
+    }
+
+    if (!servicioExiste) {
+      return res.status(400).json({ mensaje: 'El servicio indicado no existe' });
+    }
 
     const nuevaCita = new Appointment({
       usuarioId,

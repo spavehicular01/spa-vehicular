@@ -4,7 +4,7 @@ import '../services/wash_service.dart';
 class HistoryWashesScreen extends StatelessWidget {
   const HistoryWashesScreen({super.key});
 
-  // Datos de respaldo local si el servicio no responde o está fallando
+  // Datos de respaldo SOLO para cuando falla la conexión con el backend
   List<Map<String, dynamic>> _getHistorialLocal() {
     return [
       {
@@ -26,21 +26,113 @@ class HistoryWashesScreen extends StatelessWidget {
 
   Future<List<dynamic>> _cargarHistorial() async {
     try {
-      // Intenta obtener los datos desde el servicio
       final datos = await WashApiService.getHistorialCitas();
-      if (datos.isNotEmpty) return datos;
-      return _getHistorialLocal();
+      return datos; // Aunque venga vacío [], es una respuesta válida del backend
     } catch (e) {
-      // Si el método no existe en el service o falla la API, usa el respaldo
+      // Solo usamos el respaldo local si la petición realmente falló
       return _getHistorialLocal();
     }
+  }
+
+  // --- Helpers de mapeo ---
+
+  String _extraerServicio(Map cita) {
+    final directo = cita['servicio'];
+    if (directo is String) return directo;
+
+    final servicioObj = cita['servicioId'];
+    if (servicioObj is Map && servicioObj['nombreServicio'] != null) {
+      return servicioObj['nombreServicio'].toString();
+    }
+    return 'Servicio de Lavado';
+  }
+
+  String _extraerVehiculo(Map cita) {
+    final directo = cita['vehiculo'];
+    if (directo is String) return directo;
+
+    final vehiculoObj = cita['vehiculoId'];
+    if (vehiculoObj is Map) {
+      final marca = vehiculoObj['marca'];
+      final modelo = vehiculoObj['modelo'];
+      final placa = vehiculoObj['placa'];
+      final partes = [
+        if (marca != null) marca,
+        if (modelo != null) modelo,
+      ].join(' ');
+      if (partes.isNotEmpty && placa != null) return '$partes ($placa)';
+      if (partes.isNotEmpty) return partes;
+      if (placa != null) return '$placa';
+    }
+    return 'N/A';
+  }
+
+  String _extraerPrecio(Map cita) {
+    final directo = cita['precio'];
+    if (directo != null) return directo.toString();
+
+    final servicioObj = cita['servicioId'];
+    final vehiculoObj = cita['vehiculoId'];
+
+    if (servicioObj is Map) {
+      final precios = servicioObj['precios'];
+      if (precios is List && precios.isNotEmpty) {
+        final tipoVehiculo = vehiculoObj is Map ? vehiculoObj['tipoVehiculo'] : null;
+
+        if (tipoVehiculo != null) {
+          final match = precios.firstWhere(
+            (p) => p is Map && p['tipoVehiculo'] == tipoVehiculo,
+            orElse: () => null,
+          );
+          if (match != null && match['precio'] != null) {
+            return match['precio'].toString();
+          }
+        }
+
+        final primerPrecio = precios.first;
+        if (primerPrecio is Map && primerPrecio['precio'] != null) {
+          return primerPrecio['precio'].toString();
+        }
+      }
+    }
+    return '0';
+  }
+
+  String _extraerFecha(Map cita) {
+    final directa = cita['fecha'];
+    if (directa is String) return directa;
+
+    final fechaHora = cita['fechaHoraCita'];
+    if (fechaHora != null) {
+      final dt = DateTime.tryParse(fechaHora.toString());
+      if (dt != null) {
+        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      }
+    }
+    return '';
+  }
+
+  String _extraerHora(Map cita) {
+    final directa = cita['hora'];
+    if (directa is String) return directa;
+
+    final fechaHora = cita['fechaHoraCita'];
+    if (fechaHora != null) {
+      final dt = DateTime.tryParse(fechaHora.toString());
+      if (dt != null) {
+        final hora = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+        final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+        return '$hora:${dt.minute.toString().padLeft(2, '0')} $ampm';
+      }
+    }
+    return '';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historial de Lavadas'),
+        title: const Text('Reportes e Historial'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
@@ -60,21 +152,21 @@ class HistoryWashesScreen extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             itemCount: citas.length,
             itemBuilder: (context, index) {
-              final cita = citas[index];
+              final cita = citas[index] as Map;
               return Card(
                 elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
                   leading: const Icon(Icons.check_circle, color: Colors.teal, size: 32),
                   title: Text(
-                    cita['servicio'] ?? 'Servicio de Lavado',
+                    _extraerServicio(cita),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    'Fecha: ${cita['fecha'] ?? ''} - Hora: ${cita['hora'] ?? ''}\nVehículo: ${cita['vehiculo'] ?? 'N/A'}',
+                    'Fecha: ${_extraerFecha(cita)} - Hora: ${_extraerHora(cita)}\nVehículo: ${_extraerVehiculo(cita)}',
                   ),
                   trailing: Text(
-                    '\$${cita['precio'] ?? '0'}',
+                    '\$${_extraerPrecio(cita)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.teal,

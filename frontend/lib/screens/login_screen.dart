@@ -19,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _cargando = false;
+  bool _cargandoGoogle = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -70,7 +71,6 @@ class _LoginScreenState extends State<LoginScreen> {
         'historial': [],
       });
     } else if (resultado['requiereVerificacion'] == true) {
-      // 🟢 Cuenta sin verificar → llevar a la pantalla de código
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -85,6 +85,43 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(
             resultado['mensaje'] ?? resultado['message'] ?? 'Error al iniciar sesión',
           ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 🟢 NUEVO: Login con Google
+  Future<void> _iniciarSesionConGoogle() async {
+    setState(() => _cargandoGoogle = true);
+
+    final resultado = await AuthService.loginConGoogle();
+
+    setState(() => _cargandoGoogle = false);
+
+    if (!mounted) return;
+
+    if (resultado['success'] == true) {
+      // El backend de Google devuelve los campos con nombres distintos (Nombre, Apellido, Correo_Electronico)
+      final usuario = resultado['usuario'] ?? {};
+
+      widget.onLoginExitoso({
+        'id': usuario['id'] ?? usuario['_id'] ?? '',
+        'nombres': usuario['nombres'] ?? usuario['Nombre'] ?? 'Usuario',
+        'apellidos': usuario['apellidos'] ?? usuario['Apellido'] ?? '',
+        'correo': usuario['correo'] ?? usuario['Correo_Electronico'] ?? '',
+        'rol': usuario['rol'] ?? 'cliente',
+        'documento': usuario['documentoIdentidad'] ?? '',
+        'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
+        'vehiculos': usuario['vehiculos'] ?? [],
+        'token': resultado['token'],
+        'citas': [],
+        'historial': [],
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Error al iniciar sesión con Google'),
           backgroundColor: Colors.red,
         ),
       );
@@ -177,7 +214,49 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
+              const SizedBox(height: 16),
+
+              // 🟢 Separador visual
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('o', style: TextStyle(color: Colors.grey.shade600)),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 🟢 Botón de Google
+              OutlinedButton.icon(
+                onPressed: _cargandoGoogle ? null : _iniciarSesionConGoogle,
+                icon: _cargandoGoogle
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Image.network(
+                        'https://www.google.com/favicon.ico',
+                        height: 20,
+                        width: 20,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.login, size: 20),
+                      ),
+                label: const Text(
+                  'Continuar con Google',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
               const SizedBox(height: 24),
+
               OutlinedButton(
                 onPressed: () async {
                   final result = await Navigator.push(
