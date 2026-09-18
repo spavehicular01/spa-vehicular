@@ -311,6 +311,7 @@ class WashApiService {
     }
   }
 
+
   static Future<List<dynamic>> obtenerTodasLasCitas() async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments');

@@ -13,6 +13,7 @@ class SocketService {
           .build(),
     );
 
+
     _socket?.connect();
 
     _socket?.on('cambio_estado_cita', (data) {
