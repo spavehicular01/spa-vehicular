@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/booking_controller.dart';
 import '../services/vehicle_service.dart';
 import '../services/wash_service.dart';
+import '../theme/app_theme.dart';
 
 import '../widgets/booking/appointment_summary_card.dart';
 import '../widgets/booking/vehicle_selector.dart';

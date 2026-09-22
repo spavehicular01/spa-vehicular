@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/socket_service.dart';
 import '../services/wash_service.dart';
+import '../theme/app_theme.dart';
 import '../main.dart'; // routeObserver
 
 class WashManagementScreen extends StatefulWidget {

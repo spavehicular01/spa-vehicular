@@ -4,8 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/custom_input.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -20,7 +18,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
-  late TextEditingController _referenciaController; // 🟢 NUEVO
+  late TextEditingController _referenciaController;
   late TextEditingController _modeloController;
 
   // 🟢 NUEVO: el backend exige tipoVehiculo como campo obligatorio.

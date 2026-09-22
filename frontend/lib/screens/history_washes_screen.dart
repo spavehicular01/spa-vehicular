@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/appointment_service.dart';
+import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
 
 class HistoryWashesScreen extends StatelessWidget {
@@ -151,7 +151,7 @@ class HistoryWashesScreen extends StatelessWidget {
         future: _cargarHistorial(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(color: AppTheme.azulElectrico),
             );
           } else if (snapshot.hasError) {
@@ -177,16 +177,18 @@ class HistoryWashesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final cita = citas[index] as Map;
               return Card(
+                color: cardBg,
                 elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
                   leading: const Icon(Icons.check_circle, color: Colors.teal, size: 32),
                   title: Text(
                     _extraerServicio(cita),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                   ),
                   subtitle: Text(
                     'Fecha: ${_extraerFecha(cita)} - Hora: ${_extraerHora(cita)}\nVehículo: ${_extraerVehiculo(cita)}',
+                    style: TextStyle(color: subtitleColor),
                   ),
                   trailing: Text(
                     '\$${_extraerPrecio(cita)}',
