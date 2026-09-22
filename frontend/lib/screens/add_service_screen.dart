@@ -119,7 +119,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: azulPrincipal.withOpacity(0.5)),
+                    border: Border.all(color: azulPrincipal.withValues(alpha: 0.5)),
                   ),
                   child: _imagenSeleccionada != null
                       ? ClipRRect(

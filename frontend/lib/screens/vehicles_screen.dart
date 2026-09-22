@@ -103,7 +103,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: tipoSeleccionado,
+                      initialValue: tipoSeleccionado,
                       decoration: const InputDecoration(labelText: 'Tipo de Vehículo', border: OutlineInputBorder()),
                       items: tiposVehiculo.keys.map((tipo) {
                         return DropdownMenuItem(value: tipo, child: Text(tipo));

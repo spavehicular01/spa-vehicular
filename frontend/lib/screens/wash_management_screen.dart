@@ -254,7 +254,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _obtenerColorEstado(estado).withOpacity(0.15),
+                          color: _obtenerColorEstado(estado).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: _obtenerColorEstado(estado)),
                         ),

@@ -72,7 +72,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
             }
           }
 
-          final String? imageUrl = _obtenerCampo(servicio, ['imageUrl', 'imagenUrl', 'image']);
+          final String imageUrl = _obtenerCampo(servicio, ['imageUrl', 'imagenUrl', 'image']);
 
           return AlertDialog(
             title: Text(servicio == null ? 'Nuevo Servicio' : 'Editar Servicio'),

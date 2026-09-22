@@ -16,13 +16,13 @@ const Color azulPrincipal = Color(0xFF0004FF);
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 final ValueNotifier<double> fontSizeNotifier = ValueNotifier(1.0);
 
-// 🟢 NUEVO: Notificador global del usuario autenticado.
+// Notificador global del usuario autenticado.
 // Cualquier pantalla puede leer usuarioActualNotifier.value para
 // obtener el usuario actual (o null si no hay sesión).
 final ValueNotifier<Map<String, dynamic>?> usuarioActualNotifier =
     ValueNotifier(null);
 
-// 🟢 NUEVO: Observador global de rutas, para que las pantallas puedan
+// Observador global de rutas, para que las pantallas puedan
 // enterarse cuando vuelven a quedar visibles (ej. al volver de agendar).
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -37,7 +37,7 @@ void main() async {
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   fontSizeNotifier.value = fontScale;
 
-  // 🟢 NUEVO: Recuperar sesión de usuario guardada (si existe),
+  // Recuperar sesión de usuario guardada (si existe),
   // para que sobreviva a un reinicio de la app.
   final usuarioGuardadoStr = prefs.getString('usuario');
   if (usuarioGuardadoStr != null && usuarioGuardadoStr.isNotEmpty) {
@@ -53,7 +53,7 @@ void main() async {
   runApp(const SpaVehicularApp());
 }
 
-// 🟢 NUEVO: Helper reutilizable para guardar la sesión completa
+// Helper reutilizable para guardar la sesión completa
 // (usuario en memoria + disco). Úsalo en cualquier parte donde el
 // login sea exitoso (login normal o registro con login automático).
 //
@@ -78,7 +78,7 @@ Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
   }
 }
 
-// 🟢 NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
+// NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
 // 🔧 CORREGIDO: ahora también elimina 'userId' al cerrar sesión.
 Future<void> cerrarSesionUsuario() async {
   usuarioActualNotifier.value = null;

@@ -49,7 +49,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           userData['correo'] ?? 'spavehicular01@gmail.com',
-                          style: TextStyle(color: const Color.fromARGB(255, 97, 97, 97)),
+                          style: const TextStyle(color: Color.fromARGB(255, 97, 97, 97)),
                         ),
                       ],
                     ),

@@ -21,7 +21,7 @@ class PaymentMethodSelector extends StatelessWidget {
         const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: metodoPago,
+          initialValue: metodoPago,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.payment),
