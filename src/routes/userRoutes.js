@@ -1,5 +1,4 @@
 import express from 'express';
-<<<<<<< HEAD
 import {
   registrarUsers,
   verificarCuenta,
@@ -10,17 +9,14 @@ import {
   restablecerPassword,
   actualizarPerfil // 🟢 Se importa desde el mismo controlador User.js
 } from "../controllers/User.js";
-=======
-import { actualizarPerfil, obtenerClientes } from '../controllers/userController.js';
+import { actualizarPerfil as actualizarPerfilAdmin, obtenerClientes } from '../controllers/userController.js';
 import { verifyToken, esAdmin } from '../middlewares/authMiddleware.js';
->>>>>>> origin/main
 
 // Middleware de subida de imágenes
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
 
-<<<<<<< HEAD
 // ----------------------------------------------------
 // Rutas de autenticación
 // ----------------------------------------------------
@@ -28,10 +24,9 @@ router.post("/registrar", registrarUsers);
 router.post("/verificar-codigo", verificarCuenta);
 router.post("/reenviar-codigo", reenviarCodigoVerificacion);
 router.post("/login", login);
-=======
-router.put('/perfil/:id', verifyToken, actualizarPerfil);
+
+router.put('/perfil/:id', verifyToken, actualizarPerfilAdmin);
 router.get('/clientes', verifyToken, esAdmin, obtenerClientes);
->>>>>>> origin/main
 
 // ----------------------------------------------------
 // Rutas de gestión de usuario y contraseña
