@@ -20,7 +20,17 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
+  late TextEditingController _referenciaController; // 🟢 NUEVO
   late TextEditingController _modeloController;
+
+  // 🟢 NUEVO: el backend exige tipoVehiculo como campo obligatorio.
+  final Map<String, String> _tiposVehiculo = {
+    'Automóvil': 'automovil',
+    'Motocicleta': 'moto',
+    'Camioneta': 'camioneta',
+    'SUV': 'SUV',
+  };
+  String _tipoSeleccionado = 'Automóvil';
 
   XFile? _imagenSeleccionada;
   String? _imagenUrlExistente;
@@ -36,9 +46,23 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     _marcaController = TextEditingController(
       text: widget.vehicleToEdit?['marca'] ?? '',
     );
+    _referenciaController = TextEditingController(
+      text: widget.vehicleToEdit?['referencia'] ?? '',
+    );
     _modeloController = TextEditingController(
       text: widget.vehicleToEdit?['modelo'] ?? '',
     );
+
+    // Si estamos editando, intenta preseleccionar el tipo de vehículo existente.
+    final tipoExistente = widget.vehicleToEdit?['tipoVehiculo'];
+    if (tipoExistente != null) {
+      final entry = _tiposVehiculo.entries.firstWhere(
+        (e) => e.value == tipoExistente,
+        orElse: () => _tiposVehiculo.entries.first,
+      );
+      _tipoSeleccionado = entry.key;
+    }
+
     _imagenUrlExistente = widget.vehicleToEdit?['imagenUrl'];
   }
 
@@ -46,6 +70,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   void dispose() {
     _placaController.dispose();
     _marcaController.dispose();
+    _referenciaController.dispose();
     _modeloController.dispose();
     super.dispose();
   }
@@ -131,15 +156,20 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
       String? imagenUrl = _imagenUrlExistente;
 
+      // Subir nueva foto si se seleccionó una
       if (_imagenSeleccionada != null) {
         imagenUrl = await WashApiService.subirImagen(_imagenSeleccionada!);
       }
 
+      // 🔧 CORREGIDO: el backend espera 'usuarioId' (no 'usuario'), y
+      // exige también 'referencia' y 'tipoVehiculo' como obligatorios.
       final Map<String, dynamic> datosVehiculo = {
-        'usuario': usuarioId,
+        'usuarioId': usuarioId,
         'placa': _placaController.text.trim().toUpperCase(),
         'marca': _marcaController.text.trim(),
+        'referencia': _referenciaController.text.trim(),
         'modelo': _modeloController.text.trim(),
+        'tipoVehiculo': _tiposVehiculo[_tipoSeleccionado]!,
         'imagenUrl': imagenUrl ?? '',
       };
 
@@ -199,104 +229,128 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Card(
-          elevation: 2,
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  GestureDetector(
-                    onTap: _mostrarOpcionesImagen,
-                    child: Container(
-                      height: 170,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.azulElectrico.withOpacity(0.5),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: _imagenSeleccionada != null
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: _mostrarOpcionesImagen,
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: const Color.fromARGB(255, 0, 76, 255)),
+                  ),
+                  child: _imagenSeleccionada != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(_imagenSeleccionada!.path),
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : (_imagenUrlExistente != null &&
+                              _imagenUrlExistente!.isNotEmpty)
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                File(_imagenSeleccionada!.path),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                _imagenUrlExistente!,
                                 fit: BoxFit.cover,
-                                width: double.infinity,
                               ),
                             )
-                          : (_imagenUrlExistente != null && _imagenUrlExistente!.isNotEmpty)
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    _imagenUrlExistente!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    errorBuilder: (ctx, err, stack) => const Center(
-                                      child: Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                                    ),
-                                  ),
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.add_a_photo_outlined,
-                                      size: 42,
-                                      color: AppTheme.azulElectrico,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Toca para agregar foto del vehículo',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: isDark ? Colors.grey[400] : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  CustomInput(
-                    label: 'Placa',
-                    icon: Icons.badge_outlined,
-                    controller: _placaController,
-                    validator: (val) =>
-                        val == null || val.trim().isEmpty ? 'Ingresa la placa del vehículo' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomInput(
-                    label: 'Marca',
-                    icon: Icons.branding_watermark_outlined,
-                    controller: _marcaController,
-                    validator: (val) =>
-                        val == null || val.trim().isEmpty ? 'Ingresa la marca' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  CustomInput(
-                    label: 'Modelo / Referencia',
-                    icon: Icons.directions_car_outlined,
-                    controller: _modeloController,
-                    validator: (val) =>
-                        val == null || val.trim().isEmpty ? 'Ingresa el modelo o referencia' : null,
-                  ),
-                  const SizedBox(height: 24),
-                  CustomButton(
-                    text: esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
-                    isLoading: _subiendo,
-                    onPressed: _guardarVehiculo,
-                  ),
-                ],
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.add_a_photo,
+                                    size: 40, color: Colors.teal),
+                                SizedBox(height: 8),
+                                Text('Toca para agregar foto del vehículo'),
+                              ],
+                            ),
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _placaController,
+                decoration: const InputDecoration(
+                  labelText: 'Placa (Ej. ABC123)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _marcaController,
+                decoration: const InputDecoration(
+                  labelText: 'Marca (Ej. Toyota)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              // 🟢 NUEVO: campo Referencia, obligatorio en el backend.
+              TextFormField(
+                controller: _referenciaController,
+                decoration: const InputDecoration(
+                  labelText: 'Referencia (Ej. Corolla)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _modeloController,
+                decoration: const InputDecoration(
+                  labelText: 'Modelo / Año (Ej. 2022)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              // 🟢 NUEVO: selector de Tipo de Vehículo, obligatorio en el backend.
+              DropdownButtonFormField<String>(
+                initialValue: _tipoSeleccionado,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Vehículo',
+                  border: OutlineInputBorder(),
+                ),
+                items: _tiposVehiculo.keys
+                    .map((tipo) =>
+                        DropdownMenuItem(value: tipo, child: Text(tipo)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _tipoSeleccionado = val);
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _subiendo ? null : _guardarVehiculo,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 0, 17, 255),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _subiendo
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

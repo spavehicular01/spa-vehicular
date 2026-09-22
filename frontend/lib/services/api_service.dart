@@ -22,7 +22,7 @@ class ApiService {
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'), // Ajustado a la ruta estándar de autenticación
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -119,21 +119,43 @@ class ApiService {
     }
   }
 
-  // 4. Actualizar estado de cita (Para Admin)
+    // 4. Actualizar estado de cita (Para Admin)
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.put(
+      final response = await http.patch(   // antes: http.put
         Uri.parse('$baseUrl/appointments/estado/$citaId'),
         headers: headers,
         body: jsonEncode({'estado': nuevoEstado}),
       );
 
-      debugPrint('PUT Estado Cita Status: ${response.statusCode}');
+      debugPrint('PATCH Estado Cita Status: ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Excepción al actualizar estado: $e');
       return false;
+    }
+  }
+  // 5. Obtener todos los clientes con sus vehículos (Panel Admin)
+  static Future<List<dynamic>> obtenerClientes() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/clientes'),
+        headers: headers,
+      );
+
+      debugPrint('GET Clientes Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Error en GET /users/clientes: ${response.body}');
+        throw Exception('Error al obtener clientes del servidor (${response.statusCode})');
+      }
+    } catch (e) {
+      debugPrint('Excepción al obtener clientes: $e');
+      rethrow;
     }
   }
 }

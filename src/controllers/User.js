@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Vehicle from "../models/Vehicle.js";
 import bcrypt from "bcryptjs";
 import { enviarCodigoVerificacion } from "../utils/mailer.js";
 
@@ -193,184 +194,36 @@ export const login = async (req, res) => {
   }
 };
 
-// 5. CAMBIAR CONTRASEÑA (USUARIO AUTENTICADO)
-export const cambiarPassword = async (req, res) => {
+// 5. OBTENER TODOS LOS CLIENTES CON SUS VEHÍCULOS (Panel Admin)
+export const obtenerClientes = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { passwordActual, nuevaPassword } = req.body;
+    const clientes = await User.find({
+      rol: { $in: ['usuario', 'cliente', 'USUARIO', 'CLIENTE'] }
+    })
+      .select('nombres Nombre apellidos Apellido correo Correo_Electronico celular telefono documentoIdentidad avatar')
+      .lean();
 
-    if (!passwordActual || !nuevaPassword) {
-      return res.status(400).json({ message: "Ambas contraseñas son requeridas" });
-    }
+    const clienteIds = clientes.map(c => c._id);
+    const vehiculos = await Vehicle.find({ usuarioId: { $in: clienteIds } }).lean();
 
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-
-    const passUser = user.password || user.passwords;
-    const esValido = await bcrypt.compare(passwordActual, passUser);
-    if (!esValido) {
-      return res.status(400).json({ message: "La contraseña actual es incorrecta" });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const nuevaHash = await bcrypt.hash(nuevaPassword, salt);
-
-    user.password = nuevaHash;
-    user.passwords = nuevaHash;
-    await user.save();
-
-    res.status(200).json({
-      ok: true,
-      success: true,
-      message: "Contraseña actualizada exitosamente"
+    const vehiculosPorUsuario = {};
+    vehiculos.forEach(v => {
+      const key = v.usuarioId.toString();
+      if (!vehiculosPorUsuario[key]) vehiculosPorUsuario[key] = [];
+      vehiculosPorUsuario[key].push(v);
     });
 
+    const clientesConVehiculos = clientes.map(c => ({
+      ...c,
+      nombreCompleto: `${c.nombres || c.Nombre || ''} ${c.apellidos || c.Apellido || ''}`.trim(),
+      correoNormalizado: c.correo || c.Correo_Electronico || '',
+      telefonoNormalizado: c.celular || c.telefono || '',
+      vehiculos: vehiculosPorUsuario[c._id.toString()] || []
+    }));
+
+    res.status(200).json(clientesConVehiculos);
   } catch (error) {
-    console.error("Error al cambiar contraseña:", error);
-    res.status(500).json({ message: "Error interno al actualizar la contraseña" });
-  }
-};
-
-// 6. RECUPERAR CONTRASEÑA (SOLICITAR CÓDIGO)
-export const solicitarRecuperacionPassword = async (req, res) => {
-  try {
-    const { Correo_Electronico } = req.body;
-
-    if (!Correo_Electronico) {
-      return res.status(400).json({ message: "El correo electrónico es requerido" });
-    }
-
-    const user = await User.findOne({
-      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "No existe una cuenta registrada con este correo" });
-    }
-
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    user.codigoVerificacion = codigo;
-    user.codigoVerificacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
-    await user.save();
-
-    const nombreDestinatario = user.nombres || user.Nombre || "Usuario";
-    const correoDestinatario = user.correo || user.Correo_Electronico;
-
-    await enviarCodigoVerificacion(correoDestinatario, nombreDestinatario, codigo);
-
-    res.status(200).json({
-      ok: true,
-      success: true,
-      message: "Código de recuperación enviado a su correo electrónico"
-    });
-
-  } catch (error) {
-    console.error("Error al solicitar recuperación:", error);
-    res.status(500).json({ message: "Error interno al procesar la recuperación" });
-  }
-};
-
-// 7. RESTABLECER CONTRASEÑA CON CÓDIGO
-export const restablecerPassword = async (req, res) => {
-  try {
-    const { Correo_Electronico, codigo, nuevaPassword } = req.body;
-
-    if (!Correo_Electronico || !codigo || !nuevaPassword) {
-      return res.status(400).json({ message: "Todos los campos son obligatorios" });
-    }
-
-    const user = await User.findOne({
-      $or: [{ correo: Correo_Electronico }, { Correo_Electronico }]
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-
-    if (user.codigoVerificacion !== codigo.trim()) {
-      return res.status(400).json({ message: "El código ingresado es incorrecto" });
-    }
-
-    if (user.codigoVerificacionExpiracion < new Date()) {
-      return res.status(400).json({ message: "El código ha expirado. Solicite uno nuevo." });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const nuevaHash = await bcrypt.hash(nuevaPassword, salt);
-
-    user.password = nuevaHash;
-    user.passwords = nuevaHash;
-    user.codigoVerificacion = undefined;
-    user.codigoVerificacionExpiracion = undefined;
-    await user.save();
-
-    res.status(200).json({
-      ok: true,
-      success: true,
-      message: "Su contraseña ha sido restablecida con éxito. Ya puede iniciar sesión."
-    });
-
-  } catch (error) {
-    console.error("Error al restablecer contraseña:", error);
-    res.status(500).json({ message: "Error interno al restablecer la contraseña" });
-  }
-};
-
-// 8. ACTUALIZAR PERFIL DE USUARIO
-export const actualizarPerfil = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { nombre, nombres, apellidos, celular, telefono } = req.body;
-
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-
-    const nombreFinal = nombre || nombres;
-    if (nombreFinal) {
-      user.nombres = nombreFinal;
-      user.Nombre = nombreFinal;
-    }
-
-    if (apellidos) {
-      user.apellidos = apellidos;
-      user.Apellido = apellidos;
-    }
-
-    const celularFinal = celular || telefono;
-    if (celularFinal) {
-      user.celular = celularFinal;
-      user.telefono = celularFinal;
-    }
-
-    if (req.file) {
-      user.avatar = req.file.path || req.file.secure_url;
-    }
-
-    await user.save();
-
-    res.status(200).json({
-      ok: true,
-      success: true,
-      message: "Perfil actualizado correctamente",
-      usuario: {
-        id: user._id,
-        _id: user._id,
-        nombres: user.nombres || user.Nombre,
-        apellidos: user.apellidos || user.Apellido,
-        correo: user.correo || user.Correo_Electronico,
-        celular: user.celular || user.telefono,
-        documentoIdentidad: user.documentoIdentidad,
-        rol: user.rol,
-        avatar: user.avatar
-      }
-    });
-
-  } catch (error) {
-    console.error("Error al actualizar perfil:", error);
-    res.status(500).json({ message: "Error interno al actualizar el perfil" });
+    console.error('Error en obtenerClientes:', error);
+    res.status(500).json({ mensaje: 'Error al obtener clientes', error: error.message });
   }
 };

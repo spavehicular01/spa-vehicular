@@ -1,12 +1,20 @@
 import Appointment from '../models/Appointment.js';
+import Vehicle from '../models/Vehicle.js';
+import Service from '../models/Service.js';
 import { sendEmail } from '../services/emailService.js';
+
+const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
 
 // 1. Obtener citas (Todas o filtradas por estado)
 export const obtenerCitas = async (req, res) => {
   try {
     const { estado } = req.query;
-    const filtro = estado ? { estado } : {};
-    const citas = await Appointment.find(filtro).sort({ fechaHoraCita: -1 });
+    const filtro = estado ? { estado: String(estado) } : {};
+    const citas = await Appointment.find(filtro)
+      .populate('usuarioId', POPULATE_USUARIO)
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 });
 
     res.status(200).json(citas);
   } catch (error) {
@@ -19,10 +27,11 @@ export const obtenerCitas = async (req, res) => {
 export const obtenerTodasLasCitas = async (req, res) => {
   try {
     const citas = await Appointment.find()
+      .populate('usuarioId', POPULATE_USUARIO)
       .populate('vehiculoId')
       .populate('servicioId')
       .sort({ fechaHoraCita: -1 })
-      .lean(); // .lean() convierte a JSON plano solucionando inconsistencias de Mongoose
+      .lean();
 
     res.status(200).json(citas);
   } catch (error) {
@@ -39,9 +48,8 @@ export const obtenerCitasPorUsuario = async (req, res) => {
   try {
     const { usuarioId } = req.params;
     
-    const citas = await Appointment.find({
-      $or: [{ usuarioId }, { clienteId: usuarioId }, { usuario: usuarioId }]
-    })
+    const citas = await Appointment.find({ usuarioId })
+      .populate('usuarioId', POPULATE_USUARIO)
       .populate('vehiculoId')
       .populate('servicioId')
       .sort({ fechaHoraCita: -1 })
@@ -60,10 +68,43 @@ export const obtenerCitasPorUsuario = async (req, res) => {
 // 4. Crear Cita
 export const crearCita = async (req, res) => {
   try {
-    const nuevaCita = new Appointment(req.body);
+    const {
+      usuarioId,
+      vehiculoId,
+      servicioId,
+      fechaHoraCita,
+      tiempoEstimadoMinutos,
+      modalidad,
+      detallesDomicilio,
+      correo
+    } = req.body;
+
+    // 🟢 Validar que el vehículo y el servicio existan antes de crear la cita
+    const [vehiculoExiste, servicioExiste] = await Promise.all([
+      Vehicle.findById(vehiculoId),
+      Service.findById(servicioId)
+    ]);
+
+    if (!vehiculoExiste) {
+      return res.status(400).json({ mensaje: 'El vehículo indicado no existe' });
+    }
+
+    if (!servicioExiste) {
+      return res.status(400).json({ mensaje: 'El servicio indicado no existe' });
+    }
+
+    const nuevaCita = new Appointment({
+      usuarioId,
+      vehiculoId,
+      servicioId,
+      fechaHoraCita,
+      tiempoEstimadoMinutos,
+      modalidad,
+      detallesDomicilio
+    });
     await nuevaCita.save();
 
-    const correoDestino = req.body.correo || (req.user && req.user.correo);
+    const correoDestino = correo || (req.user && req.user.correo);
 
     if (correoDestino) {
       const fechaFormateada = new Date(nuevaCita.fechaHoraCita).toLocaleString('es-CO', {
@@ -107,6 +148,11 @@ export const reprogramarCita = async (req, res) => {
     const { citaId } = req.params;
     const { nuevaFecha, motivo } = req.body;
 
+    const fechaValida = new Date(nuevaFecha);
+    if (isNaN(fechaValida.getTime())) {
+      return res.status(400).json({ mensaje: 'La nueva fecha no es válida' });
+    }
+
     const cita = await Appointment.findById(citaId);
     if (!cita) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
@@ -119,10 +165,10 @@ export const reprogramarCita = async (req, res) => {
     cita.historialReprogramaciones.push({
       motivo: motivo || 'Sin motivo especificado',
       fechaAnterior: cita.fechaHoraCita,
-      fechaNueva: nuevaFecha
+      fechaNueva: fechaValida
     });
 
-    cita.fechaHoraCita = nuevaFecha;
+    cita.fechaHoraCita = fechaValida;
     cita.estado = 'reprogramada';
     await cita.save();
 
@@ -130,13 +176,19 @@ export const reprogramarCita = async (req, res) => {
       req.io.emit('cita_reprogramada', cita);
     }
 
-    const correoDestino = req.body.correo || cita.correo || (req.user && req.user.correo);
+    const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
-      const fechaFormateada = new Date(nuevaFecha).toLocaleString('es-CO', {
+      const fechaFormateada = fechaValida.toLocaleString('es-CO', {
         dateStyle: 'long',
         timeStyle: 'short'
       });
+
+      const motivoEscapado = motivo
+        ? String(motivo).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+          }[c]))
+        : '';
 
       sendEmail({
         to: correoDestino,
@@ -147,7 +199,7 @@ export const reprogramarCita = async (req, res) => {
             <p>Te informamos que tu cita en <b>SPA Vehicular</b> ha cambiado de horario.</p>
             <hr style="border: 0; border-top: 1px solid #eee;" />
             <p><b>📅 Nueva Fecha y Hora:</b> ${fechaFormateada}</p>
-            ${motivo ? `<p><b>💬 Motivo:</b> ${motivo}</p>` : ''}
+            ${motivoEscapado ? `<p><b>💬 Motivo:</b> ${motivoEscapado}</p>` : ''}
             <br/>
             <p>Si tienes alguna duda sobre este cambio, puedes responder a este correo o contactarnos por el chatbot.</p>
           </div>
@@ -169,16 +221,22 @@ export const reprogramarCita = async (req, res) => {
 };
 
 // 6. Cambiar Estado de Cita (WebSockets + Email)
+const ESTADOS_VALIDOS = ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada'];
+
 export const cambiarEstadoCita = async (req, res) => {
   try {
     const { citaId } = req.params;
     const { estado } = req.body;
 
+    if (!ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ mensaje: `Estado inválido: ${estado}` });
+    }
+
     const citaActualizada = await Appointment.findByIdAndUpdate(
       citaId,
       { estado },
       { new: true }
-    );
+    ).populate('usuarioId', POPULATE_USUARIO);
 
     if (!citaActualizada) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
@@ -192,22 +250,22 @@ export const cambiarEstadoCita = async (req, res) => {
       });
     }
 
-    const correoDestino = citaActualizada.correo || (req.user && req.user.correo);
+    const correoDestino = req.body.correo || (req.user && req.user.correo);
 
     if (correoDestino) {
       let titulo = 'Actualización de tu Servicio';
       let mensajeColor = '#2b6cb0';
       let contenido = `El estado de tu cita ha cambiado a: <b>${estado}</b>.`;
 
-      if (estado === 'En Proceso') {
+      if (estado === 'en_proceso') {
         titulo = '🧼 ¡Tu vehículo ha entrado a lavado!';
         mensajeColor = '#3182ce';
         contenido = 'Hemos comenzado a trabajar en tu vehículo. ¡Te avisaremos en cuanto esté impecable!';
-      } else if (estado === 'Completado') {
+      } else if (estado === 'finalizada') {
         titulo = '✅ ¡Tu vehículo está listo!';
         mensajeColor = '#38a169';
         contenido = 'El servicio ha finalizado con éxito. Ya puedes pasar a recoger tu vehículo.';
-      } else if (estado === 'Cancelado') {
+      } else if (estado === 'cancelada') {
         titulo = '❌ Cita Cancelada';
         mensajeColor = '#e53e3e';
         contenido = 'Tu cita ha sido cancelada. Si consideras que es un error, por favor comunícate con nosotros.';
@@ -248,12 +306,14 @@ export const obtenerCitasPorFecha = async (req, res) => {
   try {
     const { fecha } = req.params;
 
-    const inicioDia = new Date(`${fecha}T00:00:00.000Z`);
-    const finDia = new Date(`${fecha}T23:59:59.999Z`);
+    // Rango en hora de Colombia (UTC-5). Ajusta el offset si cambias de zona.
+    const inicioDia = new Date(`${fecha}T00:00:00.000-05:00`);
+    const finDia = new Date(`${fecha}T23:59:59.999-05:00`);
 
     const citas = await Appointment.find({
       fechaHoraCita: { $gte: inicioDia, $lte: finDia }
     })
+      .populate('usuarioId', POPULATE_USUARIO)
       .populate('vehiculoId')
       .populate('servicioId')
       .lean();

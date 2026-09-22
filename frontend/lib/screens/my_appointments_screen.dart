@@ -1,106 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import '../services/appointment_service.dart';
+import '../theme/app_theme.dart';
+import 'booking_screen.dart';
 
-class MyAppointmentsScreen extends StatefulWidget {
+class SelectDateTimeScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
   final String? token;
 
-  const MyAppointmentsScreen({
+  const SelectDateTimeScreen({
     super.key,
     required this.usuario,
     this.token,
   });
 
   @override
-  State<MyAppointmentsScreen> createState() => _MyAppointmentsScreenState();
+  State<SelectDateTimeScreen> createState() => _SelectDateTimeScreenState();
 }
 
-class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
-  bool _isLoading = true;
-  List<dynamic> _citas = [];
+class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
+  DateTime _selectedDate = DateTime.now();
+  String? _selectedTime;
 
-  static const Color azulBrand = Color(0xFF0033FF);
-
-  @override
-  void initState() {
-    super.initState();
-    _obtenerCitas();
-  }
-
-  Future<void> _obtenerCitas() async {
-    setState(() => _isLoading = true);
-    final String userId = (widget.usuario['_id'] ?? widget.usuario['id'] ?? '').toString();
-
-    // 🟢 Corrección: Sin () porque los métodos de AppointmentService son estáticos
-    final resultado = await AppointmentService.obtenerCitasPorUsuario(
-      userId,
-      token: widget.token,
-    );
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        if (resultado['success'] == true) {
-          _citas = resultado['citas'] ?? [];
-        }
-      });
-    }
-  }
-
-  Color _obtenerColorEstado(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return Colors.amber.shade700;
-      case 'completada':
-      case 'confirmada':
-        return Colors.green;
-      case 'cancelada':
-        return Colors.redAccent;
-      default:
-        return azulBrand;
-    }
-  }
-
-  Future<void> _cancelarCita(String citaId) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cancelar Cita'),
-        content: const Text('¿Estás seguro de que deseas cancelar esta reserva?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sí, Cancelar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true) return;
-
-    // 🟢 Corrección: Sin () porque los métodos de AppointmentService son estáticos
-    final res = await AppointmentService.cancelarCita(citaId, token: widget.token);
-
-    if (!mounted) return;
-
-    if (res['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cita cancelada con éxito'), backgroundColor: Colors.green),
-      );
-      _obtenerCitas();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res['message'] ?? 'Error al cancelar la cita'), backgroundColor: Colors.redAccent),
-      );
-    }
-  }
+  // Horarios disponibles simulados
+  final List<String> _horariosDisponibles = [
+    '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+    '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -112,20 +37,14 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Mis Citas', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : azulBrand,
+        title: const Text('Seleccionar Cita', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.azulElectrico,
         foregroundColor: Colors.white,
-        centerTitle: true,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _obtenerCitas,
-          ),
-        ],
       ),
       body: Stack(
         children: [
+          // Animación suave de agua en el fondo
           Positioned.fill(
             child: Opacity(
               opacity: isDark ? 0.04 : 0.06,
@@ -137,172 +56,148 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
             ),
           ),
 
-          _isLoading
-              ? const Center(child: CircularProgressIndicator(color: azulBrand))
-              : _citas.isEmpty
-                  ? _buildEmptyState(textColor)
-                  : RefreshIndicator(
-                      onRefresh: _obtenerCitas,
-                      color: azulBrand,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: _citas.length,
-                        itemBuilder: (context, index) {
-                          final cita = _citas[index];
-                          final String citaId = (cita['_id'] ?? cita['id'] ?? '').toString();
-                          final String servicio = cita['servicio'] ?? 'Servicio de Lavado';
-                          final String vehiculo = cita['vehiculo'] ?? 'Vehículo registrado';
-                          final String hora = cita['hora'] ?? '';
-                          final String estado = cita['estado'] ?? 'Pendiente';
-                          final String? direccion = cita['direccion'];
-
-                          DateTime? fecha;
-                          if (cita['fechaHoraCita'] != null) {
-                            fecha = DateTime.tryParse(cita['fechaHoraCita'].toString());
-                          }
-
-                          final String fechaTexto = fecha != null
-                              ? '${fecha.day}/${fecha.month}/${fecha.year}'
-                              : 'Fecha pendiente';
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: cardBg,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: borderColor),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        servicio,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _obtenerColorEstado(estado).withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: _obtenerColorEstado(estado)),
-                                      ),
-                                      child: Text(
-                                        estado,
-                                        style: TextStyle(
-                                          color: _obtenerColorEstado(estado),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Divider(color: borderColor, height: 1),
-                                const SizedBox(height: 12),
-                                _buildInfoRow(Icons.directions_car, vehiculo, isDark),
-                                const SizedBox(height: 6),
-                                _buildInfoRow(Icons.event, '$fechaTexto - $hora', isDark),
-                                if (cita['modalidad'] != null) ...[
-                                  const SizedBox(height: 6),
-                                  _buildInfoRow(
-                                    cita['modalidad'] == 'A domicilio' ? Icons.home : Icons.store,
-                                    '${cita['modalidad']}' + (direccion != null ? ' ($direccion)' : ''),
-                                    isDark,
-                                  ),
-                                ],
-                                if (estado.toLowerCase() == 'pendiente' && citaId.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton.icon(
-                                      onPressed: () => _cancelarCita(citaId),
-                                      icon: const Icon(Icons.cancel, size: 16, color: Colors.redAccent),
-                                      label: const Text(
-                                        'Cancelar cita',
-                                        style: TextStyle(color: Colors.redAccent, fontSize: 13),
-                                      ),
-                                    ),
-                                  )
-                                ]
-                              ],
-                            ),
-                          );
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Selector de Fecha
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_month, color: AppTheme.azulElectrico),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Fecha del Servicio',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      CalendarDatePicker(
+                        initialDate: _selectedDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                        onDateChanged: (date) {
+                          setState(() {
+                            _selectedDate = date;
+                            _selectedTime = null; // Reiniciar hora al cambiar día
+                          });
                         },
                       ),
-                    ),
-        ],
-      ),
-    );
-  }
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-  Widget _buildInfoRow(IconData icon, String text, bool isDark) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: azulBrand),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                // Selector de Horarios
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_filled, color: AppTheme.azulElectrico),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Horarios Disponibles',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: _horariosDisponibles.map((hora) {
+                          final isSelected = _selectedTime == hora;
+                          return ChoiceChip(
+                            label: Text(hora),
+                            selected: isSelected,
+                            selectedColor: AppTheme.azulElectrico,
+                            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : textColor,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected ? AppTheme.azulElectrico : borderColor,
+                              ),
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedTime = selected ? hora : null;
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Botón Continuar
+                SizedBox(
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: _selectedTime == null
+                        ? null
+                        : () async {
+                            final resultado = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingScreen(
+                                  selectedDate: _selectedDate,
+                                  selectedTime: _selectedTime!,
+                                  usuario: widget.usuario,
+                                  token: widget.token,
+                                ),
+                              ),
+                            );
+
+                            if (resultado != null && context.mounted) {
+                              Navigator.pop(context, resultado);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.azulElectrico,
+                      disabledBackgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade400,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Continuar a Detalles',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState(Color textColor) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 160,
-              child: Lottie.asset(
-                'assets/animations/water_waves.json',
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 80,
-                  color: azulBrand,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No tienes citas agendadas',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Cuando programes un lavado para tu vehículo, aparecerá en esta sección.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

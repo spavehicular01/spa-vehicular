@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'verify_reset_code_screen.dart'; // 🟢 ajusta el path si está en otra carpeta
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _cargando = false;
+  bool _cargandoGoogle = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -26,28 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  // 🟢 TEMPORAL: diálogo persistente de depuración. Muestra el mapa
-  // completo que devuelve AuthService.login, sin importar si fue
-  // éxito o error, para diagnosticar qué está pasando exactamente.
-  // Quitar esto una vez resuelto el problema.
-  void _mostrarDebugDialog(String titulo, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo),
-        content: SingleChildScrollView(
-          child: Text(data.toString()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _iniciarSesion() async {
@@ -64,11 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 🟢 TEMPORAL: mostramos EXACTAMENTE qué vamos a enviar,
-    // con corchetes para detectar espacios invisibles.
-    debugPrint('🔍 [FLUTTER LOGIN] email a enviar: [$email] (longitud: ${email.length})');
-    debugPrint('🔍 [FLUTTER LOGIN] password a enviar: [$password] (longitud: ${password.length})');
-
     setState(() => _cargando = true);
 
     final resultado = await AuthService.login(email, password);
@@ -76,10 +51,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _cargando = false);
 
     if (!mounted) return;
-
-    // 🟢 TEMPORAL: siempre mostramos el resultado completo antes de
-    // decidir qué hacer, para ver EXACTAMENTE qué devolvió el backend.
-    _mostrarDebugDialog('Respuesta del login (debug)', resultado);
 
     final esExitoso = resultado['ok'] == true || resultado['success'] == true;
 
@@ -99,12 +70,58 @@ class _LoginScreenState extends State<LoginScreen> {
         'citas': [],
         'historial': [],
       });
+    } else if (resultado['requiereVerificacion'] == true) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerifyResetCodeScreen(
+            email: resultado['email'] ?? email,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             resultado['mensaje'] ?? resultado['message'] ?? 'Error al iniciar sesión',
           ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 🟢 NUEVO: Login con Google
+  Future<void> _iniciarSesionConGoogle() async {
+    setState(() => _cargandoGoogle = true);
+
+    final resultado = await AuthService.loginConGoogle();
+
+    setState(() => _cargandoGoogle = false);
+
+    if (!mounted) return;
+
+    if (resultado['success'] == true) {
+      // El backend de Google devuelve los campos con nombres distintos (Nombre, Apellido, Correo_Electronico)
+      final usuario = resultado['usuario'] ?? {};
+
+      widget.onLoginExitoso({
+        'id': usuario['id'] ?? usuario['_id'] ?? '',
+        'nombres': usuario['nombres'] ?? usuario['Nombre'] ?? 'Usuario',
+        'apellidos': usuario['apellidos'] ?? usuario['Apellido'] ?? '',
+        'correo': usuario['correo'] ?? usuario['Correo_Electronico'] ?? '',
+        'rol': usuario['rol'] ?? 'cliente',
+        'documento': usuario['documentoIdentidad'] ?? '',
+        'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
+        'vehiculos': usuario['vehiculos'] ?? [],
+        'token': resultado['token'],
+        'citas': [],
+        'historial': [],
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Error al iniciar sesión con Google'),
           backgroundColor: Colors.red,
         ),
       );
@@ -197,7 +214,49 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
+              const SizedBox(height: 16),
+
+              // 🟢 Separador visual
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('o', style: TextStyle(color: Colors.grey.shade600)),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 🟢 Botón de Google
+              OutlinedButton.icon(
+                onPressed: _cargandoGoogle ? null : _iniciarSesionConGoogle,
+                icon: _cargandoGoogle
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Image.network(
+                        'https://www.google.com/favicon.ico',
+                        height: 20,
+                        width: 20,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.login, size: 20),
+                      ),
+                label: const Text(
+                  'Continuar con Google',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey.shade400),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
               const SizedBox(height: 24),
+
               OutlinedButton(
                 onPressed: () async {
                   final result = await Navigator.push(

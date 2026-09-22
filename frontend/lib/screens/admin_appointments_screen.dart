@@ -52,11 +52,11 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
       });
 
       String mensaje = 'Estado actualizado a "$nuevoEstado"';
-      if (nuevoEstado == 'En Proceso') {
+      if (nuevoEstado == 'en_proceso') {
         mensaje = '🧼 Notificación enviada: ¡Lavado iniciado!';
-      } else if (nuevoEstado == 'Completado') {
+      } else if (nuevoEstado == 'finalizada') {
         mensaje = '✅ Notificación enviada: ¡Lavado finalizado!';
-      } else if (nuevoEstado == 'Cancelado') {
+      } else if (nuevoEstado == 'cancelada') {
         mensaje = '❌ La cita ha sido cancelada.';
       }
 
@@ -78,25 +78,33 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
 
   Color _obtenerColorEstado(String? estado) {
     switch (estado) {
-      case 'Pendiente':
+      case 'pendiente':
         return Colors.orange;
-      case 'En Proceso':
+      case 'en_proceso':
         return Colors.blue;
-      case 'Completado':
+      case 'finalizada':
         return Colors.green;
-      case 'Cancelado':
+      case 'cancelada':
         return Colors.red;
       default:
         return Colors.grey;
     }
   }
 
-  // Auxiliar para extraer el nombre del usuario (maneja populate de MongoDB o strings simples)
+  // Auxiliar para extraer el nombre del usuario (maneja populate de MongoDB)
   String _obtenerNombreUsuario(dynamic cita) {
-    if (cita['usuarioId'] is Map) {
-      return cita['usuarioId']['nombre'] ?? cita['usuarioId']['nombreCompleto'] ?? 'Cliente sin nombre';
+    final usuario = cita['usuarioId'];
+    if (usuario is Map) {
+      final nombre = usuario['nombres'] ?? usuario['Nombre'];
+      final apellido = usuario['apellidos'] ?? usuario['Apellido'];
+      if (nombre != null && nombre.toString().trim().isNotEmpty) {
+        final apellidoStr = (apellido != null && apellido.toString().trim().isNotEmpty)
+            ? ' $apellido'
+            : '';
+        return '$nombre$apellidoStr';
+      }
     }
-    return cita['nombreCliente'] ?? cita['usuario'] ?? 'Cliente sin nombre';
+    return 'Cliente sin nombre';
   }
 
   // Auxiliar para extraer los datos del vehículo
@@ -152,7 +160,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                       itemCount: _citas.length,
                       itemBuilder: (context, index) {
                         final cita = _citas[index];
-                        final estadoActual = cita['estado'] ?? 'Pendiente';
+                        final estadoActual = cita['estado'] ?? 'pendiente';
                         final citaId = cita['_id'] ?? cita['id'];
 
                         return Card(
@@ -202,7 +210,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                 Text('🚗 Vehículo: ${_obtenerDetalleVehiculo(cita)}'),
                                 Text('📅 Fecha: ${_formatearFecha(cita['fechaHoraCita'], cita['hora'])}'),
                                 if (cita['modalidad'] != null)
-                                  Text('📍 Modalidad: ${cita['modalidad'] == 'a_domicilio' ? 'A Domicilio' : 'En Spa'}'),
+                                  Text('📍 Modalidad: ${cita['modalidad'] == 'domicilio' ? 'A Domicilio' : 'En Spa'}'),
                                 const Divider(height: 24),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -215,7 +223,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                       },
                                       itemBuilder: (context) => const [
                                         PopupMenuItem(
-                                          value: 'En Proceso',
+                                          value: 'en_proceso',
                                           child: Row(
                                             children: [
                                               Icon(Icons.play_arrow, color: Colors.blue),
@@ -225,7 +233,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                           ),
                                         ),
                                         PopupMenuItem(
-                                          value: 'Completado',
+                                          value: 'finalizada',
                                           child: Row(
                                             children: [
                                               Icon(Icons.check_circle, color: Colors.green),
@@ -235,7 +243,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                           ),
                                         ),
                                         PopupMenuItem(
-                                          value: 'Cancelado',
+                                          value: 'cancelada',
                                           child: Row(
                                             children: [
                                               Icon(Icons.cancel, color: Colors.red),

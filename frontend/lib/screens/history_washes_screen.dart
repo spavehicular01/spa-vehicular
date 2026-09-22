@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 class HistoryWashesScreen extends StatelessWidget {
   const HistoryWashesScreen({super.key});
 
-  // Datos de respaldo local si el servicio no responde o falla
+  // Datos de respaldo SOLO para cuando falla la conexión con el backend
   List<Map<String, dynamic>> _getHistorialLocal() {
     return [
       {
@@ -29,28 +29,106 @@ class HistoryWashesScreen extends StatelessWidget {
 
   Future<List<dynamic>> _cargarHistorial() async {
     try {
-      // Instancia dinámica para evitar errores de métodos no encontrados en compilación
-      dynamic service = AppointmentService();
-      
-      // Intenta ejecutar los nombres de métodos más comunes en el servicio
-      dynamic datos;
-      try {
-        datos = await service.getAppointments();
-      } catch (_) {
-        try {
-          datos = await service.getAppointmentsByStatus('Completado');
-        } catch (_) {
-          datos = await service.getCitas();
-        }
-      }
-
-      if (datos != null && datos is List && datos.isNotEmpty) {
-        return datos;
-      }
-      return _getHistorialLocal();
+      final datos = await WashApiService.getHistorialCitas();
+      return datos; // Aunque venga vacío [], es una respuesta válida del backend
     } catch (e) {
+      // Solo usamos el respaldo local si la petición realmente falló
       return _getHistorialLocal();
     }
+  }
+
+  // --- Helpers de mapeo ---
+
+  String _extraerServicio(Map cita) {
+    final directo = cita['servicio'];
+    if (directo is String) return directo;
+
+    final servicioObj = cita['servicioId'];
+    if (servicioObj is Map && servicioObj['nombreServicio'] != null) {
+      return servicioObj['nombreServicio'].toString();
+    }
+    return 'Servicio de Lavado';
+  }
+
+  String _extraerVehiculo(Map cita) {
+    final directo = cita['vehiculo'];
+    if (directo is String) return directo;
+
+    final vehiculoObj = cita['vehiculoId'];
+    if (vehiculoObj is Map) {
+      final marca = vehiculoObj['marca'];
+      final modelo = vehiculoObj['modelo'];
+      final placa = vehiculoObj['placa'];
+      final partes = [
+        if (marca != null) marca,
+        if (modelo != null) modelo,
+      ].join(' ');
+      if (partes.isNotEmpty && placa != null) return '$partes ($placa)';
+      if (partes.isNotEmpty) return partes;
+      if (placa != null) return '$placa';
+    }
+    return 'N/A';
+  }
+
+  String _extraerPrecio(Map cita) {
+    final directo = cita['precio'];
+    if (directo != null) return directo.toString();
+
+    final servicioObj = cita['servicioId'];
+    final vehiculoObj = cita['vehiculoId'];
+
+    if (servicioObj is Map) {
+      final precios = servicioObj['precios'];
+      if (precios is List && precios.isNotEmpty) {
+        final tipoVehiculo = vehiculoObj is Map ? vehiculoObj['tipoVehiculo'] : null;
+
+        if (tipoVehiculo != null) {
+          final match = precios.firstWhere(
+            (p) => p is Map && p['tipoVehiculo'] == tipoVehiculo,
+            orElse: () => null,
+          );
+          if (match != null && match['precio'] != null) {
+            return match['precio'].toString();
+          }
+        }
+
+        final primerPrecio = precios.first;
+        if (primerPrecio is Map && primerPrecio['precio'] != null) {
+          return primerPrecio['precio'].toString();
+        }
+      }
+    }
+    return '0';
+  }
+
+  String _extraerFecha(Map cita) {
+    final directa = cita['fecha'];
+    if (directa is String) return directa;
+
+    final fechaHora = cita['fechaHoraCita'];
+    if (fechaHora != null) {
+      final dt = DateTime.tryParse(fechaHora.toString());
+      if (dt != null) {
+        return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+      }
+    }
+    return '';
+  }
+
+  String _extraerHora(Map cita) {
+    final directa = cita['hora'];
+    if (directa is String) return directa;
+
+    final fechaHora = cita['fechaHoraCita'];
+    if (fechaHora != null) {
+      final dt = DateTime.tryParse(fechaHora.toString());
+      if (dt != null) {
+        final hora = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+        final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+        return '$hora:${dt.minute.toString().padLeft(2, '0')} $ampm';
+      }
+    }
+    return '';
   }
 
   @override
@@ -63,8 +141,8 @@ class HistoryWashesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Historial de Lavadas', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : AppTheme.azulElectrico,
+        title: const Text('Reportes e Historial'),
+        backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -97,70 +175,25 @@ class HistoryWashesScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: citas.length,
             itemBuilder: (context, index) {
-              final cita = citas[index];
-              final servicio = cita['servicio'] ?? cita['nombreServicio'] ?? cita['serviceName'] ?? 'Servicio de Lavado';
-              final fecha = cita['fecha'] ?? cita['fechaHoraCita']?.toString().split('T').first ?? cita['date'] ?? '';
-              final hora = cita['hora'] ?? cita['time'] ?? '';
-              final vehiculo = cita['vehiculo'] ?? cita['vehicle'] ?? 'N/A';
-              final precio = cita['precio'] ?? cita['costo'] ?? cita['price'] ?? '0';
-
+              final cita = citas[index] as Map;
               return Card(
                 elevation: 2,
-                color: cardBg,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                child: ListTile(
+                  leading: const Icon(Icons.check_circle, color: Colors.teal, size: 32),
+                  title: Text(
+                    _extraerServicio(cita),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ),
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle_rounded,
-                        color: Colors.green,
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      servicio,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: textColor,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Fecha: $fecha ${hora.isNotEmpty ? "- $hora" : ""}',
-                            style: TextStyle(color: subtitleColor, fontSize: 13),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Vehículo: $vehiculo',
-                            style: TextStyle(color: subtitleColor, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                    trailing: Text(
-                      '\$$precio',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.azulElectrico,
-                        fontSize: 16,
-                      ),
+                  subtitle: Text(
+                    'Fecha: ${_extraerFecha(cita)} - Hora: ${_extraerHora(cita)}\nVehículo: ${_extraerVehiculo(cita)}',
+                  ),
+                  trailing: Text(
+                    '\$${_extraerPrecio(cita)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                      fontSize: 15,
                     ),
                   ),
                 ),

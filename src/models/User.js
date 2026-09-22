@@ -31,11 +31,15 @@ const userSchema = new mongoose.Schema({
     sparse: true 
   },
 
-  // Contraseñas
+  // Contraseñas (opcional para quien entra con Google)
   password: { type: String },
   passwords: { type: String },
 
-  // --- VERIFICACIÓN DE CUENTA ---
+  // Integración con Google Auth
+  googleId: { type: String, unique: true, sparse: true },
+  avatar: { type: String, default: "" },
+
+  // --- VERIFICACIÓN DE CUENTA Y OTP TRADICIONAL ---
   isVerified: { type: Boolean, default: false },
   codigoVerificacion: { type: String, default: null },
   codigoVerif: { type: String, default: null },
@@ -48,13 +52,28 @@ const userSchema = new mongoose.Schema({
   codigoRecuperacion: { type: String, default: null },
   codigoRecuperacionExpiracion: { type: Date, default: null },
 
-  // Roles compatibles
+  // Roles compatibles (mantiene tus enums anteriores)
   rol: { 
     type: String, 
     enum: ["admin", "usuario", "cliente", "ADMIN", "USUARIO", "CLIENTE"], 
     default: "usuario" 
   }
 }, { timestamps: true });
+
+// Virtual: normaliza el nombre completo sin importar qué campo "sombra" tenga datos
+userSchema.virtual('nombreCompleto').get(function () {
+  const nombre = this.nombres || this.Nombre || '';
+  const apellido = this.apellidos || this.Apellido || '';
+  return `${nombre} ${apellido}`.trim();
+});
+
+// Virtual: normaliza el correo sin importar cuál de los dos campos se usó
+userSchema.virtual('correoNormalizado').get(function () {
+  return this.correo || this.Correo_Electronico || '';
+});
+
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Middleware asíncrono sin 'next'
 userSchema.pre("save", async function () {

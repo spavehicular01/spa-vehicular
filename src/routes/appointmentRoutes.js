@@ -3,19 +3,19 @@ import appointmentController from '../controllers/appointmentController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
+
+// Middleware de autenticación estandarizado
 const verifyToken = authMiddleware.verifyToken || authMiddleware;
 
-// RUTAS DE CONSULTA (GET)
-router.get('/', verifyToken, appointmentController.obtenerTodasLasCitas || appointmentController.obtenerCitas);
+// 1. RUTAS DE CONSULTA (GET)
+router.get('/', verifyToken, appointmentController.obtenerTodasLasCitas);
 router.get('/usuario/:usuarioId', verifyToken, appointmentController.obtenerCitasPorUsuario);
 
-// RUTAS DE CREACIÓN Y EDICIÓN (POST / PUT / PATCH)
-// Acepta tanto POST /api/appointments como POST /api/appointments/crear
+// 2. CREACIÓN (POST)
 router.post('/', verifyToken, appointmentController.crearCita);
-router.post('/crear', verifyToken, appointmentController.crearCita);
 
+// 3. ACTUALIZACIÓN (PUT / PATCH)
 router.put('/reprogramar/:citaId', verifyToken, appointmentController.reprogramarCita);
-router.put('/estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
-router.patch('/cambiar-estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
+router.patch('/estado/:citaId', verifyToken, appointmentController.cambiarEstadoCita);
 
 export default router;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'admin_appointments_screen.dart';
 import 'admin_services_screen.dart';
 import 'admin_clients_screen.dart';
+import 'history_washes_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -132,7 +133,12 @@ class AdminDashboardScreen extends StatelessWidget {
                 icono: Icons.bar_chart_outlined,
                 color: const Color.fromARGB(255, 0, 30, 255),
                 onTap: () {
-                  // Módulo de reportes
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HistoryWashesScreen(),
+                    ),
+                  );
                 },
               ),
             ],

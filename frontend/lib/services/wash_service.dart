@@ -80,7 +80,7 @@ class WashApiService {
     return response.statusCode == 201 || response.statusCode == 200;
   }
 
-  // 4. Obtener todas las citas para el Panel Admin (WashManagementScreen)
+  // 4. Obtener todas las citas (Panel Admin) — sin filtrar por usuario
   static Future<List<dynamic>> getCitasProgramadas() async {
     final token = await _getToken();
 
@@ -100,12 +100,33 @@ class WashApiService {
     }
   }
 
-  // 5. Obtener el historial de citas por estado completado
+  // 5. 🟢 NUEVO: Obtener las citas del usuario logueado (App Móvil Flutter)
+  // Usa la ruta protegida GET /api/appointments/usuario/:usuarioId
+  static Future<List<dynamic>> getCitasPorUsuario(String usuarioId) async {
+    final token = await _getToken();
+
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/appointments/usuario/$usuarioId'),
+      headers: {
+        'Cache-Control': 'no-cache',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      return body is List ? body : [];
+    } else {
+      throw Exception('Error al cargar tus citas (Código: ${response.statusCode})');
+    }
+  }
+
+  // 6. Obtener el historial de citas por estado completado
   static Future<List<dynamic>> getHistorialCitas() async {
     final token = await _getToken();
 
     final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/appointments?estado=completado'),
+      Uri.parse('${ApiConfig.baseUrl}/appointments?estado=finalizada'),
       headers: {
         'Cache-Control': 'no-cache',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -120,7 +141,7 @@ class WashApiService {
     }
   }
 
-  // 6. Cambiar estado de una cita (Completado, Cancelado, En Proceso)
+  // 7. Cambiar estado de una cita (usa los valores del enum del schema)
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     final token = await _getToken();
 

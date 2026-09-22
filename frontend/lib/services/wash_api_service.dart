@@ -81,7 +81,9 @@ class WashApiService {
   // ==========================================
   static Future<bool> registrarVehiculo(Map<String, dynamic> datosVehiculo) async {
     try {
-      final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles');
+      // 🔧 CORREGIDO: la ruta del backend es POST /api/vehicles/registrar
+      // (antes apuntaba a /api/vehicles, que no existe y devolvía 404).
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/registrar');
       final headers = await _getHeaders();
 
       final response = await http.post(
@@ -89,6 +91,9 @@ class WashApiService {
         headers: headers,
         body: jsonEncode(datosVehiculo),
       );
+
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('BODY: ${response.body}');
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
