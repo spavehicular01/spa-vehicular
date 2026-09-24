@@ -259,9 +259,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                 fit: BoxFit.cover,
                               ),
                             )
-                          : Column(
+                          : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Icon(Icons.add_a_photo,
                                     size: 40, color: Colors.teal),
                                 SizedBox(height: 8),

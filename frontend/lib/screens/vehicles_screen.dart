@@ -67,26 +67,131 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
 
     if (exito) {
       _cargarVehiculos();
-      _mostrarSnackBar('Vehículo eliminado con éxito', Colors.green);
-    } else {
-      _mostrarSnackBar('No se pudo eliminar el vehículo', Colors.red);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vehículo eliminado')),
+      );
     }
   }
 
-  void _mostrarSnackBar(String texto, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(texto), backgroundColor: color),
-    );
-  }
+  void _mostrarFormularioRegistro() {
+    final placaCtrl = TextEditingController();
+    final marcaCtrl = TextEditingController();
+    final referenciaCtrl = TextEditingController();
+    final modeloCtrl = TextEditingController();
+    
+    final Map<String, String> tiposVehiculo = {
+      'Automóvil': 'automovil',
+      'Motocicleta': 'moto',
+      'Camioneta': 'camioneta',
+      'SUV': 'SUV',
+    };
 
-  void _abrirFormulario() async {
-    final res = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const AddVehicleScreen(),
-      ),
+    String tipoSeleccionado = 'Automóvil';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Registrar Vehículo',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: placaCtrl,
+                      decoration: const InputDecoration(labelText: 'Placa (Ej: ABC123)', border: OutlineInputBorder()),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: marcaCtrl,
+                      decoration: const InputDecoration(labelText: 'Marca (Ej: Toyota)', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: referenciaCtrl,
+                      decoration: const InputDecoration(labelText: 'Referencia (Ej: Corolla)', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: modeloCtrl,
+                      decoration: const InputDecoration(labelText: 'Modelo (Año Ej: 2022)', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: tipoSeleccionado,
+                      decoration: const InputDecoration(labelText: 'Tipo de Vehículo', border: OutlineInputBorder()),
+                      items: tiposVehiculo.keys.map((tipo) {
+                        return DropdownMenuItem(value: tipo, child: Text(tipo));
+                      }).toList(),
+                      onChanged: (val) => setModalState(() => tipoSeleccionado = val!),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        if (placaCtrl.text.isEmpty || 
+                            marcaCtrl.text.isEmpty || 
+                            referenciaCtrl.text.isEmpty || 
+                            modeloCtrl.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Por favor completa todos los campos')),
+                          );
+                          return;
+                        }
+
+                        final userId = widget.usuario['id'] ?? widget.usuario['_id'];
+                        
+                        final res = await VehicleService.registrarVehiculo(
+                          usuarioId: userId,
+                          placa: placaCtrl.text.trim(),
+                          marca: marcaCtrl.text.trim(),
+                          referencia: referenciaCtrl.text.trim(),
+                          modelo: modeloCtrl.text.trim(),
+                          tipoVehiculo: tiposVehiculo[tipoSeleccionado]!,
+                          token: widget.token,
+                        );
+
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+
+                        if (res['success']) {
+                          _cargarVehiculos();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res['message']), backgroundColor: Colors.red),
+                          );
+                        }
+                      },
+                      child: const Text('Guardar Vehículo'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-    if (res == true) _cargarVehiculos();
   }
 
   @override

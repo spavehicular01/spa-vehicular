@@ -22,7 +22,7 @@ class ServiceSelector extends StatelessWidget {
         const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: servicioSeleccionadoId,
+          initialValue: servicioSeleccionadoId,
           isExpanded: true,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),

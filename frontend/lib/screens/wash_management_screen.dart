@@ -261,9 +261,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: (isDark && accentColor == AppTheme.azulElectrico
-                                  ? const Color(0xFF60A5FA)
-                                  : accentColor).withOpacity(0.15),
+                          color: _obtenerColorEstado(estado).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isDark && accentColor == AppTheme.azulElectrico

@@ -91,7 +91,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                       ),
                       Text(
                         _obtenerCorreo(cliente),
-                        style: TextStyle(color: const Color.fromARGB(255, 56, 63, 122)),
+                        style: const TextStyle(color: Color.fromARGB(255, 56, 63, 122)),
                       ),
                     ],
                   ),

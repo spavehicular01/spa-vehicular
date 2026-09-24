@@ -23,17 +23,46 @@ dependencies:
   cupertino_icons: ^1.0.8
   desktop_drop: ^0.8.0
   google_sign_in: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 flutter:
   uses-material-design: true
   assets:
+<<<<<<< HEAD
     - assets/animations/
 
   # Comentado para evitar el error de carpeta inexistente.
   # Cuando crees la carpeta assets/animations y tengas archivos adentro, descoméntalo.
   # assets:
   #   - assets/animations/
+=======
+    - assets/icono.jpg
+    - assets/icono_rounded.png
+    - assets/branding_v2.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icono.jpg"
+  min_sdk_android: 21
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icono_rounded.png"
+
+flutter_native_splash:
+  color: "#013A63"
+  image: assets/icono_rounded.png
+  branding: assets/branding_v2.png
+  branding_mode: bottom
+  android_12:
+    color: "#013A63"
+    image: assets/icono_rounded.png
+    icon_background_color: "#013A63"
+    branding: assets/branding_v2.png
+    branding_mode: bottom
+>>>>>>> origin/main

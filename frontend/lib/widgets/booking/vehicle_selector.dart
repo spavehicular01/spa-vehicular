@@ -21,7 +21,7 @@ class VehicleSelector extends StatelessWidget {
         const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: vehiculoSeleccionadoId,
+          initialValue: vehiculoSeleccionadoId,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.directions_car),
