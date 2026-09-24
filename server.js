@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import dns from 'dns';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -14,6 +15,10 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import { crearAdminSemilla } from './src/utils/seedAdmin.js';
 import userRoutes from './src/routes/userRoutes.js';
+
+// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const app = express();
 
 // Creación del Servidor HTTP y Socket.io
