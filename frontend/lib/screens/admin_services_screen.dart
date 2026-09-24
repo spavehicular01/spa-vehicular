@@ -45,7 +45,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     final descController = TextEditingController(
       text: _obtenerCampo(servicio, ['description', 'descripcion']),
     );
-    
+
     final dynamic valPrecio = _obtenerValor(servicio, ['precioBase', 'precio', 'price']);
     final precioController = TextEditingController(
       text: valPrecio != null ? valPrecio.toString() : '',
@@ -102,7 +102,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                                 fit: BoxFit.cover,
                               ),
                             )
-                          : (imageUrl != null && imageUrl.isNotEmpty)
+                          : imageUrl.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: Image.network(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/vehicle_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/vehicle_list_tile.dart';
-import 'add_vehicle_screen.dart'; // Importa la pantalla que ya tienes en screens/
 
 class VehiclesScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
@@ -38,7 +37,12 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _mostrarSnackBar('Error al cargar vehículos: $e', Colors.red);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar vehículos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -79,7 +83,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
     final marcaCtrl = TextEditingController();
     final referenciaCtrl = TextEditingController();
     final modeloCtrl = TextEditingController();
-    
+
     final Map<String, String> tiposVehiculo = {
       'Automóvil': 'automovil',
       'Motocicleta': 'moto',
@@ -149,9 +153,9 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () async {
-                        if (placaCtrl.text.isEmpty || 
-                            marcaCtrl.text.isEmpty || 
-                            referenciaCtrl.text.isEmpty || 
+                        if (placaCtrl.text.isEmpty ||
+                            marcaCtrl.text.isEmpty ||
+                            referenciaCtrl.text.isEmpty ||
                             modeloCtrl.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Por favor completa todos los campos')),
@@ -160,7 +164,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                         }
 
                         final userId = widget.usuario['id'] ?? widget.usuario['_id'];
-                        
+
                         final res = await VehicleService.registrarVehiculo(
                           usuarioId: userId,
                           placa: placaCtrl.text.trim(),
@@ -232,7 +236,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.azulElectrico,
-        onPressed: _abrirFormulario,
+        onPressed: _mostrarFormularioRegistro,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
