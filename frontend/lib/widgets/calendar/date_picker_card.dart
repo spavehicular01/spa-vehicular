@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Tarjeta que envuelve el CalendarDatePicker para elegir el día de la cita.
+/// Nota: no hace falta fijar colores aquí — el CalendarDatePicker de
+/// Material 3 hereda automáticamente el colorScheme (primary = navy,
+/// secondary = cian) definido en AppTheme, y el Card ya viene redondeado
+/// y con borde suave por el CardTheme global.
 class DatePickerCard extends StatelessWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateChanged;
@@ -15,8 +19,6 @@ class DatePickerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.all(12.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: CalendarDatePicker(
         initialDate: selectedDate,
         firstDate: DateTime.now(),

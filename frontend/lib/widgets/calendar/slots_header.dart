@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Encabezado de la sección de horarios: título "Cupos del día" y la
 /// leyenda de colores que indica disponible / ocupado.
@@ -7,24 +8,21 @@ class SlotsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Cupos del día',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text('Cupos del día', style: AppTextStyles.h2),
           Row(
             children: [
-              Icon(Icons.circle, color: Color.fromARGB(255, 0, 34, 255), size: 12),
-              SizedBox(width: 4),
-              Text('Disponible', style: TextStyle(fontSize: 12)),
-              SizedBox(width: 12),
-              Icon(Icons.circle, color: Color.fromARGB(255, 158, 158, 158), size: 12),
-              SizedBox(width: 4),
-              Text('Ocupado', style: TextStyle(fontSize: 12)),
+              const Icon(Icons.circle, color: AppColors.accent, size: 12),
+              const SizedBox(width: 4),
+              Text('Disponible', style: AppTextStyles.labelMuted.copyWith(letterSpacing: 0)),
+              const SizedBox(width: 12),
+              Icon(Icons.circle, color: AppColors.muted, size: 12),
+              const SizedBox(width: 4),
+              Text('Ocupado', style: AppTextStyles.labelMuted.copyWith(letterSpacing: 0)),
             ],
           ),
         ],

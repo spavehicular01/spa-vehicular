@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
 import '../services/appointment_service.dart';
+import '../theme/app_theme.dart';
 
 import '../widgets/calendar/date_picker_card.dart';
 import '../widgets/calendar/slots_header.dart';
@@ -91,9 +92,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
-    // 🟢 FIX: usar directamente widget.token (viene de la sesión
-    // centralizada usuarioActualNotifier) en vez de leer una copia
-    // aislada e inconsistente desde SharedPreferences.
     final String? token = widget.token;
 
     final bool hayToken = token != null && token.trim().isNotEmpty && token != 'null';
@@ -135,13 +133,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agenda tu Cita'),
-        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
+    // Sin Scaffold/AppBar propios: esta pantalla vive dentro de
+    // MainNavigationScreen (tab "Calendario"), que ya provee su AppBar.
+    return Container(
+      color: AppColors.background,
+      child: Column(
         children: [
           DatePickerCard(
             selectedDate: _selectedDate,

@@ -5,6 +5,7 @@ import '../widgets/auth_required_dialog.dart';
 import 'calendar_screen.dart';
 import '../widgets/service_card.dart';
 import '../main.dart'; // usuarioActualNotifier, guardarSesionUsuario
+import '../theme/app_theme.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -33,7 +34,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return token != null && token.trim().isNotEmpty && token.trim() != 'null';
   }
 
-  // 🟢 FIX: ahora también recibe y pasa el usuario, no solo el token.
   void _irACalendario(String token, Map<String, dynamic>? usuario) {
     if (!mounted) return;
     Navigator.push(
@@ -59,65 +59,92 @@ class _ServicesScreenState extends State<ServicesScreen> {
           await guardarSesionUsuario(datos);
           final nuevoToken = datos['token'] as String?;
           if (nuevoToken != null) {
-            _irACalendario(nuevoToken, datos); // 🟢 ahora también pasa 'datos' como usuario
+            _irACalendario(nuevoToken, datos);
           }
         },
       );
       return;
     }
 
-    _irACalendario(token!, usuario); // 🟢 ahora también pasa 'usuario'
+    _irACalendario(token!, usuario);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Servicios de Lavado'),
-        backgroundColor: const Color.fromARGB(255, 0, 26, 255),
-        foregroundColor: Colors.white,
+        // Ya no hace falta el Color hardcodeado: AppBarTheme lo hereda
+        // automáticamente desde AppTheme.light()/dark() en main.dart.
       ),
       body: RefreshIndicator(
+        color: AppColors.secondary,
         onRefresh: _recargar,
         child: FutureBuilder<List<ServiceModel>>(
           future: _futureLavados,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.secondary),
+              );
             } else if (snapshot.hasError) {
               return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Error al cargar servicios:\n${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _recargar,
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.redAccent, size: 40),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Error al cargar servicios:\n${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.body,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _recargar,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text('No hay servicios disponibles.'),
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_car_wash_outlined,
+                          color: AppColors.muted, size: 40),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'No hay servicios disponibles.',
+                        style: AppTextStyles.body,
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
 
             final lavados = snapshot.data!;
             return ListView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               itemCount: lavados.length,
               itemBuilder: (context, index) {
                 final item = lavados[index];
-                return ServiceCard(
-                  key: ValueKey(item.id),
-                  service: item,
-                  onTap: () => _validarSesionYAgendar(item),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ServiceCard(
+                    key: ValueKey(item.id),
+                    service: item,
+                    onTap: () => _validarSesionYAgendar(item),
+                  ),
                 );
               },
             );

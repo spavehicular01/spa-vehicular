@@ -8,6 +8,7 @@ import 'settings_screen.dart';
 import 'admin_dashboard_screen.dart';
 import '../widgets/chat_bottom_sheet.dart';
 import '../main.dart'; // 🟢 usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
+import '../theme/app_theme.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -18,13 +19,6 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-
-  // 🔴 ELIMINADO: Map<String, dynamic>? _usuarioAutenticado;
-  // Ya no existe estado local de usuario. Toda la app lee/escribe
-  // usuarioActualNotifier (definido en main.dart), así que sin importar
-  // desde dónde se dispare el login (diálogo "Atención", tab Perfil,
-  // AuthRequiredDialog en Calendario, etc.) el estado queda sincronizado
-  // en toda la aplicación, incluso si esta pantalla se reconstruye.
 
   void _abrirChatAsesor() {
     showModalBottomSheet(
@@ -42,26 +36,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_outline, size: 80, color: Color.fromARGB(255, 0, 34, 255)),
+          const Icon(Icons.lock_outline, size: 80, color: AppColors.secondary),
           const SizedBox(height: 16),
           Text(
             titulo,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2,
           ),
           const SizedBox(height: 8),
           Text(
             descripcion,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: AppTextStyles.body,
           ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () => setState(() => _selectedIndex = 3),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 0, 34, 255),
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Ir a Iniciar Sesión'),
           )
         ],
@@ -75,7 +65,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         return HomeScreen(
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos); // 🟢 antes: setState local
+            guardarSesionUsuario(datos);
           },
         );
       case 1:
@@ -89,7 +79,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos); // 🟢 antes: setState local
+            guardarSesionUsuario(datos);
           },
         );
       case 2:
@@ -104,14 +94,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         if (usuarioAutenticado == null) {
           return LoginScreen(
             onLoginExitoso: (datos) {
-              guardarSesionUsuario(datos); // 🟢 antes: setState local
+              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
           return AdminDashboardScreen(
             userData: usuarioAutenticado,
             onCerrarSesion: () {
-              cerrarSesionUsuario(); // 🟢 antes: setState local
+              cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
           );
@@ -125,13 +115,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               usuarioAutenticado['vehiculos'] ?? [],
             ),
             onVehiculosChanged: (nuevosVehiculos) {
-              // 🟢 Actualiza el mapa y vuelve a guardar la sesión completa
               final actualizado = Map<String, dynamic>.from(usuarioAutenticado);
               actualizado['vehiculos'] = nuevosVehiculos;
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
-              cerrarSesionUsuario(); // 🟢 antes: setState local
+              cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
           );
@@ -143,20 +132,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 ValueListenableBuilder: reconstruye automáticamente esta pantalla
-    // (y por lo tanto Calendar/Home/Profile) cada vez que
-    // usuarioActualNotifier cambie, sin importar desde dónde se
-    // haya disparado el login o logout.
     return ValueListenableBuilder<Map<String, dynamic>?>(
       valueListenable: usuarioActualNotifier,
       builder: (context, usuarioAutenticado, _) {
         return Scaffold(
+          backgroundColor: AppColors.background,
+          // Único AppBar de toda la navegación principal: las pantallas hijas
+          // (HomeScreen, etc.) NO deben traer su propio AppBar, o se duplica.
           appBar: AppBar(
             title: Text(
               ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
             ),
-            backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-            foregroundColor: Colors.white,
             actions: [
               IconButton(
                 icon: const Icon(Icons.settings),
@@ -174,14 +160,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           body: _getPage(_selectedIndex, usuarioAutenticado),
           floatingActionButton: FloatingActionButton(
             heroTag: 'fab_btn_asesor_chat',
-            backgroundColor: const Color.fromARGB(255, 0, 34, 255),
             elevation: 4,
             shape: const CircleBorder(),
             tooltip: 'Consultar al Asesor Virtual',
             onPressed: _abrirChatAsesor,
             child: const Icon(
               Icons.directions_car_rounded,
-              color: Colors.white,
+              color: AppColors.primary,
               size: 28,
             ),
           ),
@@ -189,7 +174,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             currentIndex: _selectedIndex,
             onTap: (index) => setState(() => _selectedIndex = index),
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: const Color.fromARGB(255, 0, 34, 255),
+            selectedItemColor: AppColors.secondary,
             unselectedItemColor: Colors.grey,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),

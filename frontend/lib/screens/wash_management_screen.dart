@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../services/socket_service.dart';
 import '../services/wash_service.dart';
 import '../main.dart'; // routeObserver
+import '../theme/app_theme.dart';
 
 class WashManagementScreen extends StatefulWidget {
   const WashManagementScreen({super.key});
@@ -31,15 +32,11 @@ class _WashManagementScreenState extends State<WashManagementScreen>
     routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
   }
 
-  // Se llama automáticamente cuando esta pantalla vuelve a quedar visible
-  // (ej. al volver de BookingScreen tras agendar).
   @override
   void didPopNext() {
     _cargarCitasCliente();
   }
 
-  // 🟢 NUEVO: obtiene el id del usuario desde la sesión guardada por
-  // guardarSesionUsuario() en main.dart (clave 'usuario', JSON completo).
   Future<String?> _obtenerUsuarioIdGuardado() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioStr = prefs.getString('usuario');
@@ -109,7 +106,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensajeSnackBar),
-            backgroundColor: estadoLower == 'finalizada' ? Colors.green : Colors.blue,
+            backgroundColor: estadoLower == 'finalizada' ? Colors.green : AppColors.secondary,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 5),
           ),
@@ -125,8 +122,8 @@ class _WashManagementScreenState extends State<WashManagementScreen>
     super.dispose();
   }
 
-  // Colores y etiquetas legibles para los valores reales del enum del schema:
-  // ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada']
+  // Colores semánticos por estado (no son colores de marca, son de estatus,
+  // así que se mantienen distintos entre sí para diferenciarlos de un vistazo).
   Color _obtenerColorEstado(String? estado) {
     switch ((estado ?? '').toLowerCase()) {
       case 'pendiente':
@@ -134,7 +131,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
       case 'confirmada':
         return Colors.indigo;
       case 'en_proceso':
-        return Colors.blue;
+        return AppColors.secondary;
       case 'finalizada':
         return Colors.green;
       case 'cancelada':
@@ -142,7 +139,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
       case 'reprogramada':
         return Colors.purple;
       default:
-        return Colors.grey;
+        return AppColors.muted;
     }
   }
 
@@ -194,6 +191,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
   Widget _buildListaCitas(List<dynamic> citas, {required bool esHistorial}) {
     if (citas.isEmpty) {
       return RefreshIndicator(
+        color: AppColors.secondary,
         onRefresh: _cargarCitasCliente,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -201,9 +199,20 @@ class _WashManagementScreenState extends State<WashManagementScreen>
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.6,
               child: Center(
-                child: Text(
-                  esHistorial ? 'No tienes lavadas en tu historial.' : 'No tienes citas activas.',
-                  style: const TextStyle(color: Colors.grey),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      esHistorial ? Icons.history : Icons.event_available_outlined,
+                      color: AppColors.muted,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      esHistorial ? 'No tienes lavadas en tu historial.' : 'No tienes citas activas.',
+                      style: AppTextStyles.body,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -213,6 +222,7 @@ class _WashManagementScreenState extends State<WashManagementScreen>
     }
 
     return RefreshIndicator(
+      color: AppColors.secondary,
       onRefresh: _cargarCitasCliente,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -227,13 +237,12 @@ class _WashManagementScreenState extends State<WashManagementScreen>
           final String descripcionServicio = _obtenerDescripcionServicio(cita);
 
           return Card(
-            elevation: enProceso ? 4 : 2,
             margin: const EdgeInsets.only(bottom: 12.0),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               side: enProceso
-                  ? const BorderSide(color: Colors.blue, width: 2)
-                  : BorderSide.none,
+                  ? const BorderSide(color: AppColors.secondary, width: 1.5)
+                  : BorderSide(color: Colors.grey.shade200),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -247,53 +256,48 @@ class _WashManagementScreenState extends State<WashManagementScreen>
                       Expanded(
                         child: Text(
                           nombreServicio,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: AppTextStyles.bodyStrong,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _obtenerColorEstado(estado).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _obtenerColorEstado(estado)),
-                        ),
-                        child: Text(
-                          _obtenerEtiquetaEstado(estado),
-                          style: TextStyle(
-                            color: _obtenerColorEstado(estado),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                      StatusChip(
+                        label: _obtenerEtiquetaEstado(estado),
+                        color: _obtenerColorEstado(estado),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     descripcionServicio,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: AppTextStyles.body,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
-                  Text('📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}'),
+                  Text(
+                    '📅 Fecha/Hora: ${cita['fechaHoraCita'] ?? 'N/A'}',
+                    style: AppTextStyles.labelMuted.copyWith(letterSpacing: 0, fontSize: 12),
+                  ),
                   if (enProceso) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0x1A00E5FF), // accent al 10%
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.local_car_wash, color: Colors.blue),
+                          Icon(Icons.local_car_wash, color: AppColors.secondary),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               '¡Tu vehículo se encuentra actualmente en proceso de lavado!',
-                              style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: AppColors.secondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -311,47 +315,49 @@ class _WashManagementScreenState extends State<WashManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Filtros con los valores REALES del enum del schema de Appointment:
-    // ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada']
     final citasActivas = _citas.where((c) {
-  final estado = (c['estado'] ?? '').toString().toLowerCase();
-  return estado == 'pendiente' ||
-      estado == 'confirmada' ||
-      estado == 'en_proceso' ||
-      estado == 'reprogramada'; // 🟢 agregada aquí
-}).toList();
+      final estado = (c['estado'] ?? '').toString().toLowerCase();
+      return estado == 'pendiente' ||
+          estado == 'confirmada' ||
+          estado == 'en_proceso' ||
+          estado == 'reprogramada';
+    }).toList();
 
-final citasHistorial = _citas.where((c) {
-  final estado = (c['estado'] ?? '').toString().toLowerCase();
-  return estado == 'finalizada' || estado == 'cancelada';
-}).toList();
+    final citasHistorial = _citas.where((c) {
+      final estado = (c['estado'] ?? '').toString().toLowerCase();
+      return estado == 'finalizada' || estado == 'cancelada';
+    }).toList();
 
+    // Sin Scaffold propio: esta pantalla vive dentro de MainNavigationScreen
+    // (tab "Lavadas"), que ya provee el Scaffold y el AppBar "Mis Lavadas".
+    // El TabBar de aquí abajo es parte del body, no una segunda barra.
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: Container(
-            color: const Color.fromARGB(255, 30, 0, 255),
+      child: Column(
+        children: [
+          Container(
+            color: AppColors.primary,
             child: const TabBar(
-              indicatorColor: Colors.white,
+              indicatorColor: AppColors.accent,
               labelColor: Colors.white,
-              unselectedLabelColor: Color.fromARGB(179, 255, 251, 0),
+              unselectedLabelColor: Colors.white60,
               tabs: [
                 Tab(icon: Icon(Icons.time_to_leave), text: 'En Curso / Próximas'),
                 Tab(icon: Icon(Icons.history), text: 'Historial'),
               ],
             ),
           ),
-        ),
-        body: _cargando
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                children: [
-                  _buildListaCitas(citasActivas, esHistorial: false),
-                  _buildListaCitas(citasHistorial, esHistorial: true),
-                ],
-              ),
+          Expanded(
+            child: _cargando
+                ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
+                : TabBarView(
+                    children: [
+                      _buildListaCitas(citasActivas, esHistorial: false),
+                      _buildListaCitas(citasHistorial, esHistorial: true),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }

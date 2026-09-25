@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
+import '../theme/app_theme.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServiceModel service;
@@ -14,38 +15,32 @@ class ServiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      margin: EdgeInsets.zero, // el spacing entre cards ya lo maneja ServicesScreen
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(14.0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildFallbackIcon(),
+                borderRadius: BorderRadius.circular(12),
+                child: _buildIcon(),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       service.nombre,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: AppTextStyles.bodyStrong,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       service.descripcion,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: AppTextStyles.body,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -54,11 +49,11 @@ class ServiceCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '\$${service.precioBase.toStringAsFixed(0)}', // Muestra el precio base obtenido del arreglo
+                '\$${service.precioBase.toStringAsFixed(0)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Color.fromARGB(255, 0, 21, 255),
+                  color: AppColors.secondary, // azul agua, como los precios en AquaGlow
                 ),
               ),
             ],
@@ -68,15 +63,18 @@ class ServiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFallbackIcon() {
+  Widget _buildIcon() {
     return Container(
-      width: 70,
-      height: 70,
-      color: Colors.teal.shade50,
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: const Color(0x1A00E5FF), // accent al 10%, mismo tono usado en HomeScreen
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: const Icon(
         Icons.directions_car,
-        size: 40,
-        color: Color.fromARGB(255, 0, 30, 255),
+        size: 28,
+        color: AppColors.secondary,
       ),
     );
   }

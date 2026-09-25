@@ -7,10 +7,8 @@ import 'screens/main_navigation_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
+import 'theme/app_theme.dart';
 // Import del chat
-
-// Definición del azul eléctrico
-const Color azulPrincipal = Color(0xFF0004FF);
 
 // Notificadores globales de estado
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -107,67 +105,11 @@ class SpaVehicularApp extends StatelessWidget {
               // Configuración de temas global
               themeMode: currentMode,
 
-              // Tema Claro
-              theme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.light,
-                primaryColor: azulPrincipal,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: azulPrincipal,
-                  primary: azulPrincipal,
-                  brightness: Brightness.light,
-                ),
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: azulPrincipal,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                ),
-                elevatedButtonTheme: ElevatedButtonThemeData(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: azulPrincipal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                  backgroundColor: azulPrincipal,
-                  foregroundColor: Colors.white,
-                ),
-              ),
+              // Tema Claro (paleta AquaGlow)
+              theme: AppTheme.light(),
 
-              // Tema Oscuro
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.dark,
-                primaryColor: azulPrincipal,
-                scaffoldBackgroundColor: const Color(0xFF121212),
-                cardColor: const Color(0xFF1E1E1E),
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: azulPrincipal,
-                  primary: azulPrincipal,
-                  brightness: Brightness.dark,
-                ),
-                appBarTheme: const AppBarTheme(
-                  backgroundColor: Color(0xFF1E1E1E),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                ),
-                elevatedButtonTheme: ElevatedButtonThemeData(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: azulPrincipal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                floatingActionButtonTheme: const FloatingActionButtonThemeData(
-                  backgroundColor: azulPrincipal,
-                  foregroundColor: Colors.white,
-                ),
-              ),
+              // Tema Oscuro (paleta AquaGlow)
+              darkTheme: AppTheme.dark(),
 
               // Localización (Colombia / Español)
               localizationsDelegates: const [
