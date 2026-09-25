@@ -18,7 +18,9 @@ class SelectDateTimeScreen extends StatefulWidget {
 }
 
 class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
-  DateTime _selectedDate = DateTime.now();
+  // Fecha de "hoy" normalizada (sin horas/minutos), calculada una sola vez
+  final DateTime _hoy = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  late DateTime _selectedDate = _hoy;
   String? _selectedTime;
 
   // Horarios disponibles simulados
@@ -85,8 +87,8 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                       const SizedBox(height: 12),
                       CalendarDatePicker(
                         initialDate: _selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                        firstDate: _hoy,
+                        lastDate: _hoy.add(const Duration(days: 30)),
                         onDateChanged: (date) {
                           setState(() {
                             _selectedDate = date;
