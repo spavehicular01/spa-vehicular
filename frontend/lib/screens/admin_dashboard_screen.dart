@@ -3,6 +3,7 @@ import 'admin_appointments_screen.dart';
 import 'admin_services_screen.dart';
 import 'admin_clients_screen.dart';
 import 'history_washes_screen.dart';
+import '../theme/app_theme.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -23,17 +24,17 @@ class AdminDashboardScreen extends StatelessWidget {
         children: [
           // Tarjeta de información del Administrador
           Card(
-            color: Colors.teal.shade50,
+            color: const Color(0x1A00E5FF), // cian al 10%, igual que el resto de la app
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color.fromARGB(255, 0, 8, 255), width: 1.5),
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppColors.accent, width: 1.2),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
                   const CircleAvatar(
-                    backgroundColor: Color.fromARGB(255, 0, 21, 249),
+                    backgroundColor: AppColors.primary,
                     radius: 28,
                     child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
                   ),
@@ -44,12 +45,12 @@ class AdminDashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           userData['nombres'] ?? 'Administrador SPA',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: AppTextStyles.bodyStrong.copyWith(fontSize: 16),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           userData['correo'] ?? 'spavehicular01@gmail.com',
-                          style: const TextStyle(color: Color.fromARGB(255, 97, 97, 97)),
+                          style: AppTextStyles.body,
                         ),
                       ],
                     ),
@@ -60,13 +61,11 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          const Text(
-            'Panel Administrativo',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 17, 255)),
-          ),
+          const Text('Panel Administrativo', style: AppTextStyles.h2),
           const SizedBox(height: 16),
 
-          // Módulos del Panel
+          // Módulos del Panel: color único (navy) para los 4, como en la
+          // referencia AquaGlow, en vez de 4 tonos de azul casi idénticos.
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -77,7 +76,6 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Gestión de Citas',
                 icono: Icons.calendar_month_outlined,
-                color: const Color.fromARGB(255, 0, 38, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -90,7 +88,6 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Servicios y Precios',
                 icono: Icons.local_car_wash_outlined,
-                color: const Color.fromARGB(255, 4, 0, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -103,7 +100,6 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Lista de Clientes',
                 icono: Icons.people_alt_outlined,
-                color: const Color.fromARGB(255, 38, 0, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -116,7 +112,6 @@ class AdminDashboardScreen extends StatelessWidget {
               _buildCardModulo(
                 titulo: 'Reportes e Historial',
                 icono: Icons.bar_chart_outlined,
-                color: const Color.fromARGB(255, 0, 30, 255),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -130,7 +125,6 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Botón de Cerrar Sesión
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -154,34 +148,32 @@ class AdminDashboardScreen extends StatelessWidget {
   Widget _buildCardModulo({
     required String titulo,
     required IconData icono,
-    required Color color,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Card(
-        elevation: 2,
-        color: color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icono, size: 42, color: Colors.white),
-              const SizedBox(height: 12),
-              Text(
-                titulo,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icono, size: 40, color: AppColors.accent),
+            const SizedBox(height: 12),
+            Text(
+              titulo,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

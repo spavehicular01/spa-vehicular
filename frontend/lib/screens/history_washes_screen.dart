@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/wash_service.dart';
+import '../theme/app_theme.dart';
 
 class HistoryWashesScreen extends StatelessWidget {
   const HistoryWashesScreen({super.key});
 
-  // Datos de respaldo SOLO para cuando falla la conexión con el backend
   List<Map<String, dynamic>> _getHistorialLocal() {
     return [
       {
@@ -27,14 +27,11 @@ class HistoryWashesScreen extends StatelessWidget {
   Future<List<dynamic>> _cargarHistorial() async {
     try {
       final datos = await WashApiService.getHistorialCitas();
-      return datos; // Aunque venga vacío [], es una respuesta válida del backend
+      return datos;
     } catch (e) {
-      // Solo usamos el respaldo local si la petición realmente falló
       return _getHistorialLocal();
     }
   }
-
-  // --- Helpers de mapeo ---
 
   String _extraerServicio(Map cita) {
     final directo = cita['servicio'];
@@ -133,18 +130,22 @@ class HistoryWashesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reportes e Historial'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
+      backgroundColor: AppColors.background,
       body: FutureBuilder<List<dynamic>>(
         future: _cargarHistorial(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text('Error: ${snapshot.error}', style: AppTextStyles.body),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No tienes lavadas en el historial.'));
+            return Center(
+              child: Text('No tienes lavadas en el historial.', style: AppTextStyles.body),
+            );
           }
 
           final citas = snapshot.data!;
@@ -154,22 +155,21 @@ class HistoryWashesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final cita = citas[index] as Map;
               return Card(
-                elevation: 2,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  leading: const Icon(Icons.check_circle, color: Colors.teal, size: 32),
-                  title: Text(
-                    _extraerServicio(cita),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  // Verde = completado, mismo código semántico que usamos
+                  // para el estado "finalizada" en Mis Lavadas y Admin.
+                  leading: const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                  title: Text(_extraerServicio(cita), style: AppTextStyles.bodyStrong),
                   subtitle: Text(
                     'Fecha: ${_extraerFecha(cita)} - Hora: ${_extraerHora(cita)}\nVehículo: ${_extraerVehiculo(cita)}',
+                    style: AppTextStyles.body,
                   ),
                   trailing: Text(
                     '\$${_extraerPrecio(cita)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.teal,
+                      color: AppColors.secondary,
                       fontSize: 15,
                     ),
                   ),

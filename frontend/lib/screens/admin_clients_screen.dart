@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class AdminClientsScreen extends StatefulWidget {
   const AdminClientsScreen({super.key});
@@ -75,7 +76,7 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
             Row(
               children: [
                 const CircleAvatar(
-                  backgroundColor: Color.fromARGB(255, 0, 17, 255),
+                  backgroundColor: AppColors.primary,
                   radius: 24,
                   child: Icon(Icons.person, color: Colors.white, size: 28),
                 ),
@@ -86,34 +87,31 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                     children: [
                       Text(
                         _obtenerNombre(cliente),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: AppTextStyles.bodyStrong.copyWith(fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        _obtenerCorreo(cliente),
-                        style: const TextStyle(color: Color.fromARGB(255, 56, 63, 122)),
-                      ),
+                      Text(_obtenerCorreo(cliente), style: AppTextStyles.body),
                     ],
                   ),
                 ),
               ],
             ),
             const Divider(height: 24),
-            Text('📄 Documento: ${cliente['documentoIdentidad'] ?? 'No registrado'}'),
+            Text('📄 Documento: ${cliente['documentoIdentidad'] ?? 'No registrado'}', style: AppTextStyles.body),
             const SizedBox(height: 4),
-            Text('📞 Teléfono: ${_obtenerTelefono(cliente)}'),
+            Text('📞 Teléfono: ${_obtenerTelefono(cliente)}', style: AppTextStyles.body),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Vehículos Registrados',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal),
+              style: AppTextStyles.bodyStrong.copyWith(color: AppColors.secondary, fontSize: 16),
             ),
             const SizedBox(height: 8),
             vehiculos.isEmpty
-                ? const Text('Sin vehículos registrados.')
+                ? Text('Sin vehículos registrados.', style: AppTextStyles.body)
                 : Column(
                     children: vehiculos.map<Widget>((v) {
                       return ListTile(
-                        leading: const Icon(Icons.directions_car, color: Colors.teal),
+                        leading: const Icon(Icons.directions_car, color: AppColors.secondary),
                         title: Text('${v['marca'] ?? ''} ${v['referencia'] ?? ''} (${v['placa'] ?? 'Sin placa'})'),
                         subtitle: Text('Modelo: ${v['modelo'] ?? 'N/A'} - Tipo: ${v['tipoVehiculo'] ?? 'N/A'}'),
                         contentPadding: EdgeInsets.zero,
@@ -132,18 +130,19 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lista de Clientes'),
-        backgroundColor: const Color.fromARGB(255, 0, 0, 254),
-        foregroundColor: Colors.white,
+        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
+      backgroundColor: AppColors.background,
       body: _cargando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : RefreshIndicator(
+              color: AppColors.secondary,
               onRefresh: _cargarClientes,
               child: _clientes.isEmpty
                   ? ListView(
-                      children: const [
-                        SizedBox(height: 200),
-                        Center(child: Text('No hay clientes registrados.')),
+                      children: [
+                        const SizedBox(height: 200),
+                        Center(child: Text('No hay clientes registrados.', style: AppTextStyles.body)),
                       ],
                     )
                   : ListView.builder(
@@ -154,33 +153,25 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                         final int numVehiculos = (cliente['vehiculos'] as List? ?? []).length;
 
                         return Card(
-                          elevation: 2,
                           margin: const EdgeInsets.only(bottom: 12.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(16.0),
                             leading: const CircleAvatar(
-                              backgroundColor: Color.fromARGB(255, 0, 42, 255),
+                              backgroundColor: AppColors.primary,
                               child: Icon(Icons.person, color: Colors.white),
                             ),
-                            title: Text(
-                              _obtenerNombre(cliente),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                            title: Text(_obtenerNombre(cliente), style: AppTextStyles.bodyStrong),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
-                                Text(_obtenerCorreo(cliente)),
-                                Text('Tel: ${_obtenerTelefono(cliente)}'),
+                                Text(_obtenerCorreo(cliente), style: AppTextStyles.body),
+                                Text('Tel: ${_obtenerTelefono(cliente)}', style: AppTextStyles.body),
                               ],
                             ),
-                            trailing: Chip(
-                              label: Text('$numVehiculos veh.'),
-                              backgroundColor: Colors.teal.shade50,
-                              labelStyle: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                            trailing: StatusChip(
+                              label: '$numVehiculos veh.',
+                              color: AppColors.secondary,
                             ),
                             onTap: () => _verDetallesCliente(cliente),
                           ),

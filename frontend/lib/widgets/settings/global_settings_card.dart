@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Tarjeta con preferencias globales de la app que aplican tanto para
 /// usuarios autenticados como invitados: modo oscuro y tamaño de letra.
@@ -19,24 +20,20 @@ class GlobalSettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Personalización Global',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
+            const Text('Personalización Global', style: AppTextStyles.bodyStrong),
             SwitchListTile(
               secondary: Icon(
                 esModoOscuro ? Icons.dark_mode : Icons.light_mode,
-                color: const Color.fromARGB(255, 0, 30, 255),
+                color: AppColors.secondary,
               ),
               title: const Text('Modo Oscuro'),
               value: esModoOscuro,
+              activeColor: AppColors.accent,
               onChanged: onCambiarModoOscuro,
             ),
             const Divider(),
@@ -45,14 +42,14 @@ class GlobalSettingsCard extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.format_size, color: Color.fromARGB(255, 0, 30, 255)),
+                    Icon(Icons.format_size, color: AppColors.secondary),
                     SizedBox(width: 12),
                     Text('Tamaño de Letra Global'),
                   ],
                 ),
                 Text(
                   '${(fontScale * 100).round()}%',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.bodyStrong,
                 ),
               ],
             ),
@@ -61,7 +58,7 @@ class GlobalSettingsCard extends StatelessWidget {
               min: 0.8,
               max: 1.4,
               divisions: 6,
-              activeColor: const Color.fromARGB(255, 0, 30, 255),
+              activeColor: AppColors.accent,
               onChanged: onCambiarTamanioLetra,
             ),
           ],

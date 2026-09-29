@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class AdminAppointmentsScreen extends StatefulWidget {
   const AdminAppointmentsScreen({super.key});
@@ -63,7 +64,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensaje),
-          backgroundColor: const Color.fromARGB(255, 0, 42, 255),
+          backgroundColor: AppColors.secondary,
         ),
       );
     } else {
@@ -76,22 +77,23 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     }
   }
 
+  // Colores semánticos por estado (se mantienen distintos entre sí
+  // a propósito, para diferenciar estados de un vistazo).
   Color _obtenerColorEstado(String? estado) {
     switch (estado) {
       case 'pendiente':
         return Colors.orange;
       case 'en_proceso':
-        return Colors.blue;
+        return AppColors.secondary;
       case 'finalizada':
         return Colors.green;
       case 'cancelada':
         return Colors.red;
       default:
-        return Colors.grey;
+        return AppColors.muted;
     }
   }
 
-  // Auxiliar para extraer el nombre del usuario (maneja populate de MongoDB)
   String _obtenerNombreUsuario(dynamic cita) {
     final usuario = cita['usuarioId'];
     if (usuario is Map) {
@@ -107,7 +109,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return 'Cliente sin nombre';
   }
 
-  // Auxiliar para extraer los datos del vehículo
   String _obtenerDetalleVehiculo(dynamic cita) {
     if (cita['vehiculoId'] is Map) {
       final v = cita['vehiculoId'];
@@ -116,7 +117,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return cita['vehiculo'] ?? cita['vehiculoId'] ?? 'N/A';
   }
 
-  // Auxiliar para extraer el servicio
   String _obtenerDetalleServicio(dynamic cita) {
     if (cita['servicioId'] is Map) {
       return cita['servicioId']['nombre'] ?? 'Servicio Estándar';
@@ -124,7 +124,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return cita['servicio'] ?? 'Servicio General';
   }
 
-  // Formateador simple de fecha
   String _formatearFecha(String? fechaIso, String? hora) {
     if (fechaIso == null) return 'Sin fecha';
     try {
@@ -141,18 +140,21 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Citas (Admin)'),
-        backgroundColor: const Color.fromARGB(255, 0, 42, 255),
-        foregroundColor: Colors.white,
+        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
+      backgroundColor: AppColors.background,
       body: _cargando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : RefreshIndicator(
+              color: AppColors.secondary,
               onRefresh: _cargarCitas,
               child: _citas.isEmpty
                   ? ListView(
-                      children: const [
-                        SizedBox(height: 200),
-                        Center(child: Text('No hay citas registradas.')),
+                      children: [
+                        const SizedBox(height: 200),
+                        Center(
+                          child: Text('No hay citas registradas.', style: AppTextStyles.body),
+                        ),
                       ],
                     )
                   : ListView.builder(
@@ -164,11 +166,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                         final citaId = cita['_id'] ?? cita['id'];
 
                         return Card(
-                          elevation: 3,
                           margin: const EdgeInsets.only(bottom: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -180,37 +178,28 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                     Expanded(
                                       child: Text(
                                         _obtenerNombreUsuario(cita),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: AppTextStyles.bodyStrong.copyWith(fontSize: 16),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _obtenerColorEstado(estadoActual).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: _obtenerColorEstado(estadoActual)),
-                                      ),
-                                      child: Text(
-                                        estadoActual,
-                                        style: TextStyle(
-                                          color: _obtenerColorEstado(estadoActual),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
+                                    StatusChip(
+                                      label: estadoActual,
+                                      color: _obtenerColorEstado(estadoActual),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text('🧼 Servicio: ${_obtenerDetalleServicio(cita)}'),
-                                Text('🚗 Vehículo: ${_obtenerDetalleVehiculo(cita)}'),
-                                Text('📅 Fecha: ${_formatearFecha(cita['fechaHoraCita'], cita['hora'])}'),
+                                Text('🧼 Servicio: ${_obtenerDetalleServicio(cita)}', style: AppTextStyles.body),
+                                Text('🚗 Vehículo: ${_obtenerDetalleVehiculo(cita)}', style: AppTextStyles.body),
+                                Text(
+                                  '📅 Fecha: ${_formatearFecha(cita['fechaHoraCita'], cita['hora'])}',
+                                  style: AppTextStyles.body,
+                                ),
                                 if (cita['modalidad'] != null)
-                                  Text('📍 Modalidad: ${cita['modalidad'] == 'domicilio' ? 'A Domicilio' : 'En Spa'}'),
+                                  Text(
+                                    '📍 Modalidad: ${cita['modalidad'] == 'domicilio' ? 'A Domicilio' : 'En Spa'}',
+                                    style: AppTextStyles.body,
+                                  ),
                                 const Divider(height: 24),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -226,7 +215,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                           value: 'en_proceso',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.play_arrow, color: Colors.blue),
+                                              Icon(Icons.play_arrow, color: AppColors.secondary),
                                               SizedBox(width: 8),
                                               Text('Iniciar Lavada (En Proceso)'),
                                             ],
@@ -256,7 +245,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: const Color.fromARGB(255, 0, 38, 255),
+                                          color: AppColors.primary,
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: const Row(
@@ -268,7 +257,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            Icon(Icons.arrow_drop_down, color: Colors.white),
+                                            Icon(Icons.arrow_drop_down, color: AppColors.accent),
                                           ],
                                         ),
                                       ),

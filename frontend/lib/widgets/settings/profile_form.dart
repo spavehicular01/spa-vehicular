@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Formulario editable con los datos personales del usuario autenticado.
 /// No maneja su propio estado de guardado; recibe `isLoading` y `onGuardar`
@@ -32,8 +33,6 @@ class ProfileForm extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Documento de Identidad (No editable)',
             prefixIcon: Icon(Icons.badge_outlined),
-            border: OutlineInputBorder(),
-            filled: true,
           ),
         ),
         const SizedBox(height: 16),
@@ -42,7 +41,6 @@ class ProfileForm extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Nombres',
             prefixIcon: Icon(Icons.person_outline),
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -51,7 +49,6 @@ class ProfileForm extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Apellidos',
             prefixIcon: Icon(Icons.person_outline),
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -61,22 +58,17 @@ class ProfileForm extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Celular',
             prefixIcon: Icon(Icons.phone_outlined),
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 24),
+        // Sin colores propios: hereda el ElevatedButtonTheme global (cian/navy).
         ElevatedButton(
           onPressed: isLoading ? null : onGuardar,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
           child: isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
                 )
               : const Text('Guardar Cambios', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),

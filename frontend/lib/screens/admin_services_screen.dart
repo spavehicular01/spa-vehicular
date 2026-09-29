@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/wash_api_service.dart';
+import '../theme/app_theme.dart';
 
 class AdminServicesScreen extends StatefulWidget {
   const AdminServicesScreen({super.key});
@@ -45,7 +46,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     final descController = TextEditingController(
       text: _obtenerCampo(servicio, ['description', 'descripcion']),
     );
-    
+
     final dynamic valPrecio = _obtenerValor(servicio, ['precioBase', 'precio', 'price']);
     final precioController = TextEditingController(
       text: valPrecio != null ? valPrecio.toString() : '',
@@ -88,7 +89,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color.fromARGB(255, 0, 30, 255)),
+                        border: Border.all(color: AppColors.secondary),
                       ),
                       child: imagenSeleccionada != null
                           ? ClipRRect(
@@ -111,7 +112,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                               : const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: Color.fromARGB(255, 2, 27, 255), size: 30),
+                                    Icon(Icons.add_a_photo, color: AppColors.secondary, size: 30),
                                     SizedBox(height: 6),
                                     Text('Agregar foto del lavado', style: TextStyle(fontSize: 12)),
                                   ],
@@ -146,11 +147,8 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                 onPressed: subiendo ? null : () => Navigator.pop(context),
                 child: const Text('Cancelar'),
               ),
+              // Sin colores propios: hereda el ElevatedButtonTheme global.
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                  foregroundColor: Colors.white,
-                ),
                 onPressed: subiendo
                     ? null
                     : () async {
@@ -197,7 +195,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(servicio != null ? 'Servicio actualizado' : 'Servicio agregado'),
-                                backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+                                backgroundColor: AppColors.secondary,
                               ),
                             );
                           } else {
@@ -215,7 +213,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
                       )
                     : Text(servicio == null ? 'Guardar' : 'Actualizar'),
               ),
@@ -241,11 +239,9 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     }
   }
 
-  // Extrae de forma segura tanto de Maps como de Objetos Modelos Dart
   String _obtenerCampo(dynamic objeto, List<String> llaves) {
     if (objeto == null) return '';
 
-    // Si es un Map JSON
     if (objeto is Map) {
       for (var llave in llaves) {
         if (objeto.containsKey(llave) && objeto[llave] != null) {
@@ -254,7 +250,6 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
       }
     }
 
-    // Si es un Objeto Modelo Dart
     try {
       var val = (objeto as dynamic);
       for (var llave in llaves) {
@@ -320,21 +315,24 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Servicios y Precios'),
-        backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-        foregroundColor: Colors.white,
+        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
+      backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _mostrarFormularioServicio(),
-        backgroundColor: const Color.fromARGB(255, 8, 0, 255),
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
         label: const Text('Nuevo Servicio'),
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : _servicios.isEmpty
-              ? const Center(child: Text('No hay servicios registrados.'))
+              ? Center(
+                  child: Text('No hay servicios registrados.', style: AppTextStyles.body),
+                )
               : RefreshIndicator(
+                  color: AppColors.secondary,
                   onRefresh: _cargarServicios,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16.0),
@@ -348,11 +346,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                       final String foto = _obtenerCampo(item, ['imageUrl', 'imagenUrl', 'image']);
 
                       return Card(
-                        elevation: 2,
                         margin: const EdgeInsets.only(bottom: 12.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16.0),
                           leading: foto.isNotEmpty
@@ -363,27 +357,25 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                                     width: 50,
                                     height: 50,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.local_car_wash, size: 40, color: Colors.teal),
+                                    errorBuilder: (_, __, ___) =>
+                                        const Icon(Icons.local_car_wash, size: 40, color: AppColors.secondary),
                                   ),
                                 )
-                              : const Icon(Icons.local_car_wash, size: 40, color: Colors.teal),
+                              : const Icon(Icons.local_car_wash, size: 40, color: AppColors.secondary),
                           title: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
                                 child: Text(
                                   nombre.isNotEmpty ? nombre : 'Servicio',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                  style: AppTextStyles.bodyStrong,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               Text(
                                 '\$${precio.toStringAsFixed(0)}',
                                 style: const TextStyle(
-                                  color: Colors.teal,
+                                  color: AppColors.secondary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -394,7 +386,10 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 6),
-                              Text(descripcion.isNotEmpty ? descripcion : 'Sin descripción'),
+                              Text(
+                                descripcion.isNotEmpty ? descripcion : 'Sin descripción',
+                                style: AppTextStyles.body,
+                              ),
                             ],
                           ),
                           trailing: PopupMenuButton<String>(
@@ -412,7 +407,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                                 value: 'editar',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.edit, color: Colors.teal, size: 20),
+                                    Icon(Icons.edit, color: AppColors.secondary, size: 20),
                                     SizedBox(width: 8),
                                     Text('Editar'),
                                   ],

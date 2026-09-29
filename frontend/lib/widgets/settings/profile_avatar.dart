@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Muestra el avatar del usuario (imagen local seleccionada, imagen de red,
 /// o un ícono por defecto) con un botón flotante para cambiar la foto.
@@ -24,7 +25,7 @@ class ProfileAvatar extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 48,
-            backgroundColor: const Color.fromARGB(255, 0, 30, 255),
+            backgroundColor: AppColors.primary,
             backgroundImage: imagenSeleccionada != null
                 ? FileImage(imagenSeleccionada!)
                 : (tieneAvatarUrl ? NetworkImage(avatarUrl!) as ImageProvider : null),
@@ -40,10 +41,10 @@ class ProfileAvatar extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(
-                  color: Colors.blueAccent,
+                  color: AppColors.accent,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                child: const Icon(Icons.camera_alt, size: 20, color: AppColors.primary),
               ),
             ),
           ),

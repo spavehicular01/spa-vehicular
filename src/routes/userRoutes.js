@@ -1,10 +1,16 @@
 import express from 'express';
-import { actualizarPerfil, obtenerClientes } from '../controllers/userController.js';
-import { verifyToken, esAdmin } from '../middlewares/authMiddleware.js';
+import {
+  registrarUsers,
+  verificarCuenta,
+  reenviarCodigoVerificacion,
+  login
+} from "../controllers/User.js";
 
 const router = express.Router();
 
-router.put('/perfil/:id', verifyToken, actualizarPerfil);
-router.get('/clientes', verifyToken, esAdmin, obtenerClientes);
+router.post("/registrar", registrarUsers);
+router.post("/verificar-codigo", verificarCuenta);
+router.post("/reenviar-codigo", reenviarCodigoVerificacion);
+router.post("/login", login);
 
 export default router;

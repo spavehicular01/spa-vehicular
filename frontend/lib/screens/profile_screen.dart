@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'add_vehicle_screen.dart';
+import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String nombreCompleto;
@@ -44,14 +45,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Borra el token guardado y ejecuta el callback de cierre de sesión
-  /// Borra el token guardado y ejecuta el callback de cierre de sesión
-Future<void> _ejecutarCerrarSesion() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.clear(); // Limpia el token y todos los datos residuales de SharedPreferences
-  
-  widget.onCerrarSesion();
-}
+  Future<void> _ejecutarCerrarSesion() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    widget.onCerrarSesion();
+  }
 
   Future<void> _hacerLlamada(String numero) async {
     final Uri url = Uri(scheme: 'tel', path: numero);
@@ -114,7 +112,7 @@ Future<void> _ejecutarCerrarSesion() async {
               setState(() {
                 _listaVehiculos.removeAt(index);
               });
-              
+
               widget.onVehiculosChanged(_listaVehiculos);
               setModalState(() {});
             },
@@ -144,10 +142,7 @@ Future<void> _ejecutarCerrarSesion() async {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '🚘 Mis Vehículos',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                      const Text('🚘 Mis Vehículos', style: AppTextStyles.h2),
                       IconButton(
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.pop(ctx),
@@ -156,11 +151,12 @@ Future<void> _ejecutarCerrarSesion() async {
                   ),
                   const Divider(),
                   if (_listaVehiculos.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Text(
                         'No tienes vehículos registrados aún.',
                         textAlign: TextAlign.center,
+                        style: AppTextStyles.body,
                       ),
                     )
                   else
@@ -177,17 +173,16 @@ Future<void> _ejecutarCerrarSesion() async {
                         final color = car['color'] ?? '';
 
                         return Card(
-                          elevation: 1,
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ListTile(
-                            leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 30, 255)),
+                            leading: const Icon(Icons.directions_car, color: AppColors.secondary),
                             title: Text('$marca $referencia ($placa)'),
                             subtitle: Text('Tipo: $tipo | Año: $modelo | Color: $color'),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  icon: const Icon(Icons.edit, color: AppColors.secondary),
                                   onPressed: () {
                                     _abrirAgregarEditarVehiculo(
                                       vehiculo: car,
@@ -215,11 +210,6 @@ Future<void> _ejecutarCerrarSesion() async {
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Registrar Nuevo Vehículo'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 0, 21, 178),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
                   ),
                 ],
               ),
@@ -238,42 +228,36 @@ Future<void> _ejecutarCerrarSesion() async {
         children: [
           const CircleAvatar(
             radius: 40,
-            backgroundColor: Color.fromARGB(255, 0, 21, 255),
+            backgroundColor: AppColors.primary,
             child: Icon(Icons.person, size: 50, color: Colors.white),
           ),
           const SizedBox(height: 12),
-          Text(
-            widget.nombreCompleto,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            widget.correo,
-            style: const TextStyle(color: Colors.grey),
-          ),
+          Text(widget.nombreCompleto, style: AppTextStyles.h2),
+          Text(widget.correo, style: AppTextStyles.body),
           const Divider(height: 30),
 
           ListTile(
-            leading: const Icon(Icons.badge, color: Color.fromARGB(255, 0, 30, 255)),
+            leading: const Icon(Icons.badge, color: AppColors.secondary),
             title: const Text('Documento de Identidad'),
             subtitle: Text(widget.documento),
           ),
 
           Card(
             elevation: 0,
-            color: Colors.teal.shade50,
+            color: const Color(0x1A00E5FF), // accent al 10%, mismo tono usado en toda la app
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.phone_android, color: Color.fromARGB(255, 0, 34, 255)),
+              leading: const Icon(Icons.phone_android, color: AppColors.secondary),
               title: const Text('Número de Teléfono'),
               subtitle: Text(widget.telefono),
-              trailing: const Icon(Icons.touch_app, color: Color.fromARGB(255, 0, 38, 255)),
+              trailing: const Icon(Icons.touch_app, color: AppColors.secondary),
               onTap: () {
                 showModalBottomSheet(
                   context: context,
                   builder: (ctx) => Wrap(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.phone, color: Color.fromRGBO(0, 255, 229, 1)),
+                        leading: const Icon(Icons.phone, color: AppColors.secondary),
                         title: const Text('Llamar'),
                         onTap: () {
                           Navigator.pop(ctx);
@@ -297,13 +281,13 @@ Future<void> _ejecutarCerrarSesion() async {
 
           Card(
             elevation: 0,
-            color: Colors.teal.shade50,
+            color: const Color(0x1A00E5FF),
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.directions_car, color: Color.fromARGB(255, 0, 42, 255)),
+              leading: const Icon(Icons.directions_car, color: AppColors.secondary),
               title: const Text('Mis Vehículos'),
               subtitle: Text('${_listaVehiculos.length} vehículo(s) registrado(s)'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color.fromARGB(255, 0, 38, 255)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.secondary),
               onTap: _mostrarMisVehiculos,
             ),
           ),
