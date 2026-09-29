@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/wash_api_service.dart';
+import '../theme/app_theme.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -17,10 +18,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
-  late TextEditingController _referenciaController; // 🟢 NUEVO
+  late TextEditingController _referenciaController;
   late TextEditingController _modeloController;
 
-  // 🟢 NUEVO: el backend exige tipoVehiculo como campo obligatorio.
   final Map<String, String> _tiposVehiculo = {
     'Automóvil': 'automovil',
     'Motocicleta': 'moto',
@@ -50,7 +50,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       text: widget.vehicleToEdit?['modelo'] ?? '',
     );
 
-    // Si estamos editando, intenta preseleccionar el tipo de vehículo existente.
     final tipoExistente = widget.vehicleToEdit?['tipoVehiculo'];
     if (tipoExistente != null) {
       final entry = _tiposVehiculo.entries.firstWhere(
@@ -78,20 +77,22 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       imageQuality: 80,
     );
     if (imagen != null) {
-      setState(() {
-        _imagenSeleccionada = imagen;
-      });
+      setState(() => _imagenSeleccionada = imagen);
     }
   }
 
   void _mostrarOpcionesImagen() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library),
+              leading: const Icon(Icons.photo_library, color: AppColors.secondary),
               title: const Text('Galería'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -99,7 +100,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera),
+              leading: const Icon(Icons.photo_camera, color: AppColors.secondary),
               title: const Text('Cámara'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -108,6 +109,17 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _mostrarMensaje(String texto, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(texto),
+        backgroundColor: error ? Colors.redAccent : AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -123,23 +135,18 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
       if (usuarioId == null || usuarioId.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Usuario no autenticado')),
-          );
+          _mostrarMensaje('Error: Usuario no autenticado', error: true);
+          setState(() => _subiendo = false);
         }
-        setState(() => _subiendo = false);
         return;
       }
 
       String? imagenUrl = _imagenUrlExistente;
 
-      // Subir nueva foto si se seleccionó una
       if (_imagenSeleccionada != null) {
         imagenUrl = await WashApiService.subirImagen(_imagenSeleccionada!);
       }
 
-      // 🔧 CORREGIDO: el backend espera 'usuarioId' (no 'usuario'), y
-      // exige también 'referencia' y 'tipoVehiculo' como obligatorios.
       final Map<String, dynamic> datosVehiculo = {
         'usuarioId': usuarioId,
         'placa': _placaController.text.trim().toUpperCase(),
@@ -150,36 +157,33 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         'imagenUrl': imagenUrl ?? '',
       };
 
-      final exito = await WashApiService.registrarVehiculo(datosVehiculo);
+      // Editar => PUT sobre el vehículo existente (no crea duplicados).
+      // Nuevo  => POST /vehicles/registrar.
+      final vehiculoId = widget.vehicleToEdit?['_id']?.toString();
+      final bool exito = vehiculoId != null && vehiculoId.isNotEmpty
+          ? await WashApiService.actualizarVehiculo(vehiculoId, datosVehiculo)
+          : await WashApiService.registrarVehiculo(datosVehiculo);
 
-      if (mounted) {
-        setState(() => _subiendo = false);
-        if (exito) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vehículo guardado correctamente'),
-              backgroundColor: Color.fromARGB(255, 91, 122, 179),
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al procesar el vehículo'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (!mounted) return;
+      setState(() => _subiendo = false);
+
+      if (exito) {
+        _mostrarMensaje('Vehículo guardado correctamente');
+        Navigator.pop(context, true);
+      } else {
+        _mostrarMensaje('Error al procesar el vehículo', error: true);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _subiendo = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      if (!mounted) return;
+      setState(() => _subiendo = false);
+      _mostrarMensaje('Error: $e', error: true);
     }
   }
+
+  Widget _etiqueta(String texto) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(texto, style: AppTextStyles.bodyStrong),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -188,29 +192,26 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
-        backgroundColor: const Color.fromARGB(255, 0, 38, 255),
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               GestureDetector(
                 onTap: _mostrarOpcionesImagen,
                 child: Container(
                   height: 160,
-                  width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: const Color.fromARGB(255, 0, 76, 255)),
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.accent, width: 1.5),
                   ),
                   child: _imagenSeleccionada != null
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           child: Image.file(
                             File(_imagenSeleccionada!.path),
                             fit: BoxFit.cover,
@@ -219,7 +220,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       : (_imagenUrlExistente != null &&
                               _imagenUrlExistente!.isNotEmpty)
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               child: Image.network(
                                 _imagenUrlExistente!,
                                 fit: BoxFit.cover,
@@ -229,91 +230,101 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.add_a_photo,
-                                    size: 40, color: Colors.teal),
+                                    size: 40, color: AppColors.secondary),
                                 SizedBox(height: 8),
-                                Text('Toca para agregar foto del vehículo'),
+                                Text(
+                                  'Toca para agregar foto del vehículo',
+                                  style: AppTextStyles.body,
+                                ),
                               ],
                             ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              _etiqueta('Placa'),
               TextFormField(
                 controller: _placaController,
+                textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
-                  labelText: 'Placa (Ej. ABC123)',
-                  border: OutlineInputBorder(),
+                  hintText: 'Ej. ABC123',
+                  prefixIcon: Icon(Icons.pin, color: AppColors.secondary),
                 ),
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              _etiqueta('Marca'),
               TextFormField(
                 controller: _marcaController,
                 decoration: const InputDecoration(
-                  labelText: 'Marca (Ej. Toyota)',
-                  border: OutlineInputBorder(),
+                  hintText: 'Ej. Toyota',
+                  prefixIcon: Icon(Icons.directions_car, color: AppColors.secondary),
                 ),
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 12),
-              // 🟢 NUEVO: campo Referencia, obligatorio en el backend.
+              const SizedBox(height: 16),
+
+              _etiqueta('Referencia'),
               TextFormField(
                 controller: _referenciaController,
                 decoration: const InputDecoration(
-                  labelText: 'Referencia (Ej. Corolla)',
-                  border: OutlineInputBorder(),
+                  hintText: 'Ej. Corolla',
+                  prefixIcon: Icon(Icons.label_outline, color: AppColors.secondary),
                 ),
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              _etiqueta('Modelo / Año'),
               TextFormField(
                 controller: _modeloController,
-                decoration: const InputDecoration(
-                  labelText: 'Modelo / Año (Ej. 2022)',
-                  border: OutlineInputBorder(),
-                ),
                 keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: 'Ej. 2022',
+                  prefixIcon: Icon(Icons.calendar_today, color: AppColors.secondary),
+                ),
                 validator: (val) =>
                     val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 12),
-              // 🟢 NUEVO: selector de Tipo de Vehículo, obligatorio en el backend.
+              const SizedBox(height: 16),
+
+              _etiqueta('Tipo de Vehículo'),
               DropdownButtonFormField<String>(
                 initialValue: _tipoSeleccionado,
+                isExpanded: true,
+                borderRadius: BorderRadius.circular(14),
+                dropdownColor: AppColors.surface,
                 decoration: const InputDecoration(
-                  labelText: 'Tipo de Vehículo',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category, color: AppColors.secondary),
                 ),
                 items: _tiposVehiculo.keys
-                    .map((tipo) =>
-                        DropdownMenuItem(value: tipo, child: Text(tipo)))
+                    .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
                     .toList(),
                 onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _tipoSeleccionado = val);
-                  }
+                  if (val != null) setState(() => _tipoSeleccionado = val);
                 },
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _subiendo ? null : _guardarVehiculo,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 0, 17, 255),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _subiendo
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
-                          style: const TextStyle(fontSize: 16),
+              const SizedBox(height: 28),
+
+              // Toma el cian con texto navy del elevatedButtonTheme
+              ElevatedButton(
+                onPressed: _subiendo ? null : _guardarVehiculo,
+                child: _subiendo
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 2,
                         ),
-                ),
+                      )
+                    : Text(esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo'),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         ),

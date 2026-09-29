@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'add_vehicle_screen.dart';
+import '../services/vehicle_service.dart';
 import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -30,19 +31,47 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late List<Map<String, String>> _listaVehiculos;
+  bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
     _listaVehiculos = List.from(widget.vehiculos);
+    _cargarVehiculos();
   }
 
-  @override
-  void didUpdateWidget(covariant ProfileScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.vehiculos != widget.vehiculos) {
-      _listaVehiculos = List.from(widget.vehiculos);
+  /// Fuente de verdad: el backend. Se llama al abrir y después de
+  /// registrar o eliminar un vehículo.
+  Future<void> _cargarVehiculos({StateSetter? setModalState}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final token = prefs.getString('token');
+
+    if (userId == null || userId.isEmpty) {
+      if (mounted) setState(() => _cargando = false);
+      return;
     }
+
+    final raw = await VehicleService.obtenerVehiculos(userId, token: token);
+
+    // Todo se convierte a Map<String, String> (incluye '_id' y 'tipoVehiculo').
+    final lista = raw.whereType<Map>().map<Map<String, String>>((v) {
+      return v.map((k, val) => MapEntry(k.toString(), val?.toString() ?? ''));
+    }).toList();
+
+    if (!mounted) return;
+    setState(() {
+      _listaVehiculos = lista;
+      _cargando = false;
+    });
+
+    try {
+      setModalState?.call(() {});
+    } catch (_) {
+      // El bottom sheet ya se cerró; no pasa nada.
+    }
+
+    widget.onVehiculosChanged(lista);
   }
 
   Future<void> _ejecutarCerrarSesion() async {
@@ -68,7 +97,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _abrirAgregarEditarVehiculo({
     Map<String, String>? vehiculo,
-    int? index,
     StateSetter? setModalState,
   }) async {
     final result = await Navigator.push(
@@ -78,43 +106,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    if (result != null && result is Map<String, String>) {
-      setState(() {
-        if (index != null) {
-          _listaVehiculos[index] = result;
-        } else {
-          _listaVehiculos.add(result);
-        }
-      });
-
-      widget.onVehiculosChanged(_listaVehiculos);
-
-      if (setModalState != null) {
-        setModalState(() {});
-      }
+    // AddVehicleScreen devuelve `true` cuando el backend confirmó el registro.
+    if (result == true) {
+      await _cargarVehiculos(setModalState: setModalState);
     }
   }
 
-  void _eliminarVehiculo(int index, StateSetter setModalState) {
+  void _eliminarVehiculo(Map<String, String> car, StateSetter setModalState) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar vehículo'),
-        content: const Text('¿Estás seguro de que deseas eliminar este vehículo?'),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Eliminar vehículo', style: AppTextStyles.h2),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar este vehículo?',
+          style: AppTextStyles.body,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              setState(() {
-                _listaVehiculos.removeAt(index);
-              });
 
-              widget.onVehiculosChanged(_listaVehiculos);
-              setModalState(() {});
+              final id = car['_id'] ?? car['id'] ?? '';
+              final prefs = await SharedPreferences.getInstance();
+              final token = prefs.getString('token');
+
+              final ok = await VehicleService.eliminarVehiculo(id, token: token);
+
+              if (!mounted) return;
+              if (ok) {
+                await _cargarVehiculos(setModalState: setModalState);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No se pudo eliminar el vehículo'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
             },
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
@@ -127,6 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -150,9 +185,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   const Divider(),
-                  if (_listaVehiculos.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                  if (_cargando)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.secondary),
+                      ),
+                    )
+                  else if (_listaVehiculos.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
                       child: Text(
                         'No tienes vehículos registrados aún.',
                         textAlign: TextAlign.center,
@@ -160,48 +202,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     )
                   else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _listaVehiculos.length,
-                      itemBuilder: (context, index) {
-                        final car = _listaVehiculos[index];
-                        final tipo = car['tipo'] ?? 'Vehículo';
-                        final marca = car['marca'] ?? '';
-                        final referencia = car['referencia'] ?? '';
-                        final placa = car['placa'] ?? '';
-                        final modelo = car['modelo'] ?? '';
-                        final color = car['color'] ?? '';
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _listaVehiculos.length,
+                        itemBuilder: (context, index) {
+                          final car = _listaVehiculos[index];
+                          final tipo = car['tipoVehiculo'] ?? 'Vehículo';
+                          final marca = car['marca'] ?? '';
+                          final referencia = car['referencia'] ?? '';
+                          final placa = car['placa'] ?? '';
+                          final modelo = car['modelo'] ?? '';
 
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          child: ListTile(
-                            leading: const Icon(Icons.directions_car, color: AppColors.secondary),
-                            title: Text('$marca $referencia ($placa)'),
-                            subtitle: Text('Tipo: $tipo | Año: $modelo | Color: $color'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: AppColors.secondary),
-                                  onPressed: () {
-                                    _abrirAgregarEditarVehiculo(
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            child: ListTile(
+                              leading: Icon(
+                                tipo == 'moto' ? Icons.two_wheeler : Icons.directions_car,
+                                color: AppColors.secondary,
+                              ),
+                              title: Text('$marca $referencia ($placa)'),
+                              subtitle: Text('Tipo: $tipo | Año: $modelo'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: AppColors.secondary),
+                                    onPressed: () => _abrirAgregarEditarVehiculo(
                                       vehiculo: car,
-                                      index: index,
                                       setModalState: setModalState,
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    _eliminarVehiculo(index, setModalState);
-                                  },
-                                ),
-                              ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _eliminarVehiculo(car, setModalState),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -244,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           Card(
             elevation: 0,
-            color: const Color(0x1A00E5FF), // accent al 10%, mismo tono usado en toda la app
+            color: const Color(0x1A00E5FF),
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
               leading: const Icon(Icons.phone_android, color: AppColors.secondary),
@@ -286,7 +327,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: ListTile(
               leading: const Icon(Icons.directions_car, color: AppColors.secondary),
               title: const Text('Mis Vehículos'),
-              subtitle: Text('${_listaVehiculos.length} vehículo(s) registrado(s)'),
+              subtitle: Text(
+                _cargando
+                    ? 'Cargando...'
+                    : '${_listaVehiculos.length} vehículo(s) registrado(s)',
+              ),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.secondary),
               onTap: _mostrarMisVehiculos,
             ),
