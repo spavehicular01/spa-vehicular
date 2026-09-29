@@ -81,8 +81,7 @@ class WashApiService {
   // ==========================================
   static Future<bool> registrarVehiculo(Map<String, dynamic> datosVehiculo) async {
     try {
-      // 🔧 CORREGIDO: la ruta del backend es POST /api/vehicles/registrar
-      // (antes apuntaba a /api/vehicles, que no existe y devolvía 404).
+      // La ruta del backend es POST /api/vehicles/registrar
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/registrar');
       final headers = await _getHeaders();
 
@@ -102,6 +101,30 @@ class WashApiService {
     }
   }
 
+  /// Actualiza un vehículo existente (PUT /api/vehicles/:id).
+  /// Requiere que el backend tenga esa ruta.
+  static Future<bool> actualizarVehiculo(
+      String id, Map<String, dynamic> datosVehiculo) async {
+    try {
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/$id');
+      final headers = await _getHeaders();
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(datosVehiculo),
+      );
+
+      debugPrint('PUT VEHICULO STATUS: ${response.statusCode}');
+      debugPrint('PUT VEHICULO BODY: ${response.body}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('ERROR ACTUALIZAR VEHICULO: $e');
+      return false;
+    }
+  }
+
   static Future<List<dynamic>> obtenerVehiculos(String usuarioId) async {
     try {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/usuario/$usuarioId');
@@ -112,9 +135,17 @@ class WashApiService {
         headers: headers,
       );
 
+      debugPrint('GET VEHICULOS STATUS: ${response.statusCode}');
+      debugPrint('GET VEHICULOS BODY: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data is List ? data : [];
+        if (data is List) return data;
+        if (data is Map) {
+          for (final key in ['vehicles', 'vehiculos', 'data', 'results']) {
+            if (data[key] is List) return data[key] as List<dynamic>;
+          }
+        }
       }
       return [];
     } catch (e) {
