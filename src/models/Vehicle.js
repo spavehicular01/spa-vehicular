@@ -6,7 +6,8 @@ const vehicleSchema = new mongoose.Schema({
   marca: { type: String, required: true },
   referencia: { type: String, required: true },
   modelo: { type: String, required: true },
-  tipoVehiculo: { type: String, required: true }
+  tipoVehiculo: { type: String, required: true },
+  imagenUrl: { type: String, default: '' }
 }, {
   timestamps: true
 });

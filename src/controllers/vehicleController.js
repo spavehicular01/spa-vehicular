@@ -15,12 +15,12 @@ export const getVehiclesByUser = async (req, res) => {
 // 2. Registrar un nuevo vehículo
 export const registerVehicle = async (req, res) => {
   try {
-    const { usuarioId, placa, marca, referencia, modelo, tipoVehiculo } = req.body;
+    const { usuarioId, placa, marca, referencia, modelo, tipoVehiculo, imagenUrl } = req.body;
 
     if (!usuarioId || !placa || !marca || !referencia || !modelo || !tipoVehiculo) {
-      return res.status(400).json({ 
-        ok: false, 
-        mensaje: 'Todos los campos son obligatorios: usuarioId, placa, marca, referencia, modelo y tipoVehiculo' 
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Todos los campos son obligatorios: usuarioId, placa, marca, referencia, modelo y tipoVehiculo'
       });
     }
 
@@ -35,7 +35,8 @@ export const registerVehicle = async (req, res) => {
       marca,
       referencia,
       modelo,
-      tipoVehiculo
+      tipoVehiculo,
+      imagenUrl: imagenUrl || ''
     });
 
     await nuevoVehiculo.save();
@@ -47,11 +48,59 @@ export const registerVehicle = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al registrar vehículo:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ ok: false, mensaje: 'Un vehículo con esta placa ya está registrado' });
+    }
     return res.status(500).json({ ok: false, mensaje: 'Error al registrar el vehículo', error: error.message });
   }
 };
 
-// 3. Eliminar un vehículo
+// 3. Actualizar un vehículo
+export const updateVehicle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { placa, marca, referencia, modelo, tipoVehiculo, imagenUrl } = req.body;
+
+    const vehiculo = await Vehicle.findById(id);
+    if (!vehiculo) {
+      return res.status(404).json({ ok: false, mensaje: 'Vehículo no encontrado' });
+    }
+
+    // Si cambia la placa, verificar que no la tenga otro vehículo
+    if (placa) {
+      const placaNueva = placa.toUpperCase();
+      if (placaNueva !== vehiculo.placa) {
+        const existePlaca = await Vehicle.findOne({ placa: placaNueva, _id: { $ne: id } });
+        if (existePlaca) {
+          return res.status(400).json({ ok: false, mensaje: 'Un vehículo con esta placa ya está registrado' });
+        }
+        vehiculo.placa = placaNueva;
+      }
+    }
+
+    if (marca) vehiculo.marca = marca;
+    if (referencia) vehiculo.referencia = referencia;
+    if (modelo) vehiculo.modelo = modelo;
+    if (tipoVehiculo) vehiculo.tipoVehiculo = tipoVehiculo;
+    if (imagenUrl !== undefined) vehiculo.imagenUrl = imagenUrl;
+
+    await vehiculo.save();
+
+    return res.status(200).json({
+      ok: true,
+      mensaje: 'Vehículo actualizado exitosamente',
+      vehicle: vehiculo
+    });
+  } catch (error) {
+    console.error('Error al actualizar vehículo:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ ok: false, mensaje: 'Un vehículo con esta placa ya está registrado' });
+    }
+    return res.status(500).json({ ok: false, mensaje: 'Error al actualizar el vehículo', error: error.message });
+  }
+};
+
+// 4. Eliminar un vehículo
 export const deleteVehicle = async (req, res) => {
   try {
     const { id } = req.params;
@@ -71,6 +120,6 @@ export const deleteVehicle = async (req, res) => {
 export default {
   getVehiclesByUser,
   registerVehicle,
+  updateVehicle,
   deleteVehicle
 };
-
