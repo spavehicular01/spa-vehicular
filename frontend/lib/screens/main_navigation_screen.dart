@@ -7,6 +7,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_dashboard_screen.dart';
 import '../widgets/chat_bottom_sheet.dart';
+import '../widgets/extras/ui_extras.dart';
 import '../main.dart'; // 🟢 usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
 import '../theme/app_theme.dart';
 
@@ -20,6 +21,8 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
+  void _irATab(int indice) => setState(() => _selectedIndex = indice);
+
   void _abrirChatAsesor() {
     showModalBottomSheet(
       context: context,
@@ -30,32 +33,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Widget _buildVistaBloqueada(String titulo, String descripcion) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Icon(Icons.lock_outline, size: 80, color: AppColors.secondary),
-          const SizedBox(height: 16),
-          Text(
-            titulo,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.h2,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            descripcion,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.body,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => setState(() => _selectedIndex = 3),
-            child: const Text('Ir a Iniciar Sesión'),
-          )
-        ],
-      ),
+    return EmptyState(
+      icono: Icons.lock_outline,
+      titulo: titulo,
+      mensaje: descripcion,
+      textoBoton: 'Ir a Iniciar Sesión',
+      onPressed: () => _irATab(3),
     );
   }
 
@@ -67,6 +50,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           onLoginExitoso: (datos) {
             guardarSesionUsuario(datos);
           },
+          onIrATab: _irATab,
         );
       case 1:
         if (usuarioAutenticado == null) {
@@ -89,7 +73,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             'Debes iniciar sesión para ver tus citas agendadas y el historial.',
           );
         }
-        return const WashManagementScreen();
+        return WashManagementScreen(onAgendar: () => _irATab(1));
       case 3:
         if (usuarioAutenticado == null) {
           return LoginScreen(
@@ -130,7 +114,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           );
         }
       default:
-        return HomeScreen(usuarioAutenticado: usuarioAutenticado);
+        return HomeScreen(
+          usuarioAutenticado: usuarioAutenticado,
+          onIrATab: _irATab,
+        );
     }
   }
 
@@ -140,7 +127,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       valueListenable: usuarioActualNotifier,
       builder: (context, usuarioAutenticado, _) {
         return Scaffold(
-          backgroundColor: AppColors.background,
           // Único AppBar de toda la navegación principal: las pantallas hijas
           // (HomeScreen, etc.) NO deben traer su propio AppBar, o se duplica.
           appBar: AppBar(
@@ -161,7 +147,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 },
               ),
             ],
-          ), // 👈 este paréntesis de cierre del AppBar era el que faltaba
+          ),
           body: _getPage(_selectedIndex, usuarioAutenticado),
           floatingActionButton: FloatingActionButton(
             heroTag: 'fab_btn_asesor_chat',
@@ -175,27 +161,114 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               size: 28,
             ),
           ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) => setState(() => _selectedIndex = index),
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.secondary,
-            unselectedItemColor: Colors.grey,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.calendar_month),
-                label: 'Calendario',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.local_car_wash),
-                label: 'Lavadas',
-              ),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-            ],
+          // FAB integrado en la barra (con muesca central).
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          bottomNavigationBar: BottomAppBar(
+            color: Theme.of(context).cardColor,
+            surfaceTintColor: Colors.transparent,
+            elevation: 8,
+            height: 68,
+            padding: EdgeInsets.zero,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _NavItem(
+                    icono: Icons.home_outlined,
+                    iconoActivo: Icons.home,
+                    etiqueta: 'Inicio',
+                    seleccionado: _selectedIndex == 0,
+                    onTap: () => _irATab(0),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icono: Icons.calendar_month_outlined,
+                    iconoActivo: Icons.calendar_month,
+                    etiqueta: 'Calendario',
+                    seleccionado: _selectedIndex == 1,
+                    onTap: () => _irATab(1),
+                  ),
+                ),
+                const SizedBox(width: 72), // espacio para el FAB
+                Expanded(
+                  child: _NavItem(
+                    icono: Icons.local_car_wash_outlined,
+                    iconoActivo: Icons.local_car_wash,
+                    etiqueta: 'Lavadas',
+                    seleccionado: _selectedIndex == 2,
+                    onTap: () => _irATab(2),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icono: Icons.person_outline,
+                    iconoActivo: Icons.person,
+                    etiqueta: 'Perfil',
+                    seleccionado: _selectedIndex == 3,
+                    onTap: () => _irATab(3),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Ítem de la barra inferior con "píldora" cian suave cuando está activo.
+class _NavItem extends StatelessWidget {
+  final IconData icono;
+  final IconData iconoActivo;
+  final String etiqueta;
+  final bool seleccionado;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icono,
+    required this.iconoActivo,
+    required this.etiqueta,
+    required this.seleccionado,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activo = colorAcento(context);
+    final color = seleccionado ? activo : AppColors.muted;
+
+    return InkWell(
+      onTap: onTap,
+      customBorder: const StadiumBorder(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            decoration: BoxDecoration(
+              color: seleccionado
+                  ? AppColors.accent.withValues(alpha: 0.25)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(seleccionado ? iconoActivo : icono, size: 24, color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            etiqueta,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: seleccionado ? FontWeight.w600 : FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
