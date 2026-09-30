@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Tarjeta informativa que muestra la fecha y el cupo horario seleccionados
 /// para la cita.
@@ -15,32 +16,30 @@ class AppointmentSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.teal.shade50,
+      color: AppColors.accent.withValues(alpha: 0.12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color.fromARGB(255, 0, 34, 255)),
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.accent, width: 1.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            const Icon(Icons.event_available, color: Color.fromARGB(255, 0, 34, 255), size: 36),
+            const Icon(Icons.event_available, color: AppColors.secondary, size: 36),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.h2.copyWith(fontSize: 16),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   'Hora del cupo: $selectedTime',
                   style: const TextStyle(
-                    color: Color.fromARGB(255, 0, 30, 255),
+                    color: AppColors.secondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/booking_controller.dart';
 import '../services/vehicle_service.dart';
 import '../services/wash_service.dart';
-
+import '../theme/app_theme.dart';
 import '../widgets/booking/appointment_summary_card.dart';
 import '../widgets/booking/vehicle_selector.dart';
 import '../widgets/booking/service_selector.dart';
@@ -32,12 +32,11 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  bool _cargandoDatos = true; // 🟢 NUEVO: loading de vehículos/servicios reales
-  String? _errorCarga; // 🟢 NUEVO: mensaje si algo falla al cargar
+  bool _cargandoDatos = true;
+  String? _errorCarga;
 
   late final BookingController _controller;
 
-  // 🟢 NUEVO: reemplazan a BookingStaticData, se llenan con datos reales
   List<Map<String, String>> _vehiculos = [];
   List<Map<String, dynamic>> _servicios = [];
 
@@ -77,7 +76,6 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     try {
-      // 🟢 Vehículos reales del usuario logueado
       final vehiculosRaw = await VehicleService.obtenerVehiculos(
         usuarioId,
         token: _controller.authToken,
@@ -95,7 +93,6 @@ class _BookingScreenState extends State<BookingScreen> {
         };
       }).toList();
 
-      // 🟢 Servicios reales (los mismos que en "Servicios de Lavado")
       final serviciosReales = await WashApiService.getLavados();
 
       final serviciosMapeados = serviciosReales.map<Map<String, dynamic>>((s) {
@@ -131,26 +128,27 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
+  void _mostrarError(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Future<void> _confirmarReserva() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_controller.usuarioId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se encontró tu sesión. Vuelve a iniciar sesión e intenta de nuevo.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarError('No se encontró tu sesión. Vuelve a iniciar sesión e intenta de nuevo.');
       return;
     }
 
     if (_vehiculoSeleccionadoId == null || _servicioSeleccionadoId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecciona un vehículo y un servicio antes de continuar.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarError('Selecciona un vehículo y un servicio antes de continuar.');
       return;
     }
 
@@ -162,8 +160,8 @@ class _BookingScreenState extends State<BookingScreen> {
         selectedTime: widget.selectedTime,
         vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
         servicioSeleccionadoId: _servicioSeleccionadoId,
-        misVehiculos: _vehiculos, // 🟢 datos reales
-        servicios: _servicios, // 🟢 datos reales
+        misVehiculos: _vehiculos,
+        servicios: _servicios,
         modalidad: _modalidad,
         direccion: _direccionController.text,
         metodoPago: _metodoPago,
@@ -182,9 +180,7 @@ class _BookingScreenState extends State<BookingScreen> {
         final mensajeError = respuesta['message'] ??
             respuesta['error'] ??
             'Error al agendar cita. Verifica los datos.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(mensajeError), backgroundColor: Colors.red),
-        );
+        _mostrarError(mensajeError.toString());
       }
     } catch (e, stackTrace) {
       setState(() => _isLoading = false);
@@ -192,12 +188,7 @@ class _BookingScreenState extends State<BookingScreen> {
       debugPrint('--> STACKTRACE: $stackTrace');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error de conexión o datos inválidos: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mostrarError('Error de conexión o datos inválidos: $e');
     }
   }
 
@@ -206,26 +197,40 @@ class _BookingScreenState extends State<BookingScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('¡Cita Confirmada! 🎉'),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('¡Cita Confirmada! 🎉', style: AppTextStyles.h2),
         content: Text(
           'Tu servicio ha sido programado con éxito para el '
           '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
           'a las ${widget.selectedTime}.\n\n'
           'Modalidad: $_modalidad\n'
           'Pago: $_metodoPago',
+          style: AppTextStyles.body,
         ),
         actions: [
+          // Toma el estilo cian/navy del elevatedButtonTheme
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 0, 32, 150),
-            ),
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context, true);
             },
-            child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
+            child: const Text('Aceptar'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _mensajeCentrado(String texto, {Color? color}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Text(
+          texto,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.body.copyWith(color: color),
+        ),
       ),
     );
   }
@@ -233,44 +238,22 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Sin colores manuales: usa appBarTheme (navy, centrado, blanco)
       appBar: AppBar(
         title: const Text('Detalles de la Cita'),
-        backgroundColor: const Color.fromARGB(255, 0, 55, 255),
-        foregroundColor: Colors.white,
       ),
       body: _cargandoDatos
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.secondary),
+            )
           : _errorCarga != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Text(
-                      _errorCarga!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                )
+              ? _mensajeCentrado(_errorCarga!, color: Colors.redAccent)
               : _vehiculos.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: Text(
-                          'No tienes vehículos registrados. Agrega uno antes de agendar una cita.',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                  ? _mensajeCentrado(
+                      'No tienes vehículos registrados. Agrega uno antes de agendar una cita.',
                     )
                   : _servicios.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Text(
-                              'Aún no hay servicios de lavado disponibles.',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
+                      ? _mensajeCentrado('Aún no hay servicios de lavado disponibles.')
                       : SingleChildScrollView(
                           padding: const EdgeInsets.all(20.0),
                           child: Form(
@@ -319,6 +302,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   isLoading: _isLoading,
                                   onPressed: _confirmarReserva,
                                 ),
+                                const SizedBox(height: 12),
                               ],
                             ),
                           ),

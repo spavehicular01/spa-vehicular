@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Dropdown para elegir el método de pago del servicio.
 class PaymentMethodSelector extends StatelessWidget {
@@ -18,13 +19,15 @@ class PaymentMethodSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Método de Pago:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Método de Pago:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: metodoPago,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(14),
+          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.payment),
+            prefixIcon: Icon(Icons.payment, color: AppColors.secondary),
           ),
           items: opciones.map((metodo) {
             return DropdownMenuItem(value: metodo, child: Text(metodo));

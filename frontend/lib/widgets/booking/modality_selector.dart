@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Selector de modalidad del servicio (en el spa o a domicilio).
 /// Cuando la modalidad es 'A domicilio', muestra un campo de dirección
@@ -25,19 +26,21 @@ class ModalitySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('¿Dónde realizamos el servicio?:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('¿Dónde realizamos el servicio?:', style: AppTextStyles.bodyStrong),
         RadioListTile<String>(
-          title: const Text('Llevo el vehículo al spa'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Llevo el vehículo al spa', style: AppTextStyles.body),
           value: valorSpa,
           groupValue: modalidad,
-          activeColor: const Color.fromARGB(255, 0, 26, 255),
+          activeColor: AppColors.secondary,
           onChanged: onChanged,
         ),
         RadioListTile<String>(
-          title: const Text('A domicilio'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('A domicilio', style: AppTextStyles.body),
           value: valorDomicilio,
           groupValue: modalidad,
-          activeColor: const Color.fromARGB(255, 0, 26, 255),
+          activeColor: AppColors.secondary,
           onChanged: onChanged,
         ),
         if (esDomicilio) ...[
@@ -46,8 +49,7 @@ class ModalitySelector extends StatelessWidget {
             controller: direccionController,
             decoration: const InputDecoration(
               labelText: 'Dirección de residencia / entrega',
-              prefixIcon: Icon(Icons.home),
-              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.home, color: AppColors.secondary),
             ),
             validator: (val) {
               if (esDomicilio && (val == null || val.trim().isEmpty)) {

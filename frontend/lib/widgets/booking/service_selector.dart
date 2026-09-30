@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Dropdown para elegir el tipo de servicio de lavado.
 /// Cada servicio trae 'id', 'nombre' y 'minutos' (duración estimada).
@@ -19,14 +20,15 @@ class ServiceSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Tipo de lavado:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Tipo de lavado:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: servicioSeleccionadoId,
           isExpanded: true,
+          borderRadius: BorderRadius.circular(14),
+          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.local_car_wash),
+            prefixIcon: Icon(Icons.local_car_wash, color: AppColors.secondary),
           ),
           items: servicios.map((serv) {
             return DropdownMenuItem(

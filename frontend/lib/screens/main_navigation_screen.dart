@@ -111,9 +111,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             correo: usuarioAutenticado['correo'] ?? '',
             documento: usuarioAutenticado['documento'] ?? '',
             telefono: usuarioAutenticado['telefono'] ?? '',
-            vehiculos: List<Map<String, String>>.from(
-              usuarioAutenticado['vehiculos'] ?? [],
-            ),
+            vehiculos: ((usuarioAutenticado['vehiculos'] ?? []) as List)
+                .map<Map<String, String>>(
+                  (v) => Map<String, dynamic>.from(v).map(
+                    (key, value) => MapEntry(key, value?.toString() ?? ''),
+                  ),
+                )
+                .toList(),
             onVehiculosChanged: (nuevosVehiculos) {
               final actualizado = Map<String, dynamic>.from(usuarioAutenticado);
               actualizado['vehiculos'] = nuevosVehiculos;
@@ -150,13 +154,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
+                      builder: (context) =>
+                          SettingsScreen(usuario: usuarioAutenticado),
                     ),
                   );
                 },
               ),
             ],
-          ),
+          ), // 👈 este paréntesis de cierre del AppBar era el que faltaba
           body: _getPage(_selectedIndex, usuarioAutenticado),
           floatingActionButton: FloatingActionButton(
             heroTag: 'fab_btn_asesor_chat',

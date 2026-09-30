@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Campo de texto para sugerencias o especificaciones adicionales
 /// que el cliente quiera dejar sobre el servicio (máx. 500 caracteres).
@@ -12,7 +13,7 @@ class NotesField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Sugerencias o especificaciones:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Sugerencias o especificaciones:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -20,7 +21,7 @@ class NotesField extends StatelessWidget {
           maxLines: 4,
           decoration: const InputDecoration(
             hintText: 'Ej. Cuidado especial con el retrovisor derecho, manchas en el tapizado trasero...',
-            border: OutlineInputBorder(),
+            hintStyle: TextStyle(color: AppColors.muted),
             alignLabelWithHint: true,
           ),
         ),

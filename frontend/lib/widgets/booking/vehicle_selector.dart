@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Dropdown para elegir el vehículo del usuario que se va a lavar.
 class VehicleSelector extends StatelessWidget {
@@ -18,13 +19,15 @@ class VehicleSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Vehículo a lavar:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Vehículo a lavar:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: vehiculoSeleccionadoId,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(14),
+          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.directions_car),
+            prefixIcon: Icon(Icons.directions_car, color: AppColors.secondary),
           ),
           items: vehiculos.map((vehiculo) {
             return DropdownMenuItem(
