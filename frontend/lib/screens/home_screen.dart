@@ -1,133 +1,183 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_required_dialog.dart';
+import '../widgets/home/accesos_rapidos.dart';
+import '../widgets/home/home_data.dart';
+import '../widgets/home/home_header.dart';
+import '../widgets/home/opiniones_carrusel.dart';
+import '../widgets/home/por_que_elegirnos_card.dart';
+import '../widgets/home/proxima_cita_card.dart';
+import '../widgets/home/seccion_titulo.dart';
+import '../widgets/home/ubicacion_card.dart';
+import '../services/wash_service.dart';
 import 'services_screen.dart';
-import '../theme/app_theme.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Map<String, dynamic>? usuarioAutenticado;
   final void Function(Map<String, dynamic> datos)? onLoginExitoso;
+
+  /// Cambia de pestaña en MainNavigationScreen:
+  /// 0 Inicio, 1 Calendario, 2 Lavadas, 3 Perfil.
+  final void Function(int indice)? onIrATab;
 
   const HomeScreen({
     super.key,
     this.usuarioAutenticado,
     this.onLoginExitoso,
+    this.onIrATab,
   });
 
-  void _validarYIrAServicios(BuildContext context) {
-    if (usuarioAutenticado == null) {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Map<String, dynamic>? _proximaCita;
+  bool _cargandoCita = false;
+
+  String? get _usuarioId => (widget.usuarioAutenticado?['id'] ??
+          widget.usuarioAutenticado?['_id'])
+      ?.toString();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarProximaCita();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final idAnterior = (oldWidget.usuarioAutenticado?['id'] ??
+            oldWidget.usuarioAutenticado?['_id'])
+        ?.toString();
+    if (idAnterior != _usuarioId) _cargarProximaCita();
+  }
+
+  Future<void> _cargarProximaCita() async {
+    final id = _usuarioId;
+    if (id == null || id.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _proximaCita = null;
+          _cargandoCita = false;
+        });
+      }
+      return;
+    }
+
+    setState(() => _cargandoCita = true);
+    try {
+      final citas = await WashApiService.getCitasPorUsuario(id);
+      final activas = citas.where((c) {
+        final e = (c['estado'] ?? '').toString().toLowerCase();
+        return e == 'pendiente' ||
+            e == 'confirmada' ||
+            e == 'en_proceso' ||
+            e == 'reprogramada';
+      }).toList();
+
+      activas.sort((a, b) {
+        final da = DateTime.tryParse('${a['fechaHoraCita']}');
+        final db = DateTime.tryParse('${b['fechaHoraCita']}');
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return da.compareTo(db);
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _proximaCita = activas.isEmpty
+            ? null
+            : Map<String, dynamic>.from(activas.first as Map);
+        _cargandoCita = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _proximaCita = null;
+        _cargandoCita = false;
+      });
+    }
+  }
+
+  // ───────────── Acciones ─────────────
+
+  void _conSesion(VoidCallback accion) {
+    if (widget.usuarioAutenticado == null) {
       AuthRequiredDialog.show(
         context,
         onLoginExitoso: (datos) {
-          onLoginExitoso?.call(datos);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ServicesScreen()),
-          );
+          widget.onLoginExitoso?.call(datos);
+          accion();
         },
       );
       return;
     }
+    accion();
+  }
+
+  void _irAServicios() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ServicesScreen()),
     );
   }
 
+  // ───────────── Build ─────────────
+
   @override
   Widget build(BuildContext context) {
-    // Ojo: sin Scaffold/AppBar propios a propósito — esta pantalla siempre
-    // vive dentro de MainNavigationScreen, que ya provee el Scaffold y el
-    // AppBar. Tener dos AppBar aquí causaba la barra superior duplicada.
-    return Container(
-      color: AppColors.background,
+    // Sin Scaffold/AppBar propios a propósito: esta pantalla vive dentro de
+    // MainNavigationScreen, que ya provee el Scaffold y el AppBar.
+    final sinAnimacion = MediaQuery.of(context).disableAnimations;
+
+    // Única animación de entrada de la pantalla (una sola, no por sección).
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: sinAnimacion ? Duration.zero : const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 14 * (1 - t)), child: child),
+      ),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 10),
-
-            // Banner de Bienvenida
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, Color(0xFF10294A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(18),
-              ),
+            HomeHeader(
+              usuario: widget.usuarioAutenticado,
+              onIniciarSesion: () => widget.onIrATab?.call(3),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 96),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.local_car_wash,
-                        size: 34, color: AppColors.primary),
+                  const SeccionTitulo('Tu próxima lavada'),
+                  ProximaCitaCard(
+                    cargando: _cargandoCita,
+                    cita: _proximaCita,
+                    logueado: widget.usuarioAutenticado != null,
+                    onIrATab: widget.onIrATab,
                   ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    '¡Bienvenido a Spa Vehicular!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 28),
+                  const SeccionTitulo('Accesos rápidos'),
+                  AccesosRapidos(
+                    onServicios: () => _conSesion(_irAServicios),
+                    onAgendar: () => widget.onIrATab?.call(1),
+                    onVehiculos: () => widget.onIrATab?.call(3),
+                    onLavadas: () => widget.onIrATab?.call(2),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'El mejor cuidado y limpieza para tu vehículo',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
+                  const SizedBox(height: 28),
+                  const SeccionTitulo('Por qué elegirnos'),
+                  const PorQueElegirnosCard(),
+                  const SizedBox(height: 28),
+                  const SeccionTitulo('Horario y ubicación'),
+                  const UbicacionCard(),
+                  const SizedBox(height: 28),
+                  const SeccionTitulo('Opiniones de clientes'),
+                  const OpinionesCarrusel(opiniones: kOpiniones),
                 ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 8),
-              child: Text('Servicios Rápidos', style: AppTextStyles.h2),
-            ),
-
-            // Tarjeta de Opción a Servicios (estilo AquaGlow)
-            Card(
-              child: InkWell(
-                onTap: () => _validarYIrAServicios(context),
-                borderRadius: BorderRadius.circular(16),
-                child: const Padding(
-                  padding: EdgeInsets.all(18.0),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: Color(0x1A00E5FF), // accent al 10%
-                        child: Icon(Icons.cleaning_services,
-                            color: AppColors.secondary, size: 24),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Servicios de Lavado',
-                                style: AppTextStyles.bodyStrong),
-                            SizedBox(height: 4),
-                            Text('Ver catálogo de servicios y precios',
-                                style: AppTextStyles.body),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.arrow_forward_ios,
-                          color: AppColors.secondary, size: 16),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
