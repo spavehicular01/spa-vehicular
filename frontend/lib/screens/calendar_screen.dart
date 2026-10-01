@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_required_dialog.dart';
 import 'booking_screen.dart';
-import '../services/appointment_service.dart';
+import '../services/wash_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/horarios_spa.dart';
 
 import '../widgets/calendar/date_picker_card.dart';
 import '../widgets/calendar/slots_header.dart';
@@ -28,16 +29,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
 
-  List<Map<String, dynamic>> _horariosDisponibles = [
-    {'hora': '08:00 AM', 'ocupado': false, 'servicio': ''},
-    {'hora': '09:00 AM', 'ocupado': false, 'servicio': ''},
-    {'hora': '10:00 AM', 'ocupado': false, 'servicio': ''},
-    {'hora': '11:00 AM', 'ocupado': false, 'servicio': ''},
-    {'hora': '02:00 PM', 'ocupado': false, 'servicio': ''},
-    {'hora': '03:00 PM', 'ocupado': false, 'servicio': ''},
-    {'hora': '04:00 PM', 'ocupado': false, 'servicio': ''},
-    {'hora': '05:00 PM', 'ocupado': false, 'servicio': ''},
-  ];
+  late List<Map<String, dynamic>> _horariosDisponibles =
+      _horariosLibres(_selectedDate);
+
+  /// Horas del día elegido (según el horario del spa), todas libres.
+  /// Domingos y festivos solo hay horas en la mañana.
+  List<Map<String, dynamic>> _horariosLibres(DateTime fecha) =>
+      HorariosSpa.horasDelDia(fecha)
+          .map((h) => {'hora': h, 'ocupado': false, 'servicio': '', 'disponibles': 5})
+          .toList();
+
+  /// Convierte '08:00 AM' / '02:00 PM' a hora de 24 h (8 / 14).
+  int _horaA24(String hora) {
+    final partes = hora.split(' ');
+    final h = int.parse(partes[0].split(':')[0]);
+    final esPM = partes[1].toUpperCase() == 'PM';
+    if (esPM && h != 12) return h + 12;
+    if (!esPM && h == 12) return 0;
+    return h;
+  }
 
   @override
   void initState() {
@@ -47,43 +57,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _cargarCitasDelDia() async {
+    final fechaConsultada = _selectedDate;
     setState(() => _isLoading = true);
 
     try {
-      final fechaStr = _selectedDate.toIso8601String().split('T')[0];
-      final citasBackend = await AppointmentService.obtenerCitasPorFecha(
-        fechaStr,
-        token: widget.token,
-      );
+      final fechaStr = fechaConsultada.toIso8601String().split('T')[0];
+      final cupos = await WashApiService.getCuposDelDia(fechaStr);
 
-      final listadoActualizado = [
-        {'hora': '08:00 AM', 'ocupado': false, 'servicio': ''},
-        {'hora': '09:00 AM', 'ocupado': false, 'servicio': ''},
-        {'hora': '10:00 AM', 'ocupado': false, 'servicio': ''},
-        {'hora': '11:00 AM', 'ocupado': false, 'servicio': ''},
-        {'hora': '02:00 PM', 'ocupado': false, 'servicio': ''},
-        {'hora': '03:00 PM', 'ocupado': false, 'servicio': ''},
-        {'hora': '04:00 PM', 'ocupado': false, 'servicio': ''},
-        {'hora': '05:00 PM', 'ocupado': false, 'servicio': ''},
-      ];
+      final listadoActualizado = HorariosSpa.horasDelDia(fechaConsultada).map((h) {
+        final hora24 = _horaA24(h);
+        final lleno = cupos.estaLleno(hora24);
+        return {
+          'hora': h,
+          'ocupado': lleno,
+          'servicio': lleno ? 'Sin cupos' : '',
+          'disponibles': cupos.disponibles(hora24),
+        };
+      }).toList();
 
-      for (var cita in citasBackend) {
-        final horaCita = cita['hora'];
-        for (var slot in listadoActualizado) {
-          if (slot['hora'] == horaCita) {
-            slot['ocupado'] = true;
-            slot['servicio'] = cita['servicio'] ?? 'Reservado';
-          }
-        }
-      }
-
-      if (mounted) {
+      // Si mientras tanto se eligió otro día, se descarta esta respuesta.
+      if (mounted && fechaConsultada == _selectedDate) {
         setState(() {
           _horariosDisponibles = listadoActualizado;
         });
       }
     } catch (e) {
-      debugPrint('Error al cargar citas del día: $e');
+      debugPrint('Error al cargar cupos del día: $e');
+      // Si falla la consulta no se muestra el contador de cupos.
+      if (mounted && fechaConsultada == _selectedDate) {
+        setState(() {
+          _horariosDisponibles = HorariosSpa.horasDelDia(fechaConsultada)
+              .map((h) => {'hora': h, 'ocupado': false, 'servicio': '', 'disponibles': null})
+              .toList();
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -92,6 +99,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _irAFormularioReserva(Map<String, dynamic> slot) async {
+    // Protección extra: una hora llena no se puede agendar.
+    if (slot['ocupado'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esa hora ya no tiene cupos disponibles. Elige otro horario.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final String? token = widget.token;
 
     final bool hayToken = token != null && token.trim().isNotEmpty && token != 'null';
@@ -114,7 +132,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     debugPrint('--> usuario que se enviará a BookingScreen: ${widget.usuario}');
 
-    final resultado = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => BookingScreen(
@@ -126,9 +144,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
-    if (resultado != null && resultado is Map<String, dynamic>) {
-      _cargarCitasDelDia();
-    }
+    // Al volver (se haya agendado o no) se refrescan los cupos.
+    if (mounted) _cargarCitasDelDia();
   }
 
   @override
@@ -142,11 +159,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
           DatePickerCard(
             selectedDate: _selectedDate,
             onDateChanged: (newDate) {
-              setState(() => _selectedDate = newDate);
+              setState(() {
+                _selectedDate = newDate;
+                _horariosDisponibles = _horariosLibres(newDate);
+              });
               _cargarCitasDelDia();
             },
           ),
           const SlotsHeader(),
+          if (HorariosSpa.esDomingoOFestivo(_selectedDate))
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Domingos y festivos atendemos de 7:30 AM a 12:00 PM',
+                  style: TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
+              ),
+            ),
           Expanded(
             child: TimeSlotGrid(
               horarios: _horariosDisponibles,

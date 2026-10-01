@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
 /// Grilla de cupos horarios del día seleccionado. Cada slot es un mapa con
-/// las claves 'hora' (String), 'ocupado' (bool) y 'servicio' (String).
+/// las claves 'hora' (String), 'ocupado' (bool), 'servicio' (String) y,
+/// opcionalmente, 'disponibles' (int: cupos que quedan en esa hora).
 /// Al tocar un slot libre se llama a [onSlotTap] con ese slot.
 class TimeSlotGrid extends StatelessWidget {
   final List<Map<String, dynamic>> horarios;
@@ -15,6 +16,9 @@ class TimeSlotGrid extends StatelessWidget {
     required this.isLoading,
     required this.onSlotTap,
   });
+
+  String _textoCupos(int disponibles) =>
+      disponibles == 1 ? 'Queda 1 cupo' : 'Quedan $disponibles cupos';
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,11 @@ class TimeSlotGrid extends StatelessWidget {
         itemCount: horarios.length,
         itemBuilder: (context, index) {
           final slot = horarios[index];
-          final bool estaOcupado = slot['ocupado'];
+          final bool estaOcupado = slot['ocupado'] == true;
+          final int? disponibles = slot['disponibles'] as int?;
+
+          // Pocos cupos: se resalta en naranja para avisar que se está llenando.
+          final bool pocosCupos = disponibles != null && disponibles <= 2;
 
           return InkWell(
             onTap: estaOcupado ? null : () => onSlotTap(slot),
@@ -69,9 +77,7 @@ class TimeSlotGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    estaOcupado
-                        ? ((slot['servicio'] as String).isNotEmpty ? slot['servicio'] : 'Reservado')
-                        : 'Agendar cita',
+                    estaOcupado ? 'Ocupado' : 'Agendar cita',
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -80,6 +86,22 @@ class TimeSlotGrid extends StatelessWidget {
                       color: estaOcupado ? AppColors.muted : AppColors.secondary,
                     ),
                   ),
+                  if (!estaOcupado && disponibles != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      _textoCupos(disponibles),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: pocosCupos ? FontWeight.bold : FontWeight.normal,
+                        color: pocosCupos
+                            ? Colors.orange.shade800
+                            : AppColors.muted,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -27,6 +27,24 @@ class BookingController {
 
   String? get usuarioId => usuario?['_id'] ?? usuario?['id'];
 
+  /// Combina el día elegido con la hora del slot ('08:00 AM', '02:00 PM')
+  /// y devuelve el instante en UTC, tomando la hora como hora de Colombia
+  /// (UTC-5). Así el backend guarda la hora real de la cita y puede contar
+  /// los cupos por hora sin depender de la zona horaria del celular.
+  DateTime _combinarFechaYHora(DateTime fecha, String hora) {
+    final partes = hora.trim().split(' ');
+    final hm = partes[0].split(':');
+    int h = int.parse(hm[0]);
+    final int m = int.parse(hm[1]);
+    final bool esPM = partes.length > 1 && partes[1].toUpperCase() == 'PM';
+
+    if (esPM && h != 12) h += 12;
+    if (!esPM && h == 12) h = 0;
+
+    // Colombia = UTC-5  ->  hora UTC = hora local + 5
+    return DateTime.utc(fecha.year, fecha.month, fecha.day, h + 5, m);
+  }
+
   Map<String, dynamic> construirPayload({
     required DateTime selectedDate,
     required String selectedTime,
@@ -39,11 +57,9 @@ class BookingController {
     required String metodoPago,
     required String notas,
   }) {
-    final fechaCitaIso = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-    ).toIso8601String();
+    // 🟢 Ahora incluye la hora elegida (antes solo se enviaba el día a las 00:00)
+    final fechaCitaIso =
+        _combinarFechaYHora(selectedDate, selectedTime).toIso8601String();
 
     final vehiculoSel = misVehiculos.firstWhere(
       (v) => v['id'] == vehiculoSeleccionadoId,

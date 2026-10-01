@@ -177,7 +177,10 @@ class _BookingScreenState extends State<BookingScreen> {
       if (_controller.fueExitosa(respuesta)) {
         _mostrarDialogoExito();
       } else {
-        final mensajeError = respuesta['message'] ??
+        // El backend responde los errores con la clave 'mensaje'
+        // (por ejemplo, cuando la hora ya no tiene cupos).
+        final mensajeError = respuesta['mensaje'] ??
+            respuesta['message'] ??
             respuesta['error'] ??
             'Error al agendar cita. Verifica los datos.';
         _mostrarError(mensajeError.toString());
