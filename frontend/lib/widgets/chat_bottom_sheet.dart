@@ -19,9 +19,30 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
   ];
   bool _cargando = false;
 
-  void _enviarMensaje() async {
-    final texto = _controller.text.trim();
+  // Preguntas rápidas que se muestran al abrir el chat.
+  static const List<String> _sugerencias = [
+    'Servicios y precios',
+    'Horarios de atención',
+    'Cómo agendar una cita',
+    'Formas de pago',
+    'Lavado a domicilio',
+    'Reprogramar o cancelar',
+  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Envía lo escrito en el campo, o [sugerido] si se toca una pregunta rápida.
+  void _enviarMensaje([String? sugerido]) async {
+    final texto = (sugerido ?? _controller.text).trim();
     if (texto.isEmpty || _cargando) return;
+
+    // Mensajes previos (sin el saludo inicial) para que el asesor tenga contexto.
+    final historial = _mensajes.skip(1).toList();
 
     _controller.clear();
     setState(() {
@@ -31,7 +52,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
 
     _scrollHaciaAbajo();
 
-    final respuesta = await ChatService.enviarMensaje(texto);
+    final respuesta = await ChatService.enviarMensaje(texto, historial: historial);
 
     if (mounted) {
       setState(() {
@@ -54,9 +75,35 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
     });
   }
 
+  Widget _buildSugerencias() {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _sugerencias.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          return ActionChip(
+            label: Text(
+              _sugerencias[i],
+              style: const TextStyle(color: Color(0xFFF5E6D3), fontSize: 12),
+            ),
+            backgroundColor: const Color(0xFF2A2421),
+            side: BorderSide(
+              color: const Color(0xFFC88D51).withValues(alpha: 0.6),
+            ),
+            onPressed: () => _enviarMensaje(_sugerencias[i]),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final mostrarSugerencias = _mensajes.length <= 1 && !_cargando;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -176,6 +223,10 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                 ],
               ),
             ),
+          if (mostrarSugerencias) ...[
+            _buildSugerencias(),
+            const SizedBox(height: 4),
+          ],
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -190,10 +241,21 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                     child: TextField(
                       controller: _controller,
                       style: const TextStyle(color: Color(0xFFF5E6D3)),
+                      cursorColor: const Color(0xFFC88D51),
+                      textInputAction: TextInputAction.send,
+                      // 🟢 Se anulan el fondo claro y los bordes que el tema global
+                      // (inputDecorationTheme) le pone a todos los campos de texto.
                       decoration: const InputDecoration(
+                        filled: false,
+                        fillColor: Colors.transparent,
                         hintText: 'Pregunta por precios, servicios o citas...',
                         hintStyle: TextStyle(color: Colors.white30, fontSize: 13),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       ),
                       onSubmitted: (_) => _enviarMensaje(),
@@ -202,7 +264,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _enviarMensaje,
+                  onPressed: () => _enviarMensaje(),
                   style: IconButton.styleFrom(
                     backgroundColor: const Color(0xFFC88D51),
                     shape: const CircleBorder(),

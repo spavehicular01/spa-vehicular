@@ -1,15 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+
 class ChatService {
   static String get _chatUrl => '${ApiConfig.baseUrl}/chat';
 
-  static Future<String> enviarMensaje(String mensaje) async {
+  /// Envía el mensaje junto con los últimos mensajes de la conversación
+  /// ([historial], con claves 'role' = 'user' | 'bot' y 'text'), para que el
+  /// asesor entienda preguntas de seguimiento como "¿y cuánto dura?".
+  static Future<String> enviarMensaje(
+    String mensaje, {
+    List<Map<String, String>> historial = const [],
+  }) async {
     try {
       final response = await http.post(
         Uri.parse(_chatUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'mensaje': mensaje}),
+        body: jsonEncode({
+          'mensaje': mensaje,
+          'historial': historial,
+        }),
       );
 
       if (response.statusCode == 200) {
