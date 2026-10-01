@@ -2,6 +2,7 @@ import Appointment from '../models/Appointment.js';
 import Vehicle from '../models/Vehicle.js';
 import Service from '../models/Service.js';
 import { sendEmail } from '../services/emailService.js';
+import { contarCitasEnHora, LIMITE_POR_HORA } from '../utils/cupos.js';
 
 const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
 
@@ -93,6 +94,14 @@ export const crearCita = async (req, res) => {
       return res.status(400).json({ mensaje: 'El servicio indicado no existe' });
     }
 
+    // 🟢 Validar cupos disponibles en esa hora (máximo LIMITE_POR_HORA citas activas)
+    const ocupadas = await contarCitasEnHora(fechaHoraCita);
+    if (ocupadas >= LIMITE_POR_HORA) {
+      return res.status(409).json({
+        mensaje: 'Esa hora ya no tiene cupos disponibles. Elige otro horario.'
+      });
+    }
+
     const nuevaCita = new Appointment({
       usuarioId,
       vehiculoId,
@@ -156,6 +165,14 @@ export const reprogramarCita = async (req, res) => {
     const cita = await Appointment.findById(citaId);
     if (!cita) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    // 🟢 Validar cupos en la nueva hora (sin contar esta misma cita)
+    const ocupadas = await contarCitasEnHora(fechaValida, cita._id);
+    if (ocupadas >= LIMITE_POR_HORA) {
+      return res.status(409).json({
+        mensaje: 'La nueva hora ya no tiene cupos disponibles.'
+      });
     }
 
     if (!cita.historialReprogramaciones) {
