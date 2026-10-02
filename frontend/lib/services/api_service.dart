@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -119,7 +120,7 @@ class ApiService {
     }
   }
 
-    // 4. Actualizar estado de cita (Para Admin)
+  // 4. Actualizar estado de cita (Para Admin)
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
       final headers = await _getHeaders();
@@ -136,6 +137,7 @@ class ApiService {
       return false;
     }
   }
+
   // 5. Obtener todos los clientes con sus vehículos (Panel Admin)
   static Future<List<dynamic>> obtenerClientes() async {
     try {
@@ -156,6 +158,53 @@ class ApiService {
     } catch (e) {
       debugPrint('Excepción al obtener clientes: $e');
       rethrow;
+    }
+  }
+
+  // 6. Actualizar el perfil del usuario (solo el dueño de la cuenta).
+  // Se envía como multipart para poder subir la foto; la foto es opcional.
+  static Future<Map<String, dynamic>> actualizarPerfil({
+    required String userId,
+    required String nombres,
+    required String apellidos,
+    required String celular,
+    File? avatar,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$baseUrl/users/perfil/$userId'),
+      );
+      // Sin 'Content-Type': multipart lo genera solo con su boundary
+      request.headers['Authorization'] = 'Bearer $token';
+      request.fields['nombres'] = nombres;
+      request.fields['apellidos'] = apellidos;
+      request.fields['celular'] = celular;
+
+      if (avatar != null) {
+        request.files.add(await http.MultipartFile.fromPath('avatar', avatar.path));
+      }
+
+      final streamed = await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamed);
+
+      debugPrint('PUT Perfil Status: ${response.statusCode}');
+      debugPrint('PUT Perfil Respuesta: ${response.body}');
+
+      final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200 && data['ok'] == true;
+
+      return {
+        'success': exito,
+        'message': data['mensaje'] ?? data['message'] ?? data['error'] ?? 'No se pudo actualizar el perfil',
+        'usuario': data['usuario'],
+      };
+    } catch (e) {
+      debugPrint('Excepción al actualizar perfil: $e');
+      return {'success': false, 'message': 'Error de conexión con el servidor'};
     }
   }
 }
