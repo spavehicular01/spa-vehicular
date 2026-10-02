@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart'; // Importante para acceder a los Notifier globales
-import '../config/api_config.dart';
+import '../services/api_service.dart';
 import '../services/user_service.dart';
 import 'forgot_password_screen.dart';
 
@@ -147,7 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final token = prefs.getString('token');
 
       final res = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/api/auth/change-password'),
+        Uri.parse('${ApiService.baseUrl}/users/change-password'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -157,7 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 && data['success'] == true) return null;
-      return data['message']?.toString() ?? 'No se pudo cambiar la contraseña';
+      return (data['message'] ?? data['mensaje'])?.toString() ??
+          'No se pudo cambiar la contraseña';
     } catch (_) {
       return 'Error de conexión con el servidor';
     }

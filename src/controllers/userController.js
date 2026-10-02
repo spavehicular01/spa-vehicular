@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
+import bcrypt from 'bcryptjs';
 
 // Actualizar perfil de usuario
 export const actualizarPerfil = async (req, res) => {
@@ -47,6 +48,44 @@ export const actualizarPerfil = async (req, res) => {
   }
 };
 
+// Cambiar contraseña del usuario autenticado
+export const cambiarPassword = async (req, res) => {
+  // Se responde con ambos estilos de claves (success/message y ok/mensaje)
+  const responder = (status, exito, texto) =>
+    res.status(status).json({ success: exito, ok: exito, message: texto, mensaje: texto });
+
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      return responder(400, false, 'La nueva contraseña debe tener mínimo 6 caracteres');
+    }
+
+    const userId = req.user?.id || req.user?._id || req.user?.userId || req.userId;
+    const user = userId ? await User.findById(userId) : null;
+
+    if (!user) {
+      return responder(404, false, 'Usuario no encontrado');
+    }
+
+    const passActual = user.password || user.passwords;
+    const coincide = await bcrypt.compare(currentPassword, passActual);
+    if (!coincide) {
+      return responder(400, false, 'La contraseña actual es incorrecta');
+    }
+
+    // Hash explícito en ambos campos; updateOne no dispara hooks de save,
+    // así que no se hashea dos veces.
+    const hash = await bcrypt.hash(newPassword, 10);
+    await User.updateOne({ _id: user._id }, { $set: { password: hash, passwords: hash } });
+
+    return responder(200, true, 'Contraseña actualizada');
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    return responder(500, false, 'Error interno al cambiar la contraseña');
+  }
+};
+
 // Obtener todos los clientes con sus vehículos (Panel Admin)
 export const obtenerClientes = async (req, res) => {
   try {
@@ -83,5 +122,6 @@ export const obtenerClientes = async (req, res) => {
 
 export default {
   actualizarPerfil,
+  cambiarPassword,
   obtenerClientes
 };
