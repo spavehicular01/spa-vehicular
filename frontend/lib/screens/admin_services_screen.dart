@@ -99,7 +99,7 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
                                 fit: BoxFit.cover,
                               ),
                             )
-                          : (imageUrl != null && imageUrl.isNotEmpty)
+                          : (imageUrl.isNotEmpty)
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: Image.network(

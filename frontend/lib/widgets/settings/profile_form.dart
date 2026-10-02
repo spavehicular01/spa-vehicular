@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 /// desde el widget padre para mantener la lógica de red centralizada.
 class ProfileForm extends StatelessWidget {
   final TextEditingController documentoController;
+  final TextEditingController correoController;
   final TextEditingController nombresController;
   final TextEditingController apellidosController;
   final TextEditingController celularController;
@@ -15,6 +16,7 @@ class ProfileForm extends StatelessWidget {
   const ProfileForm({
     super.key,
     required this.documentoController,
+    required this.correoController,
     required this.nombresController,
     required this.apellidosController,
     required this.celularController,
@@ -33,6 +35,16 @@ class ProfileForm extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Documento de Identidad (No editable)',
             prefixIcon: Icon(Icons.badge_outlined),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: correoController,
+          enabled: false,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Correo electrónico (No editable)',
+            prefixIcon: Icon(Icons.email_outlined),
           ),
         ),
         const SizedBox(height: 16),

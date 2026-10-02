@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart'; // Importante para acceder a los Notifier globales
+import '../config/api_config.dart';
 import '../services/user_service.dart';
+import 'forgot_password_screen.dart';
 
 import '../widgets/settings/profile_avatar.dart';
 import '../widgets/settings/profile_form.dart';
@@ -24,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _apellidosController;
   late TextEditingController _celularController;
   late TextEditingController _documentoController;
+  late TextEditingController _correoController;
 
   bool _isLoading = false;
   File? _imagenSeleccionada;
@@ -51,6 +56,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           widget.usuario?['documentoIdentidad'] ??
           'Sin Documento',
     );
+    _correoController = TextEditingController(
+      text: (widget.usuario?['correo'] ?? widget.usuario?['email'] ?? '').toString(),
+    );
     _avatarUrl = widget.usuario?['avatar'] ?? widget.usuario?['imagenUrl'];
   }
 
@@ -60,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _apellidosController.dispose();
     _celularController.dispose();
     _documentoController.dispose();
+    _correoController.dispose();
     super.dispose();
   }
 
@@ -131,6 +140,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Devuelve null si salió bien, o el mensaje de error.
+  Future<String?> _cambiarPassword(String actual, String nueva) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final res = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/api/auth/change-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'currentPassword': actual, 'newPassword': nueva}),
+      );
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) return null;
+      return data['message']?.toString() ?? 'No se pudo cambiar la contraseña';
+    } catch (_) {
+      return 'Error de conexión con el servidor';
+    }
+  }
+
+  void _mostrarDialogoCambiarPassword() {
+    final actualCtrl = TextEditingController();
+    final nuevaCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool guardando = false;
+    bool ocultar = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => AlertDialog(
+          title: const Text('Cambiar contraseña'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: actualCtrl,
+                  obscureText: ocultar,
+                  enabled: !guardando,
+                  decoration: const InputDecoration(labelText: 'Contraseña actual'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nuevaCtrl,
+                  obscureText: ocultar,
+                  enabled: !guardando,
+                  decoration: const InputDecoration(labelText: 'Nueva contraseña'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: ocultar,
+                  enabled: !guardando,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar nueva contraseña',
+                    suffixIcon: IconButton(
+                      icon: Icon(ocultar ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setModal(() => ocultar = !ocultar),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: guardando ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: guardando
+                  ? null
+                  : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      if (actualCtrl.text.isEmpty || nuevaCtrl.text.isEmpty) {
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Completa todos los campos')),
+                        );
+                        return;
+                      }
+                      if (nuevaCtrl.text.length < 6) {
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Mínimo 6 caracteres')),
+                        );
+                        return;
+                      }
+                      if (nuevaCtrl.text != confirmCtrl.text) {
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Las contraseñas no coinciden')),
+                        );
+                        return;
+                      }
+
+                      setModal(() => guardando = true);
+                      final error = await _cambiarPassword(actualCtrl.text, nuevaCtrl.text);
+
+                      if (!ctx.mounted) return;
+                      if (error == null) {
+                        Navigator.pop(ctx);
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Contraseña actualizada'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        setModal(() => guardando = false);
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(error), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+              child: guardando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Actualizar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool esModoOscuro = themeNotifier.value == ThemeMode.dark;
@@ -153,11 +294,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               ProfileForm(
                 documentoController: _documentoController,
+                correoController: _correoController,
                 nombresController: _nombresController,
                 apellidosController: _apellidosController,
                 celularController: _celularController,
                 isLoading: _isLoading,
                 onGuardar: _guardarCambios,
+              ),
+              const SizedBox(height: 24),
+              Card(
+                elevation: 0,
+                color: const Color(0x1A00E5FF),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.lock_reset),
+                      title: const Text('Cambiar contraseña'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: _mostrarDialogoCambiarPassword,
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      ),
+                      child: const Text('¿Has olvidado tu contraseña?'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
             ] else ...[
