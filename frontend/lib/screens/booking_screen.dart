@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../controllers/booking_controller.dart';
 import '../services/vehicle_service.dart';
 import '../services/wash_service.dart';
+import '../models/vehicle_types.dart';
 import '../theme/app_theme.dart';
+import '../utils/format_utils.dart';
 import '../widgets/booking/appointment_summary_card.dart';
 import '../widgets/booking/vehicle_selector.dart';
 import '../widgets/booking/service_selector.dart';
@@ -90,6 +92,7 @@ class _BookingScreenState extends State<BookingScreen> {
         return {
           'id': id,
           'nombre': placa.isNotEmpty ? '$nombre - $placa' : nombre,
+          'tipo': (v['tipoVehiculo'] ?? '').toString(),
         };
       }).toList();
 
@@ -100,6 +103,11 @@ class _BookingScreenState extends State<BookingScreen> {
           'id': s.id,
           'nombre': '${s.nombre} (${s.duracionMinutos} min)',
           'minutos': s.duracionMinutos,
+          'nombreBase': s.nombre,
+          'precios': <String, double>{
+            for (final p in s.precios)
+              if (p.precio > 0) p.tipoVehiculo: p.precio,
+          },
         };
       }).toList();
 
@@ -109,7 +117,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _vehiculos = vehiculosMapeados;
         _servicios = serviciosMapeados;
         _vehiculoSeleccionadoId = vehiculosMapeados.isNotEmpty ? vehiculosMapeados.first['id'] : null;
-        _servicioSeleccionadoId = serviciosMapeados.isNotEmpty ? serviciosMapeados.first['id'] as String? : null;
+        _ajustarServicioSeleccionado();
         _cargandoDatos = false;
       });
     } catch (e) {
@@ -119,6 +127,57 @@ class _BookingScreenState extends State<BookingScreen> {
         _cargandoDatos = false;
       });
     }
+  }
+
+  /// Tipo del vehículo elegido (por ejemplo 'automovil'); vacío si no hay uno.
+  String get _tipoVehiculoSeleccionado {
+    for (final v in _vehiculos) {
+      if (v['id'] == _vehiculoSeleccionadoId) return v['tipo'] ?? '';
+    }
+    return '';
+  }
+
+  /// Servicios que tienen precio para el vehículo elegido. El nombre incluye
+  /// el precio para que se vea en la lista desplegable.
+  List<Map<String, dynamic>> get _serviciosDisponibles {
+    final tipo = _tipoVehiculoSeleccionado;
+    final disponibles = <Map<String, dynamic>>[];
+    for (final s in _servicios) {
+      final precios = s['precios'] as Map<String, double>;
+      final precio = precios[tipo];
+      if (precio == null) continue;
+      disponibles.add({
+        ...s,
+        'precio': precio,
+        'nombre': '${s['nombre']} - ${formatearPesos(precio)}',
+      });
+    }
+    return disponibles;
+  }
+
+  /// Si el servicio elegido no aplica al vehículo actual, pasa al primero que sí aplique.
+  void _ajustarServicioSeleccionado() {
+    final disponibles = _serviciosDisponibles;
+    final sigueValido = disponibles.any((s) => s['id'] == _servicioSeleccionadoId);
+    if (!sigueValido) {
+      _servicioSeleccionadoId =
+          disponibles.isNotEmpty ? disponibles.first['id'] as String? : null;
+    }
+  }
+
+  void _alCambiarVehiculo(String? id) {
+    setState(() {
+      _vehiculoSeleccionadoId = id;
+      _ajustarServicioSeleccionado();
+    });
+  }
+
+  Widget _avisoSinServicios() {
+    return Text(
+      'Ningún servicio tiene precio para ${etiquetaTipoVehiculo(_tipoVehiculoSeleccionado)}. '
+      'Elige otro vehículo o consulta con el spa.',
+      style: AppTextStyles.body.copyWith(color: Colors.redAccent),
+    );
   }
 
   @override
@@ -161,7 +220,7 @@ class _BookingScreenState extends State<BookingScreen> {
         vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
         servicioSeleccionadoId: _servicioSeleccionadoId,
         misVehiculos: _vehiculos,
-        servicios: _servicios,
+        servicios: _serviciosDisponibles,
         modalidad: _modalidad,
         direccion: _direccionController.text,
         metodoPago: _metodoPago,
@@ -273,15 +332,20 @@ class _BookingScreenState extends State<BookingScreen> {
                                 VehicleSelector(
                                   vehiculos: _vehiculos,
                                   vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
-                                  onChanged: (val) => setState(() => _vehiculoSeleccionadoId = val),
+                                  onChanged: _alCambiarVehiculo,
                                 ),
                                 const SizedBox(height: 20),
 
-                                ServiceSelector(
-                                  servicios: _servicios,
-                                  servicioSeleccionadoId: _servicioSeleccionadoId,
-                                  onChanged: (val) => setState(() => _servicioSeleccionadoId = val),
-                                ),
+                                _serviciosDisponibles.isEmpty
+                                    ? _avisoSinServicios()
+                                    : ServiceSelector(
+                                        // Se recrea al cambiar de vehículo para refrescar la lista
+                                        key: ValueKey('serv-$_vehiculoSeleccionadoId'),
+                                        servicios: _serviciosDisponibles,
+                                        servicioSeleccionadoId: _servicioSeleccionadoId,
+                                        onChanged: (val) =>
+                                            setState(() => _servicioSeleccionadoId = val),
+                                      ),
                                 const SizedBox(height: 20),
 
                                 ModalitySelector(

@@ -1,4 +1,7 @@
 import Vehicle from '../models/Vehicle.js';
+import { TIPOS_VEHICULO } from '../utils/vehicleTypes.js';
+
+const mensajeTipoInvalido = `Tipo de vehículo no válido. Opciones: ${TIPOS_VEHICULO.join(', ')}`;
 
 // 1. Obtener vehículos de un usuario
 export const getVehiclesByUser = async (req, res) => {
@@ -22,6 +25,10 @@ export const registerVehicle = async (req, res) => {
         ok: false,
         mensaje: 'Todos los campos son obligatorios: usuarioId, placa, marca, referencia, modelo y tipoVehiculo'
       });
+    }
+
+    if (!TIPOS_VEHICULO.includes(tipoVehiculo)) {
+      return res.status(400).json({ ok: false, mensaje: mensajeTipoInvalido });
     }
 
     const existePlaca = await Vehicle.findOne({ placa: placa.toUpperCase() });
@@ -64,6 +71,10 @@ export const updateVehicle = async (req, res) => {
     const vehiculo = await Vehicle.findById(id);
     if (!vehiculo) {
       return res.status(404).json({ ok: false, mensaje: 'Vehículo no encontrado' });
+    }
+
+    if (tipoVehiculo && !TIPOS_VEHICULO.includes(tipoVehiculo)) {
+      return res.status(400).json({ ok: false, mensaje: mensajeTipoInvalido });
     }
 
     // Si cambia la placa, verificar que no la tenga otro vehículo

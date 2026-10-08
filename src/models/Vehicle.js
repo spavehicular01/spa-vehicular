@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { TIPOS_VEHICULO } from '../utils/vehicleTypes.js';
 
 const vehicleSchema = new mongoose.Schema({
   usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -6,7 +7,7 @@ const vehicleSchema = new mongoose.Schema({
   marca: { type: String, required: true },
   referencia: { type: String, required: true },
   modelo: { type: String, required: true },
-  tipoVehiculo: { type: String, required: true },
+  tipoVehiculo: { type: String, required: true, enum: TIPOS_VEHICULO },
   imagenUrl: { type: String, default: '' }
 }, {
   timestamps: true

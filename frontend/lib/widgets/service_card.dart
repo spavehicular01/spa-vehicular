@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
 import '../theme/app_theme.dart';
+import 'service_prices_chips.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServiceModel service;
@@ -26,7 +27,7 @@ class ServiceCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _buildIcon(),
+                child: _buildImage(),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -44,16 +45,9 @@ class ServiceCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 10),
+                    ServicePricesChips(service: service),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '\$${service.precioBase.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppColors.secondary, // azul agua, como los precios en AquaGlow
                 ),
               ),
             ],
@@ -61,6 +55,19 @@ class ServiceCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildImage() {
+    if (service.imagenUrl.isNotEmpty) {
+      return Image.network(
+        service.imagenUrl,
+        width: 56,
+        height: 56,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildIcon(),
+      );
+    }
+    return _buildIcon();
   }
 
   Widget _buildIcon() {

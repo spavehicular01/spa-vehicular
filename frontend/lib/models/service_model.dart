@@ -1,3 +1,5 @@
+import 'vehicle_types.dart';
+
 class PrecioVehiculo {
   final String tipoVehiculo;
   final double precio;
@@ -26,6 +28,7 @@ class ServiceModel {
   final String id;
   final String nombre;
   final String descripcion;
+  final String imagenUrl;
   final List<PrecioVehiculo> precios;
   final int duracionMinutos;
 
@@ -33,9 +36,30 @@ class ServiceModel {
     required this.id,
     required this.nombre,
     required this.descripcion,
+    this.imagenUrl = '',
     required this.precios,
     required this.duracionMinutos,
   });
+
+  /// Solo los precios que tienen valor, en el mismo orden que la lista de tipos.
+  List<PrecioVehiculo> get preciosOrdenados {
+    final lista = precios.where((p) => p.precio > 0).toList();
+    int posicion(String tipo) {
+      final i = tiposVehiculo.indexWhere((t) => t.valor == tipo);
+      return i == -1 ? tiposVehiculo.length : i;
+    }
+
+    lista.sort((a, b) => posicion(a.tipoVehiculo).compareTo(posicion(b.tipoVehiculo)));
+    return lista;
+  }
+
+  /// Precio para un tipo de vehículo, o null si el servicio no aplica a ese tipo.
+  double? precioPara(String tipoVehiculo) {
+    for (final p in precios) {
+      if (p.tipoVehiculo == tipoVehiculo && p.precio > 0) return p.precio;
+    }
+    return null;
+  }
 
   // Retorna el precio base de 'automovil' o la primera tarifa disponible
   double get precioBase {
@@ -56,6 +80,7 @@ class ServiceModel {
       id: json['_id'] ?? json['id'] ?? '',
       nombre: json['nombreServicio'] ?? json['nombre'] ?? 'Sin nombre',
       descripcion: json['descripcion'] ?? 'Sin descripción',
+      imagenUrl: (json['imagenUrl'] ?? json['imageUrl'] ?? json['image'] ?? '').toString(),
       precios: listaPrecios,
       duracionMinutos: json['duracionEstimadaMinutos'] ?? json['duracionMinutos'] ?? 30,
     );
@@ -66,6 +91,7 @@ class ServiceModel {
       'id': id,
       'nombreServicio': nombre,
       'descripcion': descripcion,
+      'imagenUrl': imagenUrl,
       'precios': precios.map((p) => p.toJson()).toList(),
       'duracionEstimadaMinutos': duracionMinutos,
     };
