@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/vehicle_types.dart';
 import '../../theme/app_theme.dart';
 
 /// Una fila de la lista de vehículos, con botones de editar y eliminar.
@@ -26,11 +27,11 @@ class VehicleTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
         leading: Icon(
-          tipo == 'moto' ? Icons.two_wheeler : Icons.directions_car,
+          iconoTipoVehiculo(tipo),
           color: AppColors.secondary,
         ),
         title: Text('$marca $referencia ($placa)'),
-        subtitle: Text('Tipo: $tipo | Año: $modelo'),
+        subtitle: Text('Tipo: ${etiquetaTipoVehiculo(tipo)} | Año: $modelo'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

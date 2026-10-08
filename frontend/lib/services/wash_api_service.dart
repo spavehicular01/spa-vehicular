@@ -207,8 +207,7 @@ class WashApiService {
   static Future<bool> crearLavado({
     required String nombre,
     required String descripcion,
-    double? precio,
-    List<PrecioVehiculo>? precios,
+    required List<PrecioVehiculo> precios,
     int duracionEstimadaMinutos = 30,
     String? image,
   }) async {
@@ -223,11 +222,7 @@ class WashApiService {
         'duracionEstimadaMinutos': duracionEstimadaMinutos,
       };
 
-      if (precios != null && precios.isNotEmpty) {
-        bodyData['precios'] = precios.map((p) => p.toJson()).toList();
-      } else if (precio != null) {
-        bodyData['precio'] = precio;
-      }
+      bodyData['precios'] = precios.map((p) => p.toJson()).toList();
 
       if (image != null && image.trim().isNotEmpty) {
         bodyData['image'] = image;
@@ -238,6 +233,9 @@ class WashApiService {
         headers: headers,
         body: jsonEncode(bodyData),
       );
+
+      debugPrint('POST SERVICIO STATUS: ${response.statusCode}');
+      debugPrint('POST SERVICIO BODY: ${response.body}');
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
@@ -250,7 +248,8 @@ class WashApiService {
     required String id,
     required String nombre,
     required String descripcion,
-    required double precio,
+    required List<PrecioVehiculo> precios,
+    int? duracionEstimadaMinutos,
     String? image,
   }) async {
     try {
@@ -259,9 +258,14 @@ class WashApiService {
 
       final Map<String, dynamic> bodyData = {
         'nombre': nombre,
+        'nombreServicio': nombre,
         'descripcion': descripcion,
-        'precio': precio,
+        'precios': precios.map((p) => p.toJson()).toList(),
       };
+
+      if (duracionEstimadaMinutos != null) {
+        bodyData['duracionEstimadaMinutos'] = duracionEstimadaMinutos;
+      }
 
       if (image != null && image.trim().isNotEmpty) {
         bodyData['image'] = image;
@@ -272,6 +276,9 @@ class WashApiService {
         headers: headers,
         body: jsonEncode(bodyData),
       );
+
+      debugPrint('PUT SERVICIO STATUS: ${response.statusCode}');
+      debugPrint('PUT SERVICIO BODY: ${response.body}');
 
       return response.statusCode == 200;
     } catch (e) {

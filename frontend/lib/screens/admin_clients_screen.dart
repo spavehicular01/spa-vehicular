@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/vehicle_types.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
@@ -111,9 +112,12 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
                 : Column(
                     children: vehiculos.map<Widget>((v) {
                       return ListTile(
-                        leading: const Icon(Icons.directions_car, color: AppColors.secondary),
+                        leading: Icon(
+                          iconoTipoVehiculo((v['tipoVehiculo'] ?? '').toString()),
+                          color: AppColors.secondary,
+                        ),
                         title: Text('${v['marca'] ?? ''} ${v['referencia'] ?? ''} (${v['placa'] ?? 'Sin placa'})'),
-                        subtitle: Text('Modelo: ${v['modelo'] ?? 'N/A'} - Tipo: ${v['tipoVehiculo'] ?? 'N/A'}'),
+                        subtitle: Text('Modelo: ${v['modelo'] ?? 'N/A'} - Tipo: ${etiquetaTipoVehiculo((v['tipoVehiculo'] ?? 'N/A').toString())}'),
                         contentPadding: EdgeInsets.zero,
                       );
                     }).toList(),

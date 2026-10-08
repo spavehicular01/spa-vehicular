@@ -1,9 +1,14 @@
 import mongoose from 'mongoose';
+import { TIPOS_VEHICULO } from '../utils/vehicleTypes.js';
 
 const appointmentSchema = new mongoose.Schema({
   usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   vehiculoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
   servicioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service', required: true },
+  // Se guardan al agendar: así la cita conserva el precio acordado aunque
+  // luego cambie la tarifa del servicio o el tipo del vehículo.
+  tipoVehiculo: { type: String, enum: TIPOS_VEHICULO },
+  precio: { type: Number, min: 0 },
   fechaHoraCita: { type: Date, required: true },
   tiempoEstimadoMinutos: { type: Number, required: true },
   modalidad: { type: String, enum: ['presencial', 'domicilio'], default: 'presencial' },

@@ -77,6 +77,7 @@ export const crearCita = async (req, res) => {
       tiempoEstimadoMinutos,
       modalidad,
       detallesDomicilio,
+      direccion,
       correo
     } = req.body;
 
@@ -94,6 +95,22 @@ export const crearCita = async (req, res) => {
       return res.status(400).json({ mensaje: 'El servicio indicado no existe' });
     }
 
+    // 🟢 El precio sale del servicio según el tipo del vehículo; nunca del cliente
+    const tarifa = (servicioExiste.precios || []).find(
+      (p) => p.tipoVehiculo === vehiculoExiste.tipoVehiculo
+    );
+    if (!tarifa) {
+      return res.status(400).json({
+        mensaje: 'Este servicio no tiene precio para el tipo de vehículo seleccionado'
+      });
+    }
+
+    // 🟢 Dirección del domicilio: la app la envía como `direccion`; también se acepta `detallesDomicilio`
+    const direccionDomicilio = String(detallesDomicilio?.direccion || direccion || '').trim();
+    if (modalidad === 'domicilio' && !direccionDomicilio) {
+      return res.status(400).json({ mensaje: 'Indica la dirección para el servicio a domicilio' });
+    }
+
     // 🟢 Validar cupos disponibles en esa hora (máximo LIMITE_POR_HORA citas activas)
     const ocupadas = await contarCitasEnHora(fechaHoraCita);
     if (ocupadas >= LIMITE_POR_HORA) {
@@ -106,10 +123,15 @@ export const crearCita = async (req, res) => {
       usuarioId,
       vehiculoId,
       servicioId,
+      tipoVehiculo: vehiculoExiste.tipoVehiculo,
+      precio: tarifa.precio,
       fechaHoraCita,
       tiempoEstimadoMinutos,
       modalidad,
-      detallesDomicilio
+      detallesDomicilio: {
+        direccion: modalidad === 'domicilio' ? direccionDomicilio : '',
+        telefonoContacto: String(detallesDomicilio?.telefonoContacto || '').trim()
+      }
     });
     await nuevaCita.save();
 
@@ -130,6 +152,7 @@ export const crearCita = async (req, res) => {
             <p>Hola, hemos registrado tu solicitud de servicio en <b>SPA Vehicular</b>.</p>
             <hr style="border: 0; border-top: 1px solid #eee;" />
             <p><b>📅 Fecha y Hora:</b> ${fechaFormateada}</p>
+            <p><b>💰 Precio:</b> $${Number(nuevaCita.precio).toLocaleString('es-CO')}</p>
             <p><b>📌 Estado:</b> ${nuevaCita.estado || 'Pendiente'}</p>
             <br/>
             <p>¡Gracias por confiar en nosotros! Te esperamos a tiempo.</p>
