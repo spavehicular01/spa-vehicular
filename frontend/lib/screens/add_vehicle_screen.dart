@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
 
+
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
 
@@ -12,13 +13,15 @@ class AddVehicleScreen extends StatefulWidget {
 
   @override
   State<AddVehicleScreen> createState() => _AddVehicleScreenState();
-}
+} 
+
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
   late TextEditingController _referenciaController;
+  
   late TextEditingController _modeloController;
 
   final Map<String, String> _tiposVehiculo = {
@@ -71,31 +74,42 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     super.dispose();
   }
 
-  Future<void> _seleccionarImagen(ImageSource source) async {
-    final XFile? imagen = await _picker.pickImage(
-      source: source,
-      imageQuality: 80,
-    );
-    if (imagen != null) {
-      setState(() => _imagenSeleccionada = imagen);
+    Future<void> _seleccionarImagen(ImageSource source) async {
+    try {
+      final XFile? imagen = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+      if (imagen != null && mounted) {
+        setState(() => _imagenSeleccionada = imagen);
+      }
+    } catch (_) {
+      if (mounted) {
+        _mostrarMensaje(
+          'No se pudo acceder a la cámara/galería. Revisa los permisos.',
+          error: true,
+        );
+      }
     }
   }
 
   void _mostrarOpcionesImagen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library, color: AppColors.secondary),
               title: const Text('Galería'),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(sheetContext).pop();
                 _seleccionarImagen(ImageSource.gallery);
               },
             ),
@@ -103,7 +117,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               leading: const Icon(Icons.photo_camera, color: AppColors.secondary),
               title: const Text('Cámara'),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(sheetContext).pop();
                 _seleccionarImagen(ImageSource.camera);
               },
             ),
@@ -112,7 +126,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       ),
     );
   }
-
   void _mostrarMensaje(String texto, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -187,9 +200,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final esEdicion = widget.vehicleToEdit != null;
+    final bool esEdicion = widget.vehicleToEdit != null;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
       ),

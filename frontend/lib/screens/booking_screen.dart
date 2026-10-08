@@ -229,9 +229,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
       final respuesta = await _controller.confirmarReserva(datosCita);
 
-      setState(() => _isLoading = false);
-
       if (!mounted) return;
+      setState(() => _isLoading = false);
 
       if (_controller.fueExitosa(respuesta)) {
         _mostrarDialogoExito();
@@ -245,6 +244,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _mostrarError(mensajeError.toString());
       }
     } catch (e, stackTrace) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       debugPrint('--> EXCEPCIÓN AL AGENDAR: $e');
       debugPrint('--> STACKTRACE: $stackTrace');
@@ -297,7 +297,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       // Sin colores manuales: usa appBarTheme (navy, centrado, blanco)

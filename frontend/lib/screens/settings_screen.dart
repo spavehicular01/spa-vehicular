@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../main.dart'; // Importante para acceder a los Notifier globales
+import '../main.dart';
+import '../theme/app_theme.dart';
 import '../services/user_service.dart';
 
 import '../widgets/settings/profile_avatar.dart';
@@ -12,8 +14,13 @@ import '../widgets/settings/global_settings_card.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
+  final Function(Map<String, dynamic>)? onUsuarioActualizado;
 
-  const SettingsScreen({super.key, this.usuario});
+  const SettingsScreen({
+    super.key,
+    this.usuario,
+    this.onUsuarioActualizado,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -30,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
 
-  // Comprueba si existe una sesión activa
   bool get _estaAutenticado => widget.usuario != null && widget.usuario!.isNotEmpty;
 
   @override
@@ -67,14 +73,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('modo_oscuro', value);
     themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
-    setState(() {});
   }
 
   Future<void> _cambiarTamanioLetra(double value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('font_scale', value);
     fontSizeNotifier.value = value;
-    setState(() {});
   }
 
   Future<void> _seleccionarFoto() async {
@@ -91,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userId = widget.usuario?['id'] ?? widget.usuario?['_id'];
 
     if (userId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: No se encontró el ID del usuario'),
@@ -110,17 +115,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       imagen: _imagenSeleccionada,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (!mounted) return;
-
     if (resultado['success'] == true && resultado['usuario'] != null) {
+      final Map<String, dynamic> usuarioActualizado = Map<String, dynamic>.from(resultado['usuario']);
+
+      usuarioActualizado['id'] = userId;
+      usuarioActualizado['_id'] = userId;
+
       setState(() {
-        if (resultado['usuario']['avatar'] != null) {
-          _avatarUrl = resultado['usuario']['avatar'];
+        if (usuarioActualizado['avatar'] != null) {
+          _avatarUrl = usuarioActualizado['avatar'];
         }
         _imagenSeleccionada = null;
       });
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(usuarioActualizado));
+
+      if (widget.onUsuarioActualizado != null) {
+        widget.onUsuarioActualizado!(usuarioActualizado);
+      }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -131,11 +147,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _mostrarDialogoCambiarPassword() {
+    final actualCtrl = TextEditingController();
+    final nuevaCtrl = TextEditingController();
+    bool enviando = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Cambiar Contraseña'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: actualCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Contraseña Actual',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nuevaCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nueva Contraseña',
+                      prefixIcon: Icon(Icons.lock_reset),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: enviando
+                      ? null
+                      : () {
+                          actualCtrl.dispose();
+                          nuevaCtrl.dispose();
+                          Navigator.pop(dialogContext);
+                        },
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.azulElectrico,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: enviando
+                      ? null
+                      : () async {
+                          final userId = widget.usuario?['id'] ?? widget.usuario?['_id'];
+                          if (userId == null) return;
+
+                          setDialogState(() => enviando = true);
+
+                          final res = await UserService.cambiarPassword(
+                            id: userId.toString(),
+                            passwordActual: actualCtrl.text.trim(),
+                            nuevaPassword: nuevaCtrl.text.trim(),
+                          );
+
+                          setDialogState(() => enviando = false);
+                          actualCtrl.dispose();
+                          nuevaCtrl.dispose();
+
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
+
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res['message'] ?? 'Procesado'),
+                              backgroundColor: res['success'] == true ? Colors.green : Colors.red,
+                            ),
+                          );
+                        },
+                  child: enviando
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Actualizar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool esModoOscuro = themeNotifier.value == ThemeMode.dark;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(_estaAutenticado ? 'Ajustes de Perfil' : 'Ajustes y Configuración'),
       ),
@@ -159,6 +274,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 isLoading: _isLoading,
                 onGuardar: _guardarCambios,
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _mostrarDialogoCambiarPassword,
+                icon: const Icon(Icons.key),
+                label: const Text('Cambiar Contraseña'),
+              ),
               const SizedBox(height: 24),
             ] else ...[
               LoginPromptCard(
@@ -169,11 +290,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
             ],
 
-            GlobalSettingsCard(
-              esModoOscuro: esModoOscuro,
-              fontScale: fontSizeNotifier.value,
-              onCambiarModoOscuro: _cambiarModoOscuro,
-              onCambiarTamanioLetra: _cambiarTamanioLetra,
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: themeNotifier,
+              builder: (context, currentThemeMode, _) {
+                final bool modoOscuroActivo = currentThemeMode == ThemeMode.dark;
+
+                return ValueListenableBuilder<double>(
+                  valueListenable: fontSizeNotifier,
+                  builder: (context, currentFontScale, _) {
+                    return GlobalSettingsCard(
+                      esModoOscuro: modoOscuroActivo,
+                      fontScale: currentFontScale,
+                      onCambiarModoOscuro: _cambiarModoOscuro,
+                      onCambiarTamanioLetra: _cambiarTamanioLetra,
+                    );
+                  },
+                );
+              },
             ),
 
             if (_estaAutenticado) ...[
@@ -184,7 +317,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'Cerrar Sesión',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
-                onTap: () {
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove('user_data');
+                  await prefs.remove('token');
+
+                  if (!mounted) return;
+
+                  widget.onUsuarioActualizado?.call({});
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
               ),

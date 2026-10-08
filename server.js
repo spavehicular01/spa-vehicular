@@ -26,17 +26,24 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
   }
 });
 
 // Middlewares Globales
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // Adjuntar `io` a `req`
 app.use((req, res, next) => {
   req.io = io;
+  next();
+});
+
+// Middleware de rastreo de peticiones (debe ir antes de las rutas)
+app.use((req, res, next) => {
+  console.log(`📩 [${new Date().toLocaleTimeString()}] Petición recibida: ${req.method} ${req.originalUrl}`);
   next();
 });
 
@@ -50,12 +57,6 @@ mongoose.connect(process.env.MONGO_URI)
   })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
-// Middleware de rastreo de peticiones
-app.use((req, res, next) => {
-  console.log(`📩 [${new Date().toLocaleTimeString()}] Petición recibida: ${req.method} ${req.url}`);
-  next();
-});
-
 // Eventos de conexión de WebSockets
 io.on('connection', (socket) => {
   console.log(`⚡ Cliente o Admin conectado a WebSocket ID: ${socket.id}`);
@@ -68,7 +69,11 @@ io.on('connection', (socket) => {
 // Rutas base de la API (Consolidadas)
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+
+// Registramos ambas variaciones para evitar fallos por "/" al final
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/appointments/', appointmentRoutes);
+
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);

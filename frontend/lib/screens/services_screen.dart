@@ -113,16 +113,16 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
+              return const Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: EdgeInsets.all(24.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.local_car_wash_outlined,
                           color: AppColors.muted, size: 40),
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12),
+                      Text(
                         'No hay servicios disponibles.',
                         style: AppTextStyles.body,
                       ),
