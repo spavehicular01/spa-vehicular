@@ -15,8 +15,7 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import { crearAdminSemilla } from './src/utils/seedAdmin.js';
 import userRoutes from './src/routes/userRoutes.js';
-
-// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
+import reviewRoutes from './src/routes/reviewRoutes.js';// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const app = express();
@@ -69,7 +68,7 @@ io.on('connection', (socket) => {
 // Rutas base de la API (Consolidadas)
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
-
+app.use('/api/reviews', reviewRoutes);
 // Registramos ambas variaciones para evitar fallos por "/" al final
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/appointments/', appointmentRoutes);
