@@ -50,9 +50,9 @@ app.use((req, res, next) => {
 // Conexión a MongoDB
 console.log('URI leída desde .env:', process.env.MONGO_URI);
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, { dbName: 'spa_vehicular' })
   .then(async () => {
-    console.log('✅ Conectado exitosamente a MongoDB Atlas');
+    console.log('✅ Conectado a MongoDB Atlas, base:', mongoose.connection.name);
     await crearAdminSemilla();
   })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));

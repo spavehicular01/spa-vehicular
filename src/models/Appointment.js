@@ -16,6 +16,8 @@ const appointmentSchema = new mongoose.Schema({
     direccion: { type: String, default: '' },
     telefonoContacto: { type: String, default: '' }
   },
+  metodoPago: { type: String, trim: true, maxlength: 40, default: '' },
+  especificaciones: { type: String, trim: true, maxlength: 500, default: '' },
   estado: { 
     type: String, 
     enum: ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada'], 

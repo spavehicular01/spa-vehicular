@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/vehicle_types.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
-
+import '../utils/session_utils.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -13,22 +14,18 @@ class AddVehicleScreen extends StatefulWidget {
 
   @override
   State<AddVehicleScreen> createState() => _AddVehicleScreenState();
-} 
-
+}
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _placaController;
   late TextEditingController _marcaController;
   late TextEditingController _referenciaController;
-  
   late TextEditingController _modeloController;
 
+  // Etiqueta que ve el usuario -> valor que se guarda (ver models/vehicle_types.dart)
   final Map<String, String> _tiposVehiculo = {
-    'Automóvil': 'automovil',
-    'Motocicleta': 'moto',
-    'Camioneta': 'camioneta',
-    'SUV': 'SUV',
+    for (final t in tiposVehiculo) t.etiqueta: t.valor,
   };
   String _tipoSeleccionado = 'Automóvil';
 
@@ -74,42 +71,31 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     super.dispose();
   }
 
-    Future<void> _seleccionarImagen(ImageSource source) async {
-    try {
-      final XFile? imagen = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-      );
-      if (imagen != null && mounted) {
-        setState(() => _imagenSeleccionada = imagen);
-      }
-    } catch (_) {
-      if (mounted) {
-        _mostrarMensaje(
-          'No se pudo acceder a la cámara/galería. Revisa los permisos.',
-          error: true,
-        );
-      }
+  Future<void> _seleccionarImagen(ImageSource source) async {
+    final XFile? imagen = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
+    if (imagen != null) {
+      setState(() => _imagenSeleccionada = imagen);
     }
   }
 
   void _mostrarOpcionesImagen() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => SafeArea(
+      builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library, color: AppColors.secondary),
               title: const Text('Galería'),
               onTap: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(context).pop();
                 _seleccionarImagen(ImageSource.gallery);
               },
             ),
@@ -117,7 +103,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               leading: const Icon(Icons.photo_camera, color: AppColors.secondary),
               title: const Text('Cámara'),
               onTap: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(context).pop();
                 _seleccionarImagen(ImageSource.camera);
               },
             ),
@@ -126,6 +112,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       ),
     );
   }
+
   void _mostrarMensaje(String texto, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -144,7 +131,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? usuarioId = prefs.getString('userId');
+      final String? usuarioId = await obtenerUserIdSesion(prefs);
 
       if (usuarioId == null || usuarioId.isEmpty) {
         if (mounted) {
@@ -200,11 +187,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool esEdicion = widget.vehicleToEdit != null;
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final esEdicion = widget.vehicleToEdit != null;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
       ),

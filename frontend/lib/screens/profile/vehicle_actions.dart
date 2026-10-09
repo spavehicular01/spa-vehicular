@@ -1,11 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/vehicle_service.dart';
+import '../../utils/session_utils.dart';
 
 /// Trae los vehículos del usuario desde el backend (fuente de verdad).
 /// Devuelve null si no hay sesión guardada.
 Future<List<Map<String, String>>?> cargarVehiculosUsuario() async {
   final prefs = await SharedPreferences.getInstance();
-  final userId = prefs.getString('userId');
+  final userId = await obtenerUserIdSesion(prefs);
   final token = prefs.getString('token');
 
   if (userId == null || userId.isEmpty) return null;
