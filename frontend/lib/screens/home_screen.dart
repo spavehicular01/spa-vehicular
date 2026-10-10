@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_required_dialog.dart';
 import '../widgets/home/accesos_rapidos.dart';
-import '../widgets/home/home_data.dart';
 import '../widgets/home/home_header.dart';
-import '../widgets/home/opiniones_carrusel.dart';
+import '../widgets/home/opiniones_seccion.dart';
 import '../widgets/home/por_que_elegirnos_card.dart';
 import '../widgets/home/proxima_cita_card.dart';
 import '../widgets/home/seccion_titulo.dart';
@@ -176,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const UbicacionCard(),
                   const SizedBox(height: 28),
                   const SeccionTitulo('Opiniones de clientes'),
-                  const OpinionesCarrusel(opiniones: kOpiniones),
+                  OpinionesSeccion(conSesion: _conSesion),
                 ],
               ),
             ),

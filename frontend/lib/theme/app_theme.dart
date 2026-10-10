@@ -42,6 +42,9 @@ class AppTextStyles {
 }
 
 class AppTheme {
+  /// Alias para el código que usa el nombre anterior (cambios de la rama de tu amigo).
+  static const Color azulElectrico = AppColors.secondary;
+
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
@@ -196,7 +199,7 @@ class StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12 + 8),
       ),
       child: Text(
         label,

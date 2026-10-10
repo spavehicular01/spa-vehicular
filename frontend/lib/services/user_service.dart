@@ -68,4 +68,36 @@ class UserService {
       return {'success': false, 'message': 'Error de conexión con el servidor'};
     }
   }
+
+  // Cambiar contraseña del usuario
+  static Future<Map<String, dynamic>> cambiarPassword({
+    required String id,
+    required String passwordActual,
+    required String nuevaPassword,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/$id/cambiar-password');
+
+      final response = await http.put(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'passwordActual': passwordActual,
+          'nuevaPassword': nuevaPassword,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': response.statusCode == 200,
+        'message': data['mensaje'] ?? 'Contraseña actualizada correctamente',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error de conexión con el servidor',
+      };
+    }
+  }
 }

@@ -78,6 +78,9 @@ export const crearCita = async (req, res) => {
       modalidad,
       detallesDomicilio,
       direccion,
+      metodoPago,
+      especificaciones,
+      telefonoContacto,
       correo
     } = req.body;
 
@@ -130,8 +133,12 @@ export const crearCita = async (req, res) => {
       modalidad,
       detallesDomicilio: {
         direccion: modalidad === 'domicilio' ? direccionDomicilio : '',
-        telefonoContacto: String(detallesDomicilio?.telefonoContacto || '').trim()
-      }
+        telefonoContacto: String(
+          detallesDomicilio?.telefonoContacto || telefonoContacto || ''
+        ).trim().slice(0, 20)
+      },
+      metodoPago: String(metodoPago || '').trim().slice(0, 40),
+      especificaciones: String(especificaciones || '').trim().slice(0, 500)
     });
     await nuevaCita.save();
 

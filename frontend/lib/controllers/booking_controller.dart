@@ -89,6 +89,8 @@ class BookingController {
       'direccion': esDomicilio ? direccion.trim() : null,
       'metodoPago': metodoPago,
       'especificaciones': notas.trim(),
+      'telefonoContacto':
+          (usuario?['celular'] ?? usuario?['telefono'] ?? '').toString(),
       // 'estado' se omite intencionalmente: el schema ya tiene default: 'pendiente'
     };
   }

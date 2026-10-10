@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
@@ -9,7 +10,7 @@ import 'admin_dashboard_screen.dart';
 import '../widgets/chat_bottom_sheet.dart';
 import '../widgets/extras/ui_extras.dart';
 import '../main.dart'; // 🟢 usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
-import '../theme/app_theme.dart';
+
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -49,6 +50,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
             guardarSesionUsuario(datos);
+            guardarSesionUsuario(datos);
           },
           onIrATab: _irATab,
         );
@@ -63,6 +65,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
+            guardarSesionUsuario(datos);
             guardarSesionUsuario(datos);
           },
         );
@@ -79,12 +82,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           return LoginScreen(
             onLoginExitoso: (datos) {
               guardarSesionUsuario(datos);
+              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
           return AdminDashboardScreen(
             userData: usuarioAutenticado,
             onCerrarSesion: () {
+              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
@@ -108,6 +113,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
+              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },

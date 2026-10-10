@@ -15,8 +15,7 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import { crearAdminSemilla } from './src/utils/seedAdmin.js';
 import userRoutes from './src/routes/userRoutes.js';
-
-// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
+import reviewRoutes from './src/routes/reviewRoutes.js';// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const app = express();
@@ -26,12 +25,13 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
   }
 });
 
 // Middlewares Globales
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // Adjuntar `io` a `req`
@@ -40,21 +40,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware de rastreo de peticiones (debe ir antes de las rutas)
+app.use((req, res, next) => {
+  console.log(`📩 [${new Date().toLocaleTimeString()}] Petición recibida: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Conexión a MongoDB
 console.log('URI leída desde .env:', process.env.MONGO_URI);
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, { dbName: 'spa_vehicular' })
   .then(async () => {
-    console.log('✅ Conectado exitosamente a MongoDB Atlas');
+    console.log('✅ Conectado a MongoDB Atlas, base:', mongoose.connection.name);
     await crearAdminSemilla();
   })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
-
-// Middleware de rastreo de peticiones
-app.use((req, res, next) => {
-  console.log(`📩 [${new Date().toLocaleTimeString()}] Petición recibida: ${req.method} ${req.url}`);
-  next();
-});
 
 // Eventos de conexión de WebSockets
 io.on('connection', (socket) => {
@@ -68,7 +68,11 @@ io.on('connection', (socket) => {
 // Rutas base de la API (Consolidadas)
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/reviews', reviewRoutes);
+// Registramos ambas variaciones para evitar fallos por "/" al final
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/appointments/', appointmentRoutes);
+
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);

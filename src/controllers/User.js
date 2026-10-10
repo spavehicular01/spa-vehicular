@@ -23,6 +23,9 @@ export const registrarUsers = async (req, res) => {
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     const expiracion = new Date(Date.now() + 15 * 60 * 1000);
 
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
     const nuevoUser = new User({
       nombres: nombre,
       Nombre: nombre,
@@ -33,8 +36,8 @@ export const registrarUsers = async (req, res) => {
       Correo_Electronico,
       celular,
       telefono: celular,
-      password,
-      passwords: password,
+      password: passwordHash,
+      passwords: passwordHash,
       codigoVerificacion: codigo,
       codigoVerificacionExpiracion: expiracion,
       isVerified: false
@@ -172,9 +175,16 @@ export const login = async (req, res) => {
       message: "Inicio de sesión exitoso",
       usuario: {
         id: user._id,
+        _id: user._id,
+        nombres: user.nombres || user.Nombre,
         Nombre: user.nombres || user.Nombre,
+        apellidos: user.apellidos || user.Apellido,
         Correo_Electronico: user.correo || user.Correo_Electronico,
-        rol: user.rol
+        correo: user.correo || user.Correo_Electronico,
+        celular: user.celular || user.telefono,
+        documentoIdentidad: user.documentoIdentidad,
+        rol: user.rol,
+        avatar: user.avatar
       }
     });
 

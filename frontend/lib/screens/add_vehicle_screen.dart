@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/vehicle_types.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/session_utils.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -21,11 +23,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   late TextEditingController _referenciaController;
   late TextEditingController _modeloController;
 
+  // Etiqueta que ve el usuario -> valor que se guarda (ver models/vehicle_types.dart)
   final Map<String, String> _tiposVehiculo = {
-    'Automóvil': 'automovil',
-    'Motocicleta': 'moto',
-    'Camioneta': 'camioneta',
-    'SUV': 'SUV',
+    for (final t in tiposVehiculo) t.etiqueta: t.valor,
   };
   String _tipoSeleccionado = 'Automóvil';
 
@@ -131,7 +131,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? usuarioId = prefs.getString('userId');
+      final String? usuarioId = await obtenerUserIdSesion(prefs);
 
       if (usuarioId == null || usuarioId.isEmpty) {
         if (mounted) {

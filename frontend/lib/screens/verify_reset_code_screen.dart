@@ -121,10 +121,10 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       if (!mounted) return;
       _showSnackBar(resultado['message'] ?? 'Cuenta verificada correctamente. ¡Bienvenido!', Colors.green);
 
-      // 🚀 REDIRECCIÓN DIRECTA A LA PANTALLA PRINCIPAL
+      // Redirección directa a la pantalla principal
       Navigator.pushNamedAndRemoveUntil(
         context,
-        '/', // Ruta principal
+        '/',
         (route) => false,
       );
     } else {
@@ -154,6 +154,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   }
 
   void _showSnackBar(String mensaje, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(mensaje),
@@ -164,7 +165,10 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Verificar Cuenta'),
         backgroundColor: const Color(0xFF001EFF),
@@ -214,21 +218,19 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Tiempo de expiración
               Text(
                 _secondsRemaining > 0
                     ? 'El código expira en: $_formattedTime'
                     : 'El código ha expirado',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _secondsRemaining > 0 ? Colors.black87 : Colors.red,
+                  color: _secondsRemaining > 0 ? (isDark ? Colors.white70 : Colors.black87) : Colors.red,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Botón de Verificación
               ElevatedButton(
                 onPressed: _isLoading ? null : _verificarCodigo,
                 style: ElevatedButton.styleFrom(
@@ -252,7 +254,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Botón Reenviar
               TextButton(
                 onPressed: (_canResend && !_isLoading) ? _reenviarCodigo : null,
                 child: Text(

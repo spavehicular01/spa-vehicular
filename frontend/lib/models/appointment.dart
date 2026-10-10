@@ -43,4 +43,4 @@ class Appointment {
       'estado': estado,
     };
   }
-} 
+}
