@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
 import bcrypt from 'bcryptjs';
