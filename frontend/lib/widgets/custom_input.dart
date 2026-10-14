@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class CustomInput extends StatelessWidget {
   final String label;
@@ -20,9 +21,17 @@ class CustomInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color inputBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final bool isDark = context.isDark;
+    final Color inputBg = isDark ? AppColors.darkSurface : Colors.white;
+    final Color textColor = isDark ? AppColors.darkText : AppColors.primary;
+    final BorderSide side =
+        isDark ? const BorderSide(color: AppColors.darkBorder) : BorderSide.none;
+    final Color accent = isDark ? AppColors.accent : AppColors.secondary;
+
+    OutlineInputBorder borde(BorderSide s) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: s,
+        );
 
     return TextFormField(
       controller: controller,
@@ -32,14 +41,13 @@ class CustomInput extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
-        prefixIcon: Icon(icon, color: Colors.blueAccent),
+        labelStyle: TextStyle(color: isDark ? AppColors.darkMuted : Colors.grey.shade700),
+        prefixIcon: Icon(icon, color: accent),
         filled: true,
         fillColor: inputBg,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
+        border: borde(side),
+        enabledBorder: borde(side),
+        focusedBorder: borde(BorderSide(color: accent, width: 1.5)),
       ),
     );
   }

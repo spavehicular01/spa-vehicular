@@ -127,12 +127,11 @@ class HistoryWashesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reportes e Historial'),
-        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
-      backgroundColor: AppColors.background,
       body: FutureBuilder<List<dynamic>>(
         future: _cargarHistorial(),
         builder: (context, snapshot) {
@@ -167,9 +166,9 @@ class HistoryWashesScreen extends StatelessWidget {
                   ),
                   trailing: Text(
                     '\$${_extraerPrecio(cita)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.secondary,
+                      color: context.isDark ? AppColors.accent : AppColors.secondary,
                       fontSize: 15,
                     ),
                   ),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'verify_reset_code_screen.dart'; // 🟢 ajusta el path si está en otra carpeta
+import 'verify_reset_code_screen.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -91,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // 🟢 NUEVO: Login con Google
+  // Login con Google
   Future<void> _iniciarSesionConGoogle() async {
     setState(() => _cargandoGoogle = true);
 
@@ -102,7 +103,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (resultado['success'] == true) {
-      // El backend de Google devuelve los campos con nombres distintos (Nombre, Apellido, Correo_Electronico)
       final usuario = resultado['usuario'] ?? {};
 
       widget.onLoginExitoso({
@@ -130,6 +130,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -137,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.account_circle, size: 80, color: Color(0xFF001EFF)),
+              Icon(Icons.account_circle, size: 80, color: context.brand),
               const SizedBox(height: 16),
               const Text(
                 'Bienvenido',
@@ -182,10 +184,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     '¿Has olvidado tu contraseña?',
                     style: TextStyle(
-                      color: Colors.blue,
+                      color: context.brand,
                       fontSize: 13,
                       decoration: TextDecoration.underline,
                     ),
@@ -196,16 +198,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _cargando ? null : _iniciarSesion,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0011FF),
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.brand,
+                  foregroundColor: context.onBrand,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: _cargando
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.onBrand,
                           strokeWidth: 2,
                         ),
                       )
@@ -216,20 +218,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 🟢 Separador visual
+              // Separador visual
               Row(
                 children: [
                   const Expanded(child: Divider()),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text('o', style: TextStyle(color: Colors.grey.shade600)),
+                    child: Text('o', style: TextStyle(color: cs.onSurfaceVariant)),
                   ),
                   const Expanded(child: Divider()),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // 🟢 Botón de Google
+              // Botón de Google
               OutlinedButton.icon(
                 onPressed: _cargandoGoogle ? null : _iniciarSesionConGoogle,
                 icon: _cargandoGoogle
@@ -250,8 +252,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black87,
-                  side: BorderSide(color: Colors.grey.shade400),
+                  foregroundColor: cs.onSurface,
+                  side: BorderSide(color: context.isDark ? AppColors.darkBorder : Colors.grey.shade400),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -271,8 +273,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF0026FF),
-                  side: const BorderSide(color: Color(0xFF001AFF), width: 1.5),
+                  foregroundColor: context.brand,
+                  side: BorderSide(color: context.brand, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(

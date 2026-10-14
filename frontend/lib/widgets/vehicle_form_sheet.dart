@@ -86,8 +86,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: EdgeInsets.only(
         top: 24,
@@ -116,6 +114,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
             const SizedBox(height: 12),
             CustomInput(label: 'Modelo (Año Ej: 2022)', icon: Icons.calendar_today_outlined, controller: _modeloCtrl, keyboardType: TextInputType.number),
             const SizedBox(height: 12),
+            // Sin dropdownColor fijo: el menú toma el color del tema (claro/oscuro).
             DropdownButtonFormField<String>(
               value: _tipoSeleccionado,
               decoration: InputDecoration(
@@ -123,7 +122,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                 prefixIcon: const Icon(Icons.category_outlined, color: AppTheme.azulElectrico),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               items: _tiposVehiculo.keys.map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo))).toList(),
               onChanged: (val) {
                 if (val != null) setState(() => _tipoSeleccionado = val);

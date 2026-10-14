@@ -15,6 +15,9 @@ class AppointmentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // En oscuro el azul agua casi no se ve: se usa el cian.
+    final Color acento = context.isDark ? AppColors.accent : AppColors.secondary;
+
     return Card(
       color: AppColors.accent.withValues(alpha: 0.12),
       elevation: 0,
@@ -26,7 +29,7 @@ class AppointmentSummaryCard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            const Icon(Icons.event_available, color: AppColors.secondary, size: 36),
+            Icon(Icons.event_available, color: acento, size: 36),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,8 +41,8 @@ class AppointmentSummaryCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Hora del cupo: $selectedTime',
-                  style: const TextStyle(
-                    color: AppColors.secondary,
+                  style: TextStyle(
+                    color: acento,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

@@ -21,11 +21,11 @@ class PaymentMethodSelector extends StatelessWidget {
       children: [
         const Text('Método de Pago:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
+        // Sin dropdownColor fijo: el menú toma el color del tema (claro/oscuro).
         DropdownButtonFormField<String>(
           initialValue: metodoPago,
           isExpanded: true,
           borderRadius: BorderRadius.circular(14),
-          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.payment, color: AppColors.secondary),
           ),

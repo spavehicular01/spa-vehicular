@@ -22,6 +22,7 @@ class ModalitySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool esDomicilio = modalidad == valorDomicilio;
+    final Color acento = context.isDark ? AppColors.accent : AppColors.secondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +33,7 @@ class ModalitySelector extends StatelessWidget {
           title: const Text('Llevo el vehículo al spa', style: AppTextStyles.body),
           value: valorSpa,
           groupValue: modalidad,
-          activeColor: AppColors.secondary,
+          activeColor: acento,
           onChanged: onChanged,
         ),
         RadioListTile<String>(
@@ -40,16 +41,16 @@ class ModalitySelector extends StatelessWidget {
           title: const Text('A domicilio', style: AppTextStyles.body),
           value: valorDomicilio,
           groupValue: modalidad,
-          activeColor: AppColors.secondary,
+          activeColor: acento,
           onChanged: onChanged,
         ),
         if (esDomicilio) ...[
           const SizedBox(height: 8),
           TextFormField(
             controller: direccionController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Dirección de residencia / entrega',
-              prefixIcon: Icon(Icons.home, color: AppColors.secondary),
+              prefixIcon: Icon(Icons.home, color: acento),
             ),
             validator: (val) {
               if (esDomicilio && (val == null || val.trim().isEmpty)) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Fila de 5 estrellas (solo lectura).
 class EstrellasFila extends StatelessWidget {
@@ -31,6 +32,8 @@ class OpinionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bool isDark = context.isDark;
     final calificacion = (opinion['calificacion'] as num?)?.toInt() ?? 0;
     final comentario = (opinion['comentario'] ?? '').toString().trim();
     final nombre = (opinion['nombre'] ?? 'Cliente').toString();
@@ -40,11 +43,14 @@ class OpinionCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 2)),
-        ],
+        border: isDark ? Border.all(color: AppColors.darkBorder) : null,
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 2)),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,14 +65,18 @@ class OpinionCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
-                color: comentario.isEmpty ? Colors.black38 : Colors.black87,
+                color: comentario.isEmpty ? cs.onSurfaceVariant : cs.onSurface,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             nombre,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
           ),
         ],
       ),

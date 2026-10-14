@@ -31,18 +31,16 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final bool isDark = context.isDark;
+    final cs = Theme.of(context).colorScheme;
+    final Color cardBg = cs.surface;
+    final Color textColor = cs.onSurface;
+    final Color borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      // Fondo y AppBar vienen del tema (misma paleta que Inicio).
       appBar: AppBar(
         title: const Text('Seleccionar Cita', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppTheme.azulElectrico,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Stack(
         children: [
@@ -76,7 +74,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.calendar_month, color: AppTheme.azulElectrico),
+                          Icon(Icons.calendar_month, color: context.brand),
                           const SizedBox(width: 8),
                           Text(
                             'Fecha del Servicio',
@@ -114,7 +112,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.access_time_filled, color: AppTheme.azulElectrico),
+                          Icon(Icons.access_time_filled, color: context.brand),
                           const SizedBox(width: 8),
                           Text(
                             'Horarios Disponibles',
@@ -131,16 +129,17 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                           return ChoiceChip(
                             label: Text(hora),
                             selected: isSelected,
-                            selectedColor: AppTheme.azulElectrico,
-                            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            selectedColor: context.brand,
+                            backgroundColor: isDark ? AppColors.darkScaffold : const Color(0xFFF8FAFC),
+                            showCheckmark: false,
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : textColor,
+                              color: isSelected ? context.onBrand : textColor,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                               side: BorderSide(
-                                color: isSelected ? AppTheme.azulElectrico : borderColor,
+                                color: isSelected ? context.brand : borderColor,
                               ),
                             ),
                             onSelected: (selected) {
@@ -180,18 +179,18 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.azulElectrico,
-                      disabledBackgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade400,
+                      backgroundColor: context.brand,
+                      disabledBackgroundColor: isDark ? AppColors.darkSurface : Colors.grey.shade400,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Continuar a Detalles',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: context.onBrand,
                       ),
                     ),
                   ),

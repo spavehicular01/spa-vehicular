@@ -47,6 +47,8 @@ class _OpinionesSeccionState extends State<OpinionesSeccion> {
 
   @override
   Widget build(BuildContext context) {
+    final suave = Theme.of(context).colorScheme.onSurfaceVariant;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -63,7 +65,7 @@ class _OpinionesSeccionState extends State<OpinionesSeccion> {
                 ),
                 const SizedBox(width: 6),
                 Text('(${_resumen.total} opiniones)',
-                    style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                    style: TextStyle(color: suave, fontSize: 13)),
               ],
             ),
           ),
@@ -71,12 +73,12 @@ class _OpinionesSeccionState extends State<OpinionesSeccion> {
           const SizedBox(
               height: 140, child: Center(child: CircularProgressIndicator()))
         else if (_resumen.opiniones.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Text(
               'Aún no hay opiniones. ¡Sé el primero en opinar!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54),
+              style: TextStyle(color: suave),
             ),
           )
         else

@@ -84,7 +84,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   void _mostrarOpcionesImagen() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -293,11 +293,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               const SizedBox(height: 16),
 
               _etiqueta('Tipo de Vehículo'),
+              // Sin dropdownColor fijo: el menú toma el color del tema.
               DropdownButtonFormField<String>(
                 initialValue: _tipoSeleccionado,
                 isExpanded: true,
                 borderRadius: BorderRadius.circular(14),
-                dropdownColor: AppColors.surface,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.category, color: AppColors.secondary),
                 ),

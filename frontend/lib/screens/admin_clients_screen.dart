@@ -104,7 +104,10 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
             const SizedBox(height: 16),
             Text(
               'Vehículos Registrados',
-              style: AppTextStyles.bodyStrong.copyWith(color: AppColors.secondary, fontSize: 16),
+              style: AppTextStyles.bodyStrong.copyWith(
+                color: context.isDark ? AppColors.accent : AppColors.secondary,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
             vehiculos.isEmpty
@@ -131,12 +134,11 @@ class _AdminClientsScreenState extends State<AdminClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lista de Clientes'),
-        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
-      backgroundColor: AppColors.background,
       body: _cargando
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : RefreshIndicator(
