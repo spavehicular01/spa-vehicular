@@ -15,7 +15,11 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import uploadRoutes from './src/routes/uploadRoutes.js';
 import { crearAdminSemilla } from './src/utils/seedAdmin.js';
 import userRoutes from './src/routes/userRoutes.js';
-import reviewRoutes from './src/routes/reviewRoutes.js';// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
+import reviewRoutes from './src/routes/reviewRoutes.js';
+import paymentRoutes from './src/routes/paymentRoutes.js';
+import notificationRoutes from './src/routes/notificationRoutes.js';
+
+// Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const app = express();
@@ -25,7 +29,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   }
 });
 
@@ -47,8 +51,7 @@ app.use((req, res, next) => {
 });
 
 // Conexión a MongoDB
-console.log('URI leída desde .env:', process.env.MONGO_URI);
-
+// (ya no se imprime la URI: contiene la contraseña de la base de datos)
 mongoose.connect(process.env.MONGO_URI, { dbName: 'spa_vehicular' })
   .then(async () => {
     console.log('✅ Conectado a MongoDB Atlas, base:', mongoose.connection.name);
@@ -72,11 +75,13 @@ app.use('/api/reviews', reviewRoutes);
 // Registramos ambas variaciones para evitar fallos por "/" al final
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/appointments/', appointmentRoutes);
-
+app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
+
 // Ruta raíz
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API Cars-Wash funcionando correctamente 🚀' });
@@ -103,6 +108,8 @@ const todasLasRutas = [
   ...extraerRutasRouter(authRoutes, '/api/auth'),
   ...extraerRutasRouter(vehicleRoutes, '/api/vehicles'),
   ...extraerRutasRouter(appointmentRoutes, '/api/appointments'),
+  ...extraerRutasRouter(paymentRoutes, '/api/payments'),
+  ...extraerRutasRouter(notificationRoutes, '/api/notifications'),
   ...extraerRutasRouter(serviceRoutes, '/api/services'),
   ...extraerRutasRouter(chatbotRoutes, '/api/chat'),
   ...extraerRutasRouter(uploadRoutes, '/api/upload'),

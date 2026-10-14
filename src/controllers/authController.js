@@ -82,14 +82,14 @@ export const login = async (req, res) => {
 // 2. Registrar usuario
 export const registro = async (req, res) => {
   try {
+    // 🔒 Ya NO se lee `rol` del body: cualquier registro público es 'usuario'.
     const { 
       nombres, Nombre, 
       apellidos, Apellido, 
       documentoIdentidad, 
       correo, Correo_Electronico, 
       celular, telefono, 
-      password, passwords, 
-      rol 
+      password, passwords
     } = req.body;
 
     const emailVal = (correo || Correo_Electronico)?.toLowerCase().trim();
@@ -127,7 +127,9 @@ export const registro = async (req, res) => {
     // Código de activación y expiración de 10 minutos
     const codigoVerif = Math.floor(100000 + Math.random() * 900000).toString();
     const expiracionVerif = new Date(Date.now() + 10 * 60 * 1000);
-    const rolDefinido = rol ? rol.toLowerCase() : 'usuario';
+
+    // 🔒 Rol fijo: los administradores se crean directamente en la base de datos
+    const rolDefinido = 'usuario';
 
     const nuevoUsuario = new User({
       nombres: nombresVal,

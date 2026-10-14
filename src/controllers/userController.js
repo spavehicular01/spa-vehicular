@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
 
@@ -20,7 +21,7 @@ export const actualizarPerfil = async (req, res) => {
     const usuarioActualizado = await User.findByIdAndUpdate(
       id,
       datosActualizar,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!usuarioActualizado) {
@@ -62,6 +63,50 @@ export const actualizarPerfil = async (req, res) => {
   }
 };
 
+// Cambiar la contraseña del usuario (pide la actual para confirmar que es él)
+export const cambiarPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { passwordActual, nuevaPassword } = req.body;
+
+    if (!passwordActual || !nuevaPassword) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Debes enviar la contraseña actual y la nueva'
+      });
+    }
+
+    if (String(nuevaPassword).length < 6) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'La nueva contraseña debe tener al menos 6 caracteres'
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
+    }
+
+    // Se usa 400 (y no 401) para que la app no lo confunda con una sesión vencida
+    const hashActual = user.password || user.passwords;
+    const coincide = hashActual ? await bcrypt.compare(String(passwordActual), hashActual) : false;
+    if (!coincide) {
+      return res.status(400).json({ ok: false, mensaje: 'La contraseña actual es incorrecta' });
+    }
+
+    const passwordHasheada = await bcrypt.hash(String(nuevaPassword), 10);
+    user.password = passwordHasheada;
+    if (user.passwords !== undefined) user.passwords = passwordHasheada;
+    await user.save();
+
+    return res.status(200).json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    console.error('Error en cambiarPassword:', error);
+    return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña' });
+  }
+};
+
 // Obtener todos los clientes con sus vehículos (Panel Admin)
 export const obtenerClientes = async (req, res) => {
   try {
@@ -98,5 +143,6 @@ export const obtenerClientes = async (req, res) => {
 
 export default {
   actualizarPerfil,
+  cambiarPassword,
   obtenerClientes
 };

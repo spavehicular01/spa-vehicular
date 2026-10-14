@@ -3,6 +3,7 @@ import Vehicle from '../models/Vehicle.js';
 import Service from '../models/Service.js';
 import { sendEmail } from '../services/emailService.js';
 import { contarCitasEnHora, LIMITE_POR_HORA } from '../utils/cupos.js';
+import { crearNotificacion } from '../utils/notificaciones.js';
 
 const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
 
@@ -142,6 +143,23 @@ export const crearCita = async (req, res) => {
     });
     await nuevaCita.save();
 
+    // 🟢 Guardar la notificación en la base de datos
+    const fechaNotificacion = new Date(nuevaCita.fechaHoraCita).toLocaleString('es-CO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Bogota'
+    });
+    await crearNotificacion(
+      {
+        usuarioId: nuevaCita.usuarioId,
+        citaId: nuevaCita._id,
+        tipo: 'cita_creada',
+        titulo: '🚗 Cita agendada',
+        mensaje: `Tu cita quedó agendada para el ${fechaNotificacion}.`
+      },
+      req.io
+    );
+
     const correoDestino = correo || (req.user && req.user.correo);
 
     if (correoDestino) {
@@ -219,6 +237,23 @@ export const reprogramarCita = async (req, res) => {
     cita.estado = 'reprogramada';
     await cita.save();
 
+    // 🟢 Guardar la notificación en la base de datos
+    const fechaNotificacion = fechaValida.toLocaleString('es-CO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Bogota'
+    });
+    await crearNotificacion(
+      {
+        usuarioId: cita.usuarioId,
+        citaId: cita._id,
+        tipo: 'cita_reprogramada',
+        titulo: '🔄 Cita reprogramada',
+        mensaje: `Tu cita cambió de horario. Nueva fecha: ${fechaNotificacion}.`
+      },
+      req.io
+    );
+
     if (req.io) {
       req.io.emit('cita_reprogramada', cita);
     }
@@ -267,7 +302,7 @@ export const reprogramarCita = async (req, res) => {
   }
 };
 
-// 6. Cambiar Estado de Cita (WebSockets + Email)
+// 6. Cambiar Estado de Cita (WebSockets + Email + Notificación guardada)
 const ESTADOS_VALIDOS = ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada'];
 
 export const cambiarEstadoCita = async (req, res) => {
@@ -282,12 +317,48 @@ export const cambiarEstadoCita = async (req, res) => {
     const citaActualizada = await Appointment.findByIdAndUpdate(
       citaId,
       { estado },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('usuarioId', POPULATE_USUARIO);
 
     if (!citaActualizada) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
     }
+
+    // 🟢 Textos según el estado (se usan en la notificación guardada y en el correo)
+    let titulo = 'Actualización de tu Servicio';
+    let mensajeColor = '#2b6cb0';
+    let contenido = `El estado de tu cita ha cambiado a: <b>${estado}</b>.`;
+    let mensajeNotificacion = `El estado de tu cita cambió a: ${estado}.`;
+
+    if (estado === 'en_proceso') {
+      titulo = '🧼 ¡Tu vehículo ha entrado a lavado!';
+      mensajeColor = '#3182ce';
+      contenido = 'Hemos comenzado a trabajar en tu vehículo. ¡Te avisaremos en cuanto esté impecable!';
+      mensajeNotificacion = 'Hemos comenzado a trabajar en tu vehículo.';
+    } else if (estado === 'finalizada') {
+      titulo = '✅ ¡Tu vehículo está listo!';
+      mensajeColor = '#38a169';
+      contenido = 'El servicio ha finalizado con éxito. Ya puedes pasar a recoger tu vehículo. Recuerda que el pago se realiza en el spa al recogerlo.';
+      mensajeNotificacion = 'Tu vehículo está listo. Ya puedes recogerlo; el pago se realiza en el spa.';
+    } else if (estado === 'cancelada') {
+      titulo = '❌ Cita Cancelada';
+      mensajeColor = '#e53e3e';
+      contenido = 'Tu cita ha sido cancelada. Si consideras que es un error, por favor comunícate con nosotros.';
+      mensajeNotificacion = 'Tu cita fue cancelada.';
+    }
+
+    // 🟢 Guardar la notificación en la colección notifications
+    const usuario = citaActualizada.usuarioId; // populado (objeto) o null si el usuario fue borrado
+    await crearNotificacion(
+      {
+        usuarioId: usuario && usuario._id ? usuario._id : usuario,
+        citaId: citaActualizada._id,
+        tipo: 'cambio_estado',
+        titulo,
+        mensaje: mensajeNotificacion
+      },
+      req.io
+    );
 
     if (req.io) {
       req.io.emit('cambio_estado_cita', {
@@ -297,27 +368,11 @@ export const cambiarEstadoCita = async (req, res) => {
       });
     }
 
-    const correoDestino = req.body.correo || (req.user && req.user.correo);
+    // 🟢 El correo va al CLIENTE dueño de la cita (req.user es quien hace la acción, es decir, el admin)
+    const correoCliente = usuario && (usuario.correo || usuario.Correo_Electronico);
+    const correoDestino = correoCliente || req.body.correo;
 
     if (correoDestino) {
-      let titulo = 'Actualización de tu Servicio';
-      let mensajeColor = '#2b6cb0';
-      let contenido = `El estado de tu cita ha cambiado a: <b>${estado}</b>.`;
-
-      if (estado === 'en_proceso') {
-        titulo = '🧼 ¡Tu vehículo ha entrado a lavado!';
-        mensajeColor = '#3182ce';
-        contenido = 'Hemos comenzado a trabajar en tu vehículo. ¡Te avisaremos en cuanto esté impecable!';
-      } else if (estado === 'finalizada') {
-        titulo = '✅ ¡Tu vehículo está listo!';
-        mensajeColor = '#38a169';
-        contenido = 'El servicio ha finalizado con éxito. Ya puedes pasar a recoger tu vehículo.';
-      } else if (estado === 'cancelada') {
-        titulo = '❌ Cita Cancelada';
-        mensajeColor = '#e53e3e';
-        contenido = 'Tu cita ha sido cancelada. Si consideras que es un error, por favor comunícate con nosotros.';
-      }
-
       sendEmail({
         to: correoDestino,
         subject: `${titulo} - SPA Vehicular`,
@@ -345,6 +400,60 @@ export const cambiarEstadoCita = async (req, res) => {
       mensaje: 'Error al cambiar estado de la cita', 
       error: error.message 
     });
+  }
+};
+
+// 6.1 Cancelar cita (la puede cancelar su dueño o un administrador)
+const ESTADOS_CANCELABLES = ['pendiente', 'confirmada', 'reprogramada'];
+
+export const cancelarCita = async (req, res) => {
+  try {
+    const { citaId } = req.params;
+
+    const cita = await Appointment.findById(citaId);
+    if (!cita) {
+      return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    const esDueno = String(cita.usuarioId) === String(req.user && req.user.id);
+    const esAdminUser = String((req.user && req.user.rol) || '').toLowerCase() === 'admin';
+
+    if (!esDueno && !esAdminUser) {
+      return res.status(403).json({ mensaje: 'No puedes cancelar una cita que no es tuya' });
+    }
+
+    if (!ESTADOS_CANCELABLES.includes(cita.estado)) {
+      return res.status(400).json({
+        mensaje: `No se puede cancelar una cita en estado '${cita.estado}'`
+      });
+    }
+
+    cita.estado = 'cancelada';
+    await cita.save();
+
+    await crearNotificacion(
+      {
+        usuarioId: cita.usuarioId,
+        citaId: cita._id,
+        tipo: 'cambio_estado',
+        titulo: '❌ Cita cancelada',
+        mensaje: 'Tu cita fue cancelada.'
+      },
+      req.io
+    );
+
+    if (req.io) {
+      req.io.emit('cambio_estado_cita', {
+        citaId: cita._id,
+        nuevoEstado: cita.estado,
+        cita
+      });
+    }
+
+    res.status(200).json({ mensaje: 'Cita cancelada correctamente', cita });
+  } catch (error) {
+    console.error('Error en cancelarCita:', error);
+    res.status(500).json({ mensaje: 'Error al cancelar la cita', error: error.message });
   }
 };
 
@@ -382,5 +491,6 @@ export default {
   crearCita,
   reprogramarCita,
   cambiarEstadoCita,
+  cancelarCita,
   obtenerCitasPorFecha
 };

@@ -108,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
 
     final resultado = await UserService.actualizarPerfil(
-      id: userId,
+      id: userId.toString(),
       nombres: _nombresController.text.trim(),
       apellidos: _apellidosController.text.trim(),
       celular: _celularController.text.trim(),
@@ -133,6 +133,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_data', jsonEncode(usuarioActualizado));
+
+      // 🟢 Se actualiza también la sesión en memoria, conservando lo que el
+      // servidor no devuelve (token, vehículos), para que el resto de la app
+      // vea los cambios sin reiniciar.
+      guardarSesionUsuario({
+        ...?widget.usuario,
+        ...usuarioActualizado,
+      });
 
       if (widget.onUsuarioActualizado != null) {
         widget.onUsuarioActualizado!(usuarioActualizado);
@@ -324,6 +332,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   if (!mounted) return;
 
+                  // 🟢 Cierra la sesión también en memoria (antes solo se borraba
+                  // del teléfono y la app seguía mostrando al usuario conectado).
+                  cerrarSesionUsuario();
                   widget.onUsuarioActualizado?.call({});
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },

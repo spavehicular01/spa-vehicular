@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
-/// Dropdown para elegir el método de pago del servicio.
+/// Dropdown para elegir cómo pagará el cliente AL RECOGER su vehículo.
+/// No se cobra nada en la app: el pago real lo registra el administrador en el spa.
 class PaymentMethodSelector extends StatelessWidget {
   final String metodoPago;
   final List<String> opciones;
@@ -19,7 +20,12 @@ class PaymentMethodSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Método de Pago:', style: AppTextStyles.bodyStrong),
+        const Text('¿Cómo pagarás al recoger tu vehículo?', style: AppTextStyles.bodyStrong),
+        const SizedBox(height: 4),
+        Text(
+          'El pago se realiza en el spa al recoger tu vehículo. No se cobra nada en la app.',
+          style: AppTextStyles.body,
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: metodoPago,

@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/api_service.dart';
+import '../services/session_guard.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
@@ -7,6 +10,7 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'admin_dashboard_screen.dart';
+import 'notifications_screen.dart';
 import '../widgets/chat_bottom_sheet.dart';
 import '../widgets/extras/ui_extras.dart';
 import '../main.dart'; // 🟢 usuarioActualNotifier, guardarSesionUsuario, cerrarSesionUsuario
@@ -21,6 +25,35 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    SessionGuard.sesionExpirada.addListener(_alExpirarSesion);
+  }
+
+  @override
+  void dispose() {
+    SessionGuard.sesionExpirada.removeListener(_alExpirarSesion);
+    super.dispose();
+  }
+
+  /// 🟢 El servidor rechazó el token (venció o se cambió la clave): se cierra la
+  /// sesión y se manda al login en lugar de dejar pantallas vacías con errores.
+  void _alExpirarSesion() {
+    if (!mounted || usuarioActualNotifier.value == null) return;
+
+    cerrarSesionUsuario();
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    setState(() => _selectedIndex = 3);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tu sesión venció. Inicia sesión de nuevo.'),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
 
   void _irATab(int indice) => setState(() => _selectedIndex = indice);
 
@@ -140,6 +173,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
             ),
             actions: [
+              // 🟢 Campana de notificaciones (solo con sesión iniciada)
+              if (usuarioAutenticado != null)
+                _CampanaNotificaciones(
+                  key: ValueKey(
+                    (usuarioAutenticado['id'] ?? usuarioAutenticado['_id']).toString(),
+                  ),
+                  usuario: usuarioAutenticado,
+                ),
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () {
@@ -221,6 +262,103 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 🟢 Campana del AppBar con el contador de notificaciones sin leer.
+/// Consulta el servidor al abrirse y cada 30 segundos, y al volver de la lista.
+class _CampanaNotificaciones extends StatefulWidget {
+  final Map<String, dynamic> usuario;
+
+  const _CampanaNotificaciones({super.key, required this.usuario});
+
+  @override
+  State<_CampanaNotificaciones> createState() => _CampanaNotificacionesState();
+}
+
+class _CampanaNotificacionesState extends State<_CampanaNotificaciones> {
+  int _noLeidas = 0;
+  Timer? _timer;
+
+  String? get _usuarioId =>
+      (widget.usuario['id'] ?? widget.usuario['_id'])?.toString();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarContador();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _cargarContador());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _cargarContador() async {
+    final id = _usuarioId;
+    if (id == null || id.isEmpty) return;
+
+    try {
+      final lista = await ApiService.obtenerNotificaciones(id);
+      final cantidad = lista.where((n) => n['leida'] != true).length;
+      if (!mounted) return;
+      setState(() => _noLeidas = cantidad);
+    } catch (_) {
+      // Sin conexión o sesión vencida: se conserva el último valor
+    }
+  }
+
+  Future<void> _abrirNotificaciones() async {
+    final id = _usuarioId;
+    if (id == null || id.isEmpty) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => NotificationsScreen(usuarioId: id)),
+    );
+
+    // Al volver, se actualiza el contador (pudo marcar algunas como leídas)
+    _cargarContador();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        IconButton(
+          tooltip: 'Notificaciones',
+          icon: const Icon(Icons.notifications),
+          onPressed: _abrirNotificaciones,
+        ),
+        if (_noLeidas > 0)
+          Positioned(
+            right: 6,
+            top: 8,
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                constraints: const BoxConstraints(minWidth: 16),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _noLeidas > 9 ? '9+' : '$_noLeidas',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
