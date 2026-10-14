@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
@@ -75,6 +76,69 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
         ),
       );
     }
+  }
+
+  // 🟢 Registrar el pago real de la cita (el cliente paga al recoger el vehículo)
+  Future<void> _registrarPago(dynamic cita, String citaId, int index) async {
+    final precio = cita['precio'];
+
+    final datos = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _RegistrarPagoDialog(
+        nombreCliente: _obtenerNombreUsuario(cita),
+        montoInicial: precio is num ? precio.round() : null,
+        metodoInicial: _metodoPrevisto(cita),
+      ),
+    );
+
+    if (datos == null) return;
+
+    final resultado = await ApiService.registrarPago(
+      citaId: citaId,
+      metodoPago: datos['metodoPago'] as String,
+      monto: (datos['monto'] as int).toDouble(),
+      referencia: datos['referencia'] as String?,
+    );
+
+    if (!mounted) return;
+
+    if (resultado['success'] == true) {
+      setState(() {
+        _citas[index]['estadoPago'] = 'pagado';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('💰 Pago registrado correctamente'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${resultado['message']}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Convierte el texto que eligió el cliente al agendar en un método del backend
+  String _metodoPrevisto(dynamic cita) {
+    final texto = (cita['metodoPago'] ?? '').toString().toLowerCase();
+    if (texto.contains('transferencia')) return 'transferencia';
+    if (texto.contains('tarjeta')) return 'tarjeta';
+    return 'efectivo';
+  }
+
+  String _formatearPesos(num valor) {
+    final s = valor.round().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final restantes = s.length - i;
+      buf.write(s[i]);
+      if (restantes > 1 && restantes % 3 == 1) buf.write('.');
+    }
+    return '\$$buf';
   }
 
   // Colores semánticos por estado (se mantienen distintos entre sí
@@ -163,6 +227,8 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                         final cita = _citas[index];
                         final estadoActual = cita['estado'] ?? 'pendiente';
                         final citaId = cita['_id'] ?? cita['id'];
+                        final pagado = cita['estadoPago'] == 'pagado';
+                        final precio = cita['precio'];
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16.0),
@@ -199,10 +265,46 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                     '📍 Modalidad: ${cita['modalidad'] == 'domicilio' ? 'A Domicilio' : 'En Spa'}',
                                     style: AppTextStyles.body,
                                   ),
+                                if (estadoActual != 'cancelada')
+                                  Text(
+                                    '💰 Pago: ${pagado ? 'Pagado' : 'Pendiente'}'
+                                    '${precio is num ? ' · ${_formatearPesos(precio)}' : ''}',
+                                    style: AppTextStyles.body,
+                                  ),
                                 const Divider(height: 24),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                                Wrap(
+                                  alignment: WrapAlignment.end,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: [
+                                    // 🟢 Solo aparece cuando el lavado terminó y aún no se ha cobrado
+                                    if (estadoActual == 'finalizada' && !pagado && citaId != null)
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: () => _registrarPago(cita, citaId, index),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.payments, color: Colors.white, size: 18),
+                                              SizedBox(width: 6),
+                                              Text(
+                                                'Registrar pago',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     PopupMenuButton<String>(
                                       onSelected: (nuevoEstado) {
                                         if (citaId != null) {
@@ -248,6 +350,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               'Cambiar Estado',
@@ -270,6 +373,127 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                       },
                     ),
             ),
+    );
+  }
+}
+
+// 🟢 Diálogo para registrar el pago: método real, monto y referencia opcional.
+class _RegistrarPagoDialog extends StatefulWidget {
+  final String nombreCliente;
+  final int? montoInicial;
+  final String metodoInicial;
+
+  const _RegistrarPagoDialog({
+    required this.nombreCliente,
+    required this.montoInicial,
+    required this.metodoInicial,
+  });
+
+  @override
+  State<_RegistrarPagoDialog> createState() => _RegistrarPagoDialogState();
+}
+
+class _RegistrarPagoDialogState extends State<_RegistrarPagoDialog> {
+  static const Map<String, String> _metodos = {
+    'efectivo': 'Efectivo',
+    'transferencia': 'Transferencia',
+    'nequi': 'Nequi',
+    'daviplata': 'Daviplata',
+    'tarjeta': 'Tarjeta Débito / Crédito',
+  };
+
+  late String _metodo;
+  late final TextEditingController _montoCtrl;
+  final TextEditingController _referenciaCtrl = TextEditingController();
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _metodo = _metodos.containsKey(widget.metodoInicial) ? widget.metodoInicial : 'efectivo';
+    _montoCtrl = TextEditingController(
+      text: widget.montoInicial != null ? widget.montoInicial.toString() : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _montoCtrl.dispose();
+    _referenciaCtrl.dispose();
+    super.dispose();
+  }
+
+  void _confirmar() {
+    final monto = int.tryParse(_montoCtrl.text.trim());
+    if (monto == null || monto <= 0) {
+      setState(() => _error = 'Ingresa un monto válido');
+      return;
+    }
+
+    Navigator.of(context).pop({
+      'metodoPago': _metodo,
+      'monto': monto,
+      'referencia': _metodo == 'efectivo' ? null : _referenciaCtrl.text.trim(),
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Registrar pago'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cliente: ${widget.nombreCliente}'),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _metodo,
+              decoration: const InputDecoration(labelText: 'Método de pago'),
+              items: _metodos.entries
+                  .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                  .toList(),
+              onChanged: (valor) {
+                if (valor != null) setState(() => _metodo = valor);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _montoCtrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: 'Monto cobrado',
+                prefixText: '\$ ',
+                errorText: _error,
+              ),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+            ),
+            if (_metodo != 'efectivo') ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _referenciaCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Referencia o comprobante (opcional)',
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: _confirmar,
+          child: const Text('Registrar'),
+        ),
+      ],
     );
   }
 }

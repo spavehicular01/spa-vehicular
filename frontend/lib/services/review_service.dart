@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
+import 'session_guard.dart';
 
 /// Resultado de GET /api/reviews
 class ResumenOpiniones {
@@ -53,10 +54,10 @@ class ReviewService {
   /// La opinión del usuario con sesión, o null si aún no ha opinado.
   static Future<Map<String, dynamic>?> obtenerMiOpinion() async {
     try {
-      final res = await http.get(
+      final res = SessionGuard.revisar(await http.get(
         Uri.parse('${ApiConfig.baseUrl}/reviews/mia'),
         headers: await _headers(),
-      );
+      ));
       if (res.statusCode != 200) return null;
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final op = data['opinion'];
@@ -74,14 +75,14 @@ class ReviewService {
     required String comentario,
   }) async {
     try {
-      final res = await http.post(
+      final res = SessionGuard.revisar(await http.post(
         Uri.parse('${ApiConfig.baseUrl}/reviews'),
         headers: await _headers(),
         body: jsonEncode({
           'calificacion': calificacion,
           'comentario': comentario.trim(),
         }),
-      );
+      ));
       if (res.statusCode == 200 || res.statusCode == 201) return null;
 
       final data = jsonDecode(res.body);

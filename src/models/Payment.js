@@ -1,16 +1,22 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
+// Pago REAL: lo registra el administrador cuando el cliente paga al recoger el vehículo.
+// (El método que el cliente elige al agendar vive en Appointment.metodoPago y es solo "previsto".)
 const paymentSchema = new mongoose.Schema({
   citaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', required: true, unique: true },
-  monto: { type: Number, required: true },
-  metodoPago: { 
-    type: String, 
-    enum: ['efectivo', 'nequi', 'tarjeta_debito', 'daviplata'], 
-    required: true 
+  usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  monto: { type: Number, required: true, min: 0 },
+  metodoPago: {
+    type: String,
+    enum: ['efectivo', 'transferencia', 'nequi', 'daviplata', 'tarjeta'],
+    required: true
   },
+  referencia: { type: String, trim: true, maxlength: 100, default: '' },
   comprobanteUrl: { type: String, default: '' },
-  estadoPago: { type: String, enum: ['pendiente', 'aprobado', 'rechazado'], default: 'pendiente' },
+  registradoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   fechaPago: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Payment', paymentSchema);
+const Payment = mongoose.model('Payment', paymentSchema);
+
+export default Payment;

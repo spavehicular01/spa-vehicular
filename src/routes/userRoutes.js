@@ -1,13 +1,7 @@
 import express from 'express';
-import {
-  registrarUsers,
-  verificarCuenta,
-  reenviarCodigoVerificacion,
-  login,
-  obtenerClientes
-} from "../controllers/User.js";
-import { actualizarPerfil, cambiarPassword } from "../controllers/userController.js";
+import { actualizarPerfil, cambiarPassword, obtenerClientes } from "../controllers/userController.js";
 import { verifyToken, esAdmin } from "../middlewares/authMiddleware.js";
+// Middleware de Multer + Cloudinary
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
@@ -25,11 +19,7 @@ const soloPropioPerfil = (req, res, next) => {
   next();
 };
 
-// Rutas públicas
-router.post("/registrar", registrarUsers);
-router.post("/verificar-codigo", verificarCuenta);
-router.post("/reenviar-codigo", reenviarCodigoVerificacion);
-router.post("/login", login);
+// El registro, la verificación de cuenta y el login viven en /api/auth (authRoutes).
 
 // Panel Admin: lista de clientes con sus vehículos
 router.get("/clientes", verifyToken, esAdmin, obtenerClientes);
@@ -44,6 +34,14 @@ router.put(
   soloPropioPerfil,
   upload.single('avatar'),
   actualizarPerfil
+);
+
+// Cambiar contraseña: solo el dueño de la cuenta
+router.put(
+  "/perfil/:id/cambiar-password",
+  verifyToken,
+  soloPropioPerfil,
+  cambiarPassword
 );
 
 export default router;

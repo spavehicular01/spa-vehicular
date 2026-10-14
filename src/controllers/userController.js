@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
 import bcrypt from 'bcryptjs';
@@ -21,7 +22,7 @@ export const actualizarPerfil = async (req, res) => {
     const usuarioActualizado = await User.findByIdAndUpdate(
       id,
       datosActualizar,
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!usuarioActualizado) {
@@ -63,41 +64,47 @@ export const actualizarPerfil = async (req, res) => {
   }
 };
 
-// Cambiar contraseña del usuario autenticado
+// Cambiar la contraseña del usuario (pide la actual para confirmar que es él)
 export const cambiarPassword = async (req, res) => {
-  // Se responde con ambos estilos de claves (success/message y ok/mensaje)
-  const responder = (status, exito, texto) =>
-    res.status(status).json({ success: exito, ok: exito, message: texto, mensaje: texto });
-
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { id } = req.params;
+    const { passwordActual, nuevaPassword } = req.body;
 
-    if (!currentPassword || !newPassword || newPassword.length < 6) {
-      return responder(400, false, 'La nueva contraseña debe tener mínimo 6 caracteres');
+    if (!passwordActual || !nuevaPassword) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Debes enviar la contraseña actual y la nueva'
+      });
     }
 
-    const userId = req.user?.id || req.user?._id || req.user?.userId || req.userId;
-    const user = userId ? await User.findById(userId) : null;
+    if (String(nuevaPassword).length < 6) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'La nueva contraseña debe tener al menos 6 caracteres'
+      });
+    }
 
+    const user = await User.findById(id);
     if (!user) {
-      return responder(404, false, 'Usuario no encontrado');
+      return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
     }
 
-    const passActual = user.password || user.passwords;
-    const coincide = await bcrypt.compare(currentPassword, passActual);
+    // Se usa 400 (y no 401) para que la app no lo confunda con una sesión vencida
+    const hashActual = user.password || user.passwords;
+    const coincide = hashActual ? await bcrypt.compare(String(passwordActual), hashActual) : false;
     if (!coincide) {
-      return responder(400, false, 'La contraseña actual es incorrecta');
+      return res.status(400).json({ ok: false, mensaje: 'La contraseña actual es incorrecta' });
     }
 
-    // Hash explícito en ambos campos; updateOne no dispara hooks de save,
-    // así que no se hashea dos veces.
-    const hash = await bcrypt.hash(newPassword, 10);
-    await User.updateOne({ _id: user._id }, { $set: { password: hash, passwords: hash } });
+    const passwordHasheada = await bcrypt.hash(String(nuevaPassword), 10);
+    user.password = passwordHasheada;
+    if (user.passwords !== undefined) user.passwords = passwordHasheada;
+    await user.save();
 
-    return responder(200, true, 'Contraseña actualizada');
+    return res.status(200).json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
   } catch (error) {
-    console.error('Error al cambiar contraseña:', error);
-    return responder(500, false, 'Error interno al cambiar la contraseña');
+    console.error('Error en cambiarPassword:', error);
+    return res.status(500).json({ ok: false, mensaje: 'Error al cambiar la contraseña' });
   }
 };
 

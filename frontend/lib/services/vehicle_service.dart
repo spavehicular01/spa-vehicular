@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'session_guard.dart';
 
 class VehicleService {
   static const String _baseUrl = 'http://10.0.2.2:3000/api/vehicles';
@@ -30,7 +31,9 @@ class VehicleService {
       final url = Uri.parse('$_baseUrl/usuario/$userId');
       debugPrint('GET VEHICULOS -> $url');
 
-      final response = await http.get(url, headers: _headers(token));
+      final response = SessionGuard.revisar(
+        await http.get(url, headers: _headers(token)),
+      );
 
       debugPrint('GET VEHICULOS STATUS: ${response.statusCode}');
       debugPrint('GET VEHICULOS BODY: ${response.body}');
@@ -55,7 +58,7 @@ class VehicleService {
     String? token,
   }) async {
     try {
-      final response = await http.post(
+      final response = SessionGuard.revisar(await http.post(
         Uri.parse('$_baseUrl/registrar'),
         headers: _headers(token),
         body: jsonEncode({
@@ -66,7 +69,7 @@ class VehicleService {
           'modelo': modelo,
           'tipoVehiculo': tipoVehiculo,
         }),
-      );
+      ));
 
       final data = jsonDecode(response.body);
       return {
@@ -82,10 +85,10 @@ class VehicleService {
 
   static Future<bool> eliminarVehiculo(String vehicleId, {String? token}) async {
     try {
-      final response = await http.delete(
+      final response = SessionGuard.revisar(await http.delete(
         Uri.parse('$_baseUrl/$vehicleId'),
         headers: _headers(token),
-      );
+      ));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('DELETE VEHICULO ERROR: $e');

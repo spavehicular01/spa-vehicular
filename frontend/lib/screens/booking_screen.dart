@@ -48,6 +48,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String _modalidad = ModalitySelector.valorSpa;
   final _direccionController = TextEditingController();
 
+  // Método con el que el cliente PREVÉ pagar al recoger el vehículo
   String _metodoPago = 'Efectivo';
   final List<String> _opcionesPago = [
     'Efectivo',
@@ -267,7 +268,7 @@ class _BookingScreenState extends State<BookingScreen> {
           '${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year} '
           'a las ${widget.selectedTime}.\n\n'
           'Modalidad: $_modalidad\n'
-          'Pago: $_metodoPago',
+          'Pago al recoger tu vehículo: $_metodoPago',
           style: AppTextStyles.body,
         ),
         actions: [

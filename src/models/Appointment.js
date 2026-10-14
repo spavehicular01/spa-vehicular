@@ -16,7 +16,10 @@ const appointmentSchema = new mongoose.Schema({
     direccion: { type: String, default: '' },
     telefonoContacto: { type: String, default: '' }
   },
+  // Método de pago PREVISTO (lo elige el cliente al agendar). El pago real queda en la colección payments.
   metodoPago: { type: String, trim: true, maxlength: 40, default: '' },
+  // 🟢 Pasa a 'pagado' cuando el administrador registra el pago
+  estadoPago: { type: String, enum: ['pendiente', 'pagado'], default: 'pendiente' },
   especificaciones: { type: String, trim: true, maxlength: 500, default: '' },
   estado: { 
     type: String, 

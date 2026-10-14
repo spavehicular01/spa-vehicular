@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/service_model.dart';
 import 'api_config.dart';
+import 'session_guard.dart';
 
 /// Cupos de un día: cuántas citas activas hay por hora (hora local de Colombia, 0-23).
 class CuposDia {
@@ -68,14 +69,14 @@ class WashApiService {
       bodyPayload['precio'] = precio;
     }
 
-    final response = await http.post(
+    final response = SessionGuard.revisar(await http.post(
       Uri.parse('${ApiConfig.baseUrl}/services'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(bodyPayload),
-    );
+    ));
 
     return response.statusCode == 201 || response.statusCode == 200;
   }
@@ -86,20 +87,20 @@ class WashApiService {
     return resultado.ok;
   }
 
-  // 3.1 🟢 NUEVO: Crear cita devolviendo también el mensaje del backend
+  // 3.1 Crear cita devolviendo también el mensaje del backend
   // (por ejemplo "Esa hora ya no tiene cupos disponibles" cuando responde 409).
   static Future<({bool ok, String? mensaje})> crearCitaConMensaje(
       Map<String, dynamic> citaData) async {
     final token = await _getToken();
 
-    final response = await http.post(
+    final response = SessionGuard.revisar(await http.post(
       Uri.parse('${ApiConfig.baseUrl}/appointments'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(citaData),
-    );
+    ));
 
     final ok = response.statusCode == 201 || response.statusCode == 200;
     if (ok) return (ok: true, mensaje: null);
@@ -115,18 +116,18 @@ class WashApiService {
     return (ok: false, mensaje: mensaje);
   }
 
-  // 3.2 🟢 NUEVO: Cupos por hora de un día. `fecha` en formato YYYY-MM-DD.
+  // 3.2 Cupos por hora de un día. `fecha` en formato YYYY-MM-DD.
   // Usa GET /api/appointments/cupos?fecha=YYYY-MM-DD
   static Future<CuposDia> getCuposDelDia(String fecha) async {
     final token = await _getToken();
 
-    final response = await http.get(
+    final response = SessionGuard.revisar(await http.get(
       Uri.parse('${ApiConfig.baseUrl}/appointments/cupos?fecha=$fecha'),
       headers: {
         'Cache-Control': 'no-cache',
         if (token != null) 'Authorization': 'Bearer $token',
       },
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Error al cargar los cupos (Código: ${response.statusCode})');
@@ -147,13 +148,13 @@ class WashApiService {
   static Future<List<dynamic>> getCitasProgramadas() async {
     final token = await _getToken();
 
-    final response = await http.get(
+    final response = SessionGuard.revisar(await http.get(
       Uri.parse('${ApiConfig.baseUrl}/appointments'),
       headers: {
         'Cache-Control': 'no-cache',
         if (token != null) 'Authorization': 'Bearer $token',
       },
-    );
+    ));
 
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
@@ -168,13 +169,13 @@ class WashApiService {
   static Future<List<dynamic>> getCitasPorUsuario(String usuarioId) async {
     final token = await _getToken();
 
-    final response = await http.get(
+    final response = SessionGuard.revisar(await http.get(
       Uri.parse('${ApiConfig.baseUrl}/appointments/usuario/$usuarioId'),
       headers: {
         'Cache-Control': 'no-cache',
         if (token != null) 'Authorization': 'Bearer $token',
       },
-    );
+    ));
 
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
@@ -188,13 +189,13 @@ class WashApiService {
   static Future<List<dynamic>> getHistorialCitas() async {
     final token = await _getToken();
 
-    final response = await http.get(
+    final response = SessionGuard.revisar(await http.get(
       Uri.parse('${ApiConfig.baseUrl}/appointments?estado=finalizada'),
       headers: {
         'Cache-Control': 'no-cache',
         if (token != null) 'Authorization': 'Bearer $token',
       },
-    );
+    ));
 
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
@@ -205,17 +206,18 @@ class WashApiService {
   }
 
   // 7. Cambiar estado de una cita (usa los valores del enum del schema)
+  // El backend define esta ruta como PATCH (antes aquí se enviaba PUT y daba 404).
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     final token = await _getToken();
 
-    final response = await http.put(
+    final response = SessionGuard.revisar(await http.patch(
       Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode({'estado': nuevoEstado}),
-    );
+    ));
 
     return response.statusCode == 200;
   }

@@ -1,10 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'session_guard.dart';
 
 class UserService {
   // Ajusta a 10.0.2.2 para emulador Android o localhost para Windows/Desktop
   static const String _baseUrl = 'http://10.0.2.2:3000/api/users';
+
+  // Token JWT guardado al iniciar sesión
+  static Future<String> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token') ?? '';
+  }
 
   // Actualizar datos del perfil del usuario (con opción de foto)
   static Future<Map<String, dynamic>> actualizarPerfil({
@@ -15,19 +23,24 @@ class UserService {
     File? imagen,
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/$id');
+      // Ruta real del backend: PUT /api/users/perfil/:id
+      final uri = Uri.parse('$_baseUrl/perfil/$id');
+      final token = await _getToken();
 
       // Si no hay imagen, hacemos una petición PUT normal tipo JSON
       if (imagen == null) {
-        final response = await http.put(
+        final response = SessionGuard.revisar(await http.put(
           uri,
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+          },
           body: jsonEncode({
             'nombres': nombres,
             'apellidos': apellidos,
             'celular': celular,
           }),
-        );
+        ));
 
         final data = jsonDecode(response.body);
         return {
@@ -39,6 +52,9 @@ class UserService {
 
       // Si viene una imagen, usamos MultipartRequest para enviar el archivo
       var request = http.MultipartRequest('PUT', uri);
+      if (token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
 
       request.fields['nombres'] = nombres;
       request.fields['apellidos'] = apellidos;
@@ -56,7 +72,7 @@ class UserService {
       request.files.add(multipartFile);
 
       var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+      var response = SessionGuard.revisar(await http.Response.fromStream(streamedResponse));
       final data = jsonDecode(response.body);
 
       return {
@@ -76,16 +92,21 @@ class UserService {
     required String nuevaPassword,
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/$id/cambiar-password');
+      // Ruta nueva del backend: PUT /api/users/perfil/:id/cambiar-password
+      final uri = Uri.parse('$_baseUrl/perfil/$id/cambiar-password');
+      final token = await _getToken();
 
-      final response = await http.put(
+      final response = SessionGuard.revisar(await http.put(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           'passwordActual': passwordActual,
           'nuevaPassword': nuevaPassword,
         }),
-      );
+      ));
 
       final data = jsonDecode(response.body);
 

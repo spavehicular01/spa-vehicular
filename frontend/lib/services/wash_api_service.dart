@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/wash_service.dart' as model;
 import '../models/service_model.dart';
 import 'api_config.dart';
+import 'session_guard.dart';
 
 class WashApiService {
   // ==========================================
@@ -63,7 +64,7 @@ class WashApiService {
       );
 
       final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final response = SessionGuard.revisar(await http.Response.fromStream(streamedResponse));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> body = jsonDecode(response.body);
@@ -85,11 +86,11 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/registrar');
       final headers = await _getHeaders();
 
-      final response = await http.post(
+      final response = SessionGuard.revisar(await http.post(
         url,
         headers: headers,
         body: jsonEncode(datosVehiculo),
-      );
+      ));
 
       debugPrint('STATUS: ${response.statusCode}');
       debugPrint('BODY: ${response.body}');
@@ -109,11 +110,11 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/$id');
       final headers = await _getHeaders();
 
-      final response = await http.put(
+      final response = SessionGuard.revisar(await http.put(
         url,
         headers: headers,
         body: jsonEncode(datosVehiculo),
-      );
+      ));
 
       debugPrint('PUT VEHICULO STATUS: ${response.statusCode}');
       debugPrint('PUT VEHICULO BODY: ${response.body}');
@@ -130,10 +131,10 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/vehicles/usuario/$usuarioId');
       final headers = await _getHeaders();
 
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         url,
         headers: headers,
-      );
+      ));
 
       debugPrint('GET VEHICULOS STATUS: ${response.statusCode}');
       debugPrint('GET VEHICULOS BODY: ${response.body}');
@@ -228,11 +229,11 @@ class WashApiService {
         bodyData['image'] = image;
       }
 
-      final response = await http.post(
+      final response = SessionGuard.revisar(await http.post(
         url,
         headers: headers,
         body: jsonEncode(bodyData),
-      );
+      ));
 
       debugPrint('POST SERVICIO STATUS: ${response.statusCode}');
       debugPrint('POST SERVICIO BODY: ${response.body}');
@@ -271,11 +272,11 @@ class WashApiService {
         bodyData['image'] = image;
       }
 
-      final response = await http.put(
+      final response = SessionGuard.revisar(await http.put(
         url,
         headers: headers,
         body: jsonEncode(bodyData),
-      );
+      ));
 
       debugPrint('PUT SERVICIO STATUS: ${response.statusCode}');
       debugPrint('PUT SERVICIO BODY: ${response.body}');
@@ -292,10 +293,10 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/services/$id');
       final headers = await _getHeaders();
 
-      final response = await http.delete(
+      final response = SessionGuard.revisar(await http.delete(
         url,
         headers: headers,
-      );
+      ));
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
@@ -316,11 +317,11 @@ class WashApiService {
         headers['Authorization'] = 'Bearer $token';
       }
 
-      final response = await http.post(
+      final response = SessionGuard.revisar(await http.post(
         url,
         headers: headers,
         body: jsonEncode(datosCita),
-      );
+      ));
 
       final Map<String, dynamic> responseData = jsonDecode(response.body);
       responseData['status'] = response.statusCode;
@@ -338,10 +339,10 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments/usuario/$usuarioId');
       final headers = await _getHeaders();
 
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         url,
         headers: headers,
-      );
+      ));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -360,10 +361,10 @@ class WashApiService {
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments');
       final headers = await _getHeaders();
 
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         url,
         headers: headers,
-      );
+      ));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -381,15 +382,16 @@ class WashApiService {
     return await obtenerTodasLasCitas();
   }
 
+  // El estado correcto en el backend es 'finalizada' (antes se pedía 'completado').
   static Future<List<dynamic>> getHistorialCitas() async {
     try {
-      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments?estado=completado');
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments?estado=finalizada');
       final headers = await _getHeaders();
 
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         url,
         headers: headers,
-      );
+      ));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -403,26 +405,19 @@ class WashApiService {
     }
   }
 
+  // El backend solo tiene esta ruta: PATCH /api/appointments/estado/:id (solo admin).
+  // Antes se probaban tres rutas que no existen (PUT /appointments/:id, etc.).
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
-      final Uri urlEstandar = Uri.parse('${ApiConfig.baseUrl}/appointments/$citaId');
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
       final headers = await _getHeaders();
-      final body = jsonEncode({'estado': nuevoEstado});
 
-      var response = await http.put(urlEstandar, headers: headers, body: body);
+      final response = SessionGuard.revisar(await http.patch(
+        url,
+        headers: headers,
+        body: jsonEncode({'estado': nuevoEstado}),
+      ));
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        return true;
-      }
-
-      final Uri urlEspecifica = Uri.parse('${ApiConfig.baseUrl}/appointments/estado/$citaId');
-      response = await http.put(urlEspecifica, headers: headers, body: body);
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        return true;
-      }
-
-      response = await http.patch(urlEstandar, headers: headers, body: body);
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       debugPrint('ERROR ACTUALIZAR ESTADO CITA: $e');

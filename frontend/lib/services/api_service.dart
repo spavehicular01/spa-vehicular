@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'session_guard.dart';
 
 class ApiService {
   // Configuración de URL base para emulador Android
@@ -56,10 +57,10 @@ class ApiService {
   static Future<List<dynamic>> obtenerTodasLasCitas() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         Uri.parse('$baseUrl/appointments'),
         headers: headers,
-      );
+      ));
 
       debugPrint('GET Citas Admin Status: ${response.statusCode}');
 
@@ -79,10 +80,10 @@ class ApiService {
   static Future<List<dynamic>> obtenerCitas(String usuarioId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         Uri.parse('$baseUrl/appointments/usuario/$usuarioId'),
         headers: headers,
-      );
+      ));
 
       debugPrint('GET Citas Usuario Status: ${response.statusCode}');
 
@@ -104,11 +105,11 @@ class ApiService {
       final headers = await _getHeaders();
       debugPrint('Enviando datos de cita: ${jsonEncode(datosCita)}');
 
-      final response = await http.post(
+      final response = SessionGuard.revisar(await http.post(
         Uri.parse('$baseUrl/appointments'),
         headers: headers,
         body: jsonEncode(datosCita),
-      );
+      ));
 
       debugPrint('POST Crear Cita Status: ${response.statusCode}');
       debugPrint('POST Respuesta Servidor: ${response.body}');
@@ -124,11 +125,11 @@ class ApiService {
   static Future<bool> actualizarEstadoCita(String citaId, String nuevoEstado) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.patch(   // antes: http.put
+      final response = SessionGuard.revisar(await http.patch(
         Uri.parse('$baseUrl/appointments/estado/$citaId'),
         headers: headers,
         body: jsonEncode({'estado': nuevoEstado}),
-      );
+      ));
 
       debugPrint('PATCH Estado Cita Status: ${response.statusCode}');
       return response.statusCode == 200;
@@ -142,10 +143,10 @@ class ApiService {
   static Future<List<dynamic>> obtenerClientes() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
+      final response = SessionGuard.revisar(await http.get(
         Uri.parse('$baseUrl/users/clientes'),
         headers: headers,
-      );
+      ));
 
       debugPrint('GET Clientes Status: ${response.statusCode}');
 
@@ -189,7 +190,7 @@ class ApiService {
       }
 
       final streamed = await request.send().timeout(const Duration(seconds: 60));
-      final response = await http.Response.fromStream(streamed);
+      final response = SessionGuard.revisar(await http.Response.fromStream(streamed));
 
       debugPrint('PUT Perfil Status: ${response.statusCode}');
       debugPrint('PUT Perfil Respuesta: ${response.body}');
@@ -205,6 +206,105 @@ class ApiService {
     } catch (e) {
       debugPrint('Excepción al actualizar perfil: $e');
       return {'success': false, 'message': 'Error de conexión con el servidor'};
+    }
+  }
+
+  // 7. Registrar el pago de una cita (solo Admin, al entregar el vehículo).
+  // metodoPago: 'efectivo' | 'transferencia' | 'nequi' | 'daviplata' | 'tarjeta'
+  // Si no se envía monto, el backend usa el precio guardado en la cita.
+  static Future<Map<String, dynamic>> registrarPago({
+    required String citaId,
+    required String metodoPago,
+    double? monto,
+    String? referencia,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final body = <String, dynamic>{
+        'citaId': citaId,
+        'metodoPago': metodoPago,
+        if (monto != null) 'monto': monto,
+        if (referencia != null && referencia.trim().isNotEmpty)
+          'referencia': referencia.trim(),
+      };
+
+      final response = SessionGuard.revisar(await http.post(
+        Uri.parse('$baseUrl/payments'),
+        headers: headers,
+        body: jsonEncode(body),
+      ));
+
+      debugPrint('POST Registrar Pago Status: ${response.statusCode}');
+      debugPrint('POST Registrar Pago Respuesta: ${response.body}');
+
+      final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200 || response.statusCode == 201;
+
+      return {
+        'success': exito,
+        'message': data['mensaje'] ?? data['message'] ?? data['error'] ?? 'No se pudo registrar el pago',
+        'pago': data['pago'],
+        'cita': data['cita'],
+      };
+    } catch (e) {
+      debugPrint('Excepción al registrar pago: $e');
+      return {'success': false, 'message': 'Error de conexión con el servidor'};
+    }
+  }
+
+  // 8. Obtener las notificaciones guardadas de un usuario
+  static Future<List<dynamic>> obtenerNotificaciones(String usuarioId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = SessionGuard.revisar(await http.get(
+        Uri.parse('$baseUrl/notifications/usuario/$usuarioId'),
+        headers: headers,
+      ));
+
+      debugPrint('GET Notificaciones Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Error al obtener notificaciones (${response.statusCode})');
+      }
+    } catch (e) {
+      debugPrint('Excepción al obtener notificaciones: $e');
+      rethrow;
+    }
+  }
+
+  // 9. Marcar una notificación como leída
+  static Future<bool> marcarNotificacionLeida(String notificacionId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = SessionGuard.revisar(await http.patch(
+        Uri.parse('$baseUrl/notifications/$notificacionId/leida'),
+        headers: headers,
+      ));
+
+      debugPrint('PATCH Notificación leída Status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Excepción al marcar notificación: $e');
+      return false;
+    }
+  }
+
+  // 10. Marcar todas las notificaciones de un usuario como leídas
+  static Future<bool> marcarTodasLeidas(String usuarioId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = SessionGuard.revisar(await http.patch(
+        Uri.parse('$baseUrl/notifications/usuario/$usuarioId/leidas'),
+        headers: headers,
+      ));
+
+      debugPrint('PATCH Todas leídas Status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Excepción al marcar todas como leídas: $e');
+      return false;
     }
   }
 }
