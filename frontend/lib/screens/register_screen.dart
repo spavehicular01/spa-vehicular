@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -36,7 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // 🚀 Procesa el registro consumiendo AuthService
+  // Procesa el registro consumiendo AuthService
   Future<void> _procesarRegistro() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -55,7 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = false);
 
     if (resultado['success'] == true) {
-      // Guardar información en SharedPreferences si el backend retorna token o correo
       final prefs = await SharedPreferences.getInstance();
       if (resultado['token'] != null) {
         await prefs.setString('token', resultado['token']);
@@ -71,8 +71,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      // 🟢 REDIRECCIÓN DIRECTA A LA PANTALLA PRINCIPAL
-      // Si tu backend requiere verificación por correo, cambia '/' por '/verificar-codigo'
       if (resultado['requireVerification'] == true) {
         Navigator.pushReplacementNamed(
           context,
@@ -80,15 +78,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           arguments: _correoController.text.trim(),
         );
       } else {
-        // Redirige directamente a la pantalla principal limpiando el historial de navegación
         Navigator.pushNamedAndRemoveUntil(
           context,
-          '/', // Nombre de la ruta inicial (HomeScreen)
+          '/',
           (route) => false,
         );
       }
     } else {
-      // Muestra el mensaje de error retornado por la API
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message'] ?? 'Error al registrar usuario.'),
@@ -103,8 +99,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registro de Usuario'),
-        backgroundColor: const Color.fromARGB(255, 0, 26, 255),
-        foregroundColor: Colors.white,
+        // Claro: azul vivo. Oscuro: hereda el AppBar oscuro del tema.
+        backgroundColor: context.isDark ? null : AppColors.brandBlue,
+        foregroundColor: context.isDark ? null : Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -113,7 +110,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Nombres
               TextFormField(
                 controller: _nombresController,
                 decoration: const InputDecoration(
@@ -125,7 +121,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Apellidos
               TextFormField(
                 controller: _apellidosController,
                 decoration: const InputDecoration(
@@ -137,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Correo
               TextFormField(
                 controller: _correoController,
                 keyboardType: TextInputType.emailAddress,
@@ -153,7 +147,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Documento de Identidad
               TextFormField(
                 controller: _documentoController,
                 keyboardType: TextInputType.number,
@@ -166,7 +159,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Teléfono
               TextFormField(
                 controller: _telefonoController,
                 keyboardType: TextInputType.phone,
@@ -179,7 +171,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Contraseña
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -196,7 +187,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Confirmar Contraseña
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
@@ -221,12 +211,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _procesarRegistro,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 30, 255),
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.brand,
+                  foregroundColor: context.onBrand,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(color: context.onBrand)
                     : const Text('Registrarse e Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ],

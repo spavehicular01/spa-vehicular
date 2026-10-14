@@ -260,7 +260,7 @@ class _BookingScreenState extends State<BookingScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('¡Cita Confirmada! 🎉', style: AppTextStyles.h2),
         content: Text(

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
-import '../theme/app_theme.dart';
 import '../services/user_service.dart';
 
 import '../widgets/settings/profile_avatar.dart';
@@ -31,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _apellidosController;
   late TextEditingController _celularController;
   late TextEditingController _documentoController;
+  late TextEditingController _correoController;
 
   bool _isLoading = false;
   File? _imagenSeleccionada;
@@ -57,6 +57,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           widget.usuario?['documentoIdentidad'] ??
           'Sin Documento',
     );
+    _correoController = TextEditingController(
+      text: (widget.usuario?['correo'] ?? widget.usuario?['email'] ?? '').toString(),
+    );
     _avatarUrl = widget.usuario?['avatar'] ?? widget.usuario?['imagenUrl'];
   }
 
@@ -66,6 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _apellidosController.dispose();
     _celularController.dispose();
     _documentoController.dispose();
+    _correoController.dispose();
     super.dispose();
   }
 
@@ -147,6 +151,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
 
+    // Revisar mounted de nuevo: hubo un await (SharedPreferences) antes de usar context.
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(resultado['message'] ?? 'Perfil actualizado'),
@@ -156,6 +162,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _mostrarDialogoCambiarPassword() {
+    // Estos controllers NO se destruyen a mano: al cerrar el diálogo, este sigue
+    // en pantalla unos milisegundos (animación de salida) y destruirlos antes
+    // provoca "TextEditingController used after being disposed".
     final actualCtrl = TextEditingController();
     final nuevaCtrl = TextEditingController();
     bool enviando = false;
@@ -191,20 +200,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: enviando
-                      ? null
-                      : () {
-                          actualCtrl.dispose();
-                          nuevaCtrl.dispose();
-                          Navigator.pop(dialogContext);
-                        },
+                  onPressed: enviando ? null : () => Navigator.pop(dialogContext),
                   child: const Text('Cancelar'),
                 ),
+                // Sin estilo propio: toma cian + letra navy del tema.
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.azulElectrico,
-                    foregroundColor: Colors.white,
-                  ),
                   onPressed: enviando
                       ? null
                       : () async {
@@ -219,11 +219,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             nuevaPassword: nuevaCtrl.text.trim(),
                           );
 
-                          setDialogState(() => enviando = false);
-                          actualCtrl.dispose();
-                          nuevaCtrl.dispose();
-
                           if (!dialogContext.mounted) return;
+                          setDialogState(() => enviando = false);
                           Navigator.pop(dialogContext);
 
                           if (!mounted) return;
@@ -238,10 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Actualizar'),
                 ),
@@ -255,10 +249,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
+    // El fondo y el AppBar vienen del tema, igual que en Inicio.
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: Text(_estaAutenticado ? 'Ajustes de Perfil' : 'Ajustes y Configuración'),
       ),
@@ -276,6 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               ProfileForm(
                 documentoController: _documentoController,
+                correoController: _correoController,
                 nombresController: _nombresController,
                 apellidosController: _apellidosController,
                 celularController: _celularController,

@@ -201,12 +201,11 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Citas (Admin)'),
-        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
-      backgroundColor: AppColors.background,
       body: _cargando
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : RefreshIndicator(

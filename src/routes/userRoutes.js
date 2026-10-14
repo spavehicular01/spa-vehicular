@@ -1,7 +1,13 @@
 import express from 'express';
-import { actualizarPerfil, cambiarPassword, obtenerClientes } from "../controllers/userController.js";
+import {
+  registrarUsers,
+  verificarCuenta,
+  reenviarCodigoVerificacion,
+  login,
+  obtenerClientes
+} from "../controllers/User.js";
+import { actualizarPerfil, cambiarPassword } from "../controllers/userController.js";
 import { verifyToken, esAdmin } from "../middlewares/authMiddleware.js";
-// Middleware de Multer + Cloudinary
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();
@@ -23,6 +29,9 @@ const soloPropioPerfil = (req, res, next) => {
 
 // Panel Admin: lista de clientes con sus vehículos
 router.get("/clientes", verifyToken, esAdmin, obtenerClientes);
+
+// Cambiar contraseña del usuario autenticado
+router.put("/change-password", verifyToken, cambiarPassword);
 
 // Editar perfil: solo el dueño de la cuenta. La foto viaja en el campo "avatar"
 router.put(

@@ -22,11 +22,11 @@ class ServiceSelector extends StatelessWidget {
       children: [
         const Text('Tipo de lavado:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
+        // Sin dropdownColor fijo: el menú toma el color del tema (claro/oscuro).
         DropdownButtonFormField<String>(
           initialValue: servicioSeleccionadoId,
           isExpanded: true,
           borderRadius: BorderRadius.circular(14),
-          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.local_car_wash, color: AppColors.secondary),
           ),

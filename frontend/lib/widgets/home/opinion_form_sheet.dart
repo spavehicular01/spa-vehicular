@@ -8,11 +8,16 @@ Future<bool?> mostrarFormularioOpinion(BuildContext context) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    builder: (sheetContext) => Container(
+      // La hoja pinta su propio fondo: oscuro en modo oscuro, blanco en claro.
+      decoration: BoxDecoration(
+        color: sheetContext.isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: const _OpinionFormSheet(),
     ),
-    builder: (_) => const _OpinionFormSheet(),
   );
 }
 
@@ -98,7 +103,11 @@ class _OpinionFormSheetState extends State<_OpinionFormSheet> {
                 Text(
                   _yaOpino ? 'Editar mi opinión' : 'Cuéntanos tu experiencia',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: context.isDark ? AppColors.darkText : AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -123,30 +132,38 @@ class _OpinionFormSheetState extends State<_OpinionFormSheet> {
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: 'Escribe tu comentario (opcional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    fillColor: Theme.of(context).scaffoldBackgroundColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(_error!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13)),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
                   ),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _guardando ? null : _guardar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _guardando
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
                       : Text(_yaOpino ? 'Actualizar opinión' : 'Publicar opinión'),
                 ),
               ],

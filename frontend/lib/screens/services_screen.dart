@@ -71,12 +71,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Servicios de Lavado'),
-        // Ya no hace falta el Color hardcodeado: AppBarTheme lo hereda
-        // automáticamente desde AppTheme.light()/dark() en main.dart.
       ),
       body: RefreshIndicator(
         color: AppColors.secondary,

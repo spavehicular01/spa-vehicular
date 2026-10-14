@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class VerifyResetCodeScreen extends StatefulWidget {
   final String? email;
@@ -36,7 +37,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Captura el email desde el widget o desde los argumentos de ruta
     if (_emailFinal.isEmpty) {
       final args = ModalRoute.of(context)?.settings.arguments;
@@ -109,7 +110,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     if (resultado['success'] == true) {
       _timer?.cancel();
 
-      // Guardar persistencia de la sesión en el dispositivo
       final prefs = await SharedPreferences.getInstance();
       if (resultado['token'] != null) {
         await prefs.setString('token', resultado['token']);
@@ -121,7 +121,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       if (!mounted) return;
       _showSnackBar(resultado['message'] ?? 'Cuenta verificada correctamente. ¡Bienvenido!', Colors.green);
 
-      // Redirección directa a la pantalla principal
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/',
@@ -165,14 +164,14 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDark = context.isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Verificar Cuenta'),
-        backgroundColor: const Color(0xFF001EFF),
-        foregroundColor: Colors.white,
+        // Claro: azul vivo. Oscuro: hereda el AppBar oscuro del tema.
+        backgroundColor: isDark ? null : AppColors.brandBlue,
+        foregroundColor: isDark ? null : Colors.white,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -180,10 +179,10 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
+              Icon(
                 Icons.mark_email_read_outlined,
                 size: 80,
-                color: Color(0xFF001EFF),
+                color: context.brand,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -234,16 +233,16 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _verificarCodigo,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0011FF),
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.brand,
+                  foregroundColor: context.onBrand,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: context.onBrand,
                           strokeWidth: 2,
                         ),
                       )
@@ -261,7 +260,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                       ? '¿No recibiste el código? Reenviar'
                       : 'Puedes reenviar en $_formattedTime',
                   style: TextStyle(
-                    color: _canResend ? const Color(0xFF0011FF) : Colors.grey,
+                    color: _canResend ? context.brand : Colors.grey,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

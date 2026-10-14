@@ -21,11 +21,11 @@ class VehicleSelector extends StatelessWidget {
       children: [
         const Text('Vehículo a lavar:', style: AppTextStyles.bodyStrong),
         const SizedBox(height: 8),
+        // Sin dropdownColor fijo: el menú toma el color del tema (claro/oscuro).
         DropdownButtonFormField<String>(
           initialValue: vehiculoSeleccionadoId,
           isExpanded: true,
           borderRadius: BorderRadius.circular(14),
-          dropdownColor: AppColors.surface,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.directions_car, color: AppColors.secondary),
           ),

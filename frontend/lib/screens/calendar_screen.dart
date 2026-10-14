@@ -153,7 +153,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     // Sin Scaffold/AppBar propios: esta pantalla vive dentro de
     // MainNavigationScreen (tab "Calendario"), que ya provee su AppBar.
     return Container(
-      color: AppColors.background,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
           DatePickerCard(

@@ -15,6 +15,8 @@ class ServicePricesChips extends StatelessWidget {
     final precios = service.preciosOrdenados;
     if (precios.isEmpty) return const SizedBox.shrink();
 
+    final Color textoChip = context.isDark ? AppColors.accent : AppColors.secondary;
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -28,10 +30,10 @@ class ServicePricesChips extends StatelessWidget {
             ),
             child: Text(
               '${etiquetaTipoVehiculo(p.tipoVehiculo)}: ${formatearPesos(p.precio)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.secondary,
+                color: textoChip,
               ),
             ),
           ),

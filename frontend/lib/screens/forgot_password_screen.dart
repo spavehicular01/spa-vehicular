@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-
+import '../theme/app_theme.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -34,7 +34,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    // Petición real al backend mediante AuthService
     final resultado = await AuthService.solicitarCodigoRecuperacion(email);
 
     setState(() => _isLoading = false);
@@ -49,12 +48,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
 
-      // Navegar a la pantalla de verificación enviando el correo por constructor y arguments
-      // Si usas rutas nombradas (Navigator.pushNamed):
+      // 🔧 Antes decía '/verify-code', ruta que NO existe en main.dart
+      // (caía en la pantalla principal). La ruta definida es '/verificar-codigo'.
       Navigator.pushNamed(
-      context,
-      '/verify-code',
-      arguments: _emailController.text.trim(), //  NO olvides .text.trim()
+        context,
+        '/verificar-codigo',
+        arguments: email,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,10 +76,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
+            Icon(
               Icons.mark_email_read_outlined,
               size: 80,
-              color: Color.fromARGB(255, 0, 30, 255),
+              color: context.brand,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -108,16 +107,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ElevatedButton(
               onPressed: _isLoading ? null : _enviarCodigo,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 0, 17, 255),
-                foregroundColor: Colors.white,
+                backgroundColor: context.brand,
+                foregroundColor: context.onBrand,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: context.onBrand,
                         strokeWidth: 2,
                       ),
                     )

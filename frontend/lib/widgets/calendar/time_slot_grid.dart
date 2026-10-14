@@ -22,9 +22,13 @@ class TimeSlotGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = context.isDark;
+
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.secondary),
+      return Center(
+        child: CircularProgressIndicator(
+          color: isDark ? AppColors.accent : AppColors.secondary,
+        ),
       );
     }
 
@@ -53,13 +57,15 @@ class TimeSlotGrid extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                // Libre: cian AquaGlow al 10%. Ocupado: gris tenue.
+                // Libre: cian AquaGlow al 10%. Ocupado: gris tenue / navy en oscuro.
                 color: estaOcupado
-                    ? Colors.grey.shade100
+                    ? (isDark ? AppColors.darkSurface : Colors.grey.shade100)
                     : const Color(0x1A00E5FF),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: estaOcupado ? Colors.grey.shade300 : AppColors.accent,
+                  color: estaOcupado
+                      ? (isDark ? AppColors.darkBorder : Colors.grey.shade300)
+                      : AppColors.accent,
                   width: 1.5,
                 ),
               ),
@@ -72,7 +78,9 @@ class TimeSlotGrid extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: estaOcupado ? AppColors.muted : AppColors.primary,
+                      color: estaOcupado
+                          ? AppColors.muted
+                          : (isDark ? Colors.white : AppColors.primary),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -83,7 +91,9 @@ class TimeSlotGrid extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
-                      color: estaOcupado ? AppColors.muted : AppColors.secondary,
+                      color: estaOcupado
+                          ? AppColors.muted
+                          : (isDark ? AppColors.accent : AppColors.secondary),
                     ),
                   ),
                   if (!estaOcupado && disponibles != null) ...[
@@ -97,7 +107,7 @@ class TimeSlotGrid extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: pocosCupos ? FontWeight.bold : FontWeight.normal,
                         color: pocosCupos
-                            ? Colors.orange.shade800
+                            ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
                             : AppColors.muted,
                       ),
                     ),
