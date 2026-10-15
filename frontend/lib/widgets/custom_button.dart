@@ -17,9 +17,9 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Claro: azul de siempre. Oscuro: cian con letra navy (como el resto de la app).
-    final Color bg = color ?? (context.isDark ? AppColors.accent : AppTheme.azulElectrico);
-    final Color fg = (color == null && context.isDark) ? AppColors.primary : Colors.white;
+    // Cian con letra navy en claro y en oscuro (como los botones de Inicio).
+    final Color bg = color ?? AppColors.accent;
+    final Color fg = color == null ? AppColors.primary : Colors.white;
 
     return SizedBox(
       width: double.infinity,

@@ -4,7 +4,11 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  /// Callback que actualiza la sesión de la app. Es opcional para no romper
+  /// otros lugares que abran esta pantalla con `const RegisterScreen()`.
+  final void Function(Map<String, dynamic> datos)? onLoginExitoso;
+
+  const RegisterScreen({super.key, this.onLoginExitoso});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -37,61 +41,138 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  /// Arma los datos de sesión. Si el registro no devolvió token o usuario,
+  /// intenta iniciar sesión con las mismas credenciales.
+  Future<Map<String, dynamic>?> _obtenerDatosSesion(
+    Map resultado,
+    String correo,
+    String password,
+  ) async {
+    dynamic token = resultado['token'];
+    dynamic usuario = resultado['usuario'];
+
+    if (token == null || usuario == null) {
+      final login = await AuthService.login(correo, password);
+      final ok = login['ok'] == true || login['success'] == true;
+      if (!ok) return null;
+      token = login['token'];
+      usuario = login['usuario'];
+    }
+
+    final Map u = usuario is Map ? usuario : {};
+
+    return {
+      'id': u['id'] ?? u['_id'] ?? '',
+      'nombres': u['nombres'] ?? _nombresController.text.trim(),
+      'apellidos': u['apellidos'] ?? _apellidosController.text.trim(),
+      'correo': u['correo'] ?? u['email'] ?? correo,
+      'rol': u['rol'] ?? 'cliente',
+      'documento': u['documentoIdentidad'] ??
+          u['documento'] ??
+          _documentoController.text.trim(),
+      'telefono': u['celular'] ?? u['telefono'] ?? _telefonoController.text.trim(),
+      'vehiculos': u['vehiculos'] ?? [],
+      'token': token,
+      'citas': [],
+      'historial': [],
+    };
+  }
+
   // Procesa el registro consumiendo AuthService
   Future<void> _procesarRegistro() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
+    final correo = _correoController.text.trim();
+    final password = _passwordController.text;
+
     final resultado = await AuthService.registrar(
       nombres: _nombresController.text.trim(),
       apellidos: _apellidosController.text.trim(),
       documentoIdentidad: _documentoController.text.trim(),
-      correo: _correoController.text.trim(),
+      correo: correo,
       celular: _telefonoController.text.trim(),
-      password: _passwordController.text,
+      password: password,
     );
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
 
-    if (resultado['success'] == true) {
-      final prefs = await SharedPreferences.getInstance();
-      if (resultado['token'] != null) {
-        await prefs.setString('token', resultado['token']);
-      }
-      await prefs.setString('user_email', _correoController.text.trim());
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(resultado['message'] ?? '¡Registro exitoso! Bienvenido.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      if (resultado['requireVerification'] == true) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/verificar-codigo',
-          arguments: _correoController.text.trim(),
-        );
-      } else {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/',
-          (route) => false,
-        );
-      }
-    } else {
+    if (resultado['success'] != true) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message'] ?? 'Error al registrar usuario.'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    if (resultado['token'] != null) {
+      await prefs.setString('token', resultado['token']);
+    }
+    await prefs.setString('user_email', correo);
+
+    if (!mounted) return;
+
+    // Requiere verificar el correo antes de entrar
+    if (resultado['requireVerification'] == true) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? '¡Registro exitoso! Verifica tu correo.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushReplacementNamed(
+        context,
+        '/verificar-codigo',
+        arguments: correo,
+      );
+      return;
+    }
+
+    // Registro completo: se inicia la sesión en la app
+    final callback = widget.onLoginExitoso;
+    if (callback == null) {
+      // Compatibilidad con quien abra esta pantalla sin callback
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? '¡Registro exitoso! Bienvenido.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      return;
+    }
+
+    final datos = await _obtenerDatosSesion(resultado, correo, password);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (datos != null) {
+      callback(datos);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? '¡Registro exitoso! Bienvenido.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta creada. Inicia sesión para continuar.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+    // Vuelve a la pantalla principal (ya con la sesión iniciada)
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
   }
 
   @override
@@ -99,9 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registro de Usuario'),
-        // Claro: azul vivo. Oscuro: hereda el AppBar oscuro del tema.
-        backgroundColor: context.isDark ? null : AppColors.brandBlue,
-        foregroundColor: context.isDark ? null : Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -115,9 +193,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Nombres',
                   prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tus nombres' : null,
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Ingresa tus nombres' : null,
               ),
               const SizedBox(height: 16),
 
@@ -126,9 +204,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Apellidos',
                   prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tus apellidos' : null,
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Ingresa tus apellidos' : null,
               ),
               const SizedBox(height: 16),
 
@@ -138,7 +216,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Correo electrónico',
                   prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
                 ),
                 validator: (val) {
                   if (val == null || !val.contains('@')) return 'Ingresa un correo válido';
@@ -153,9 +230,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Documento de Identidad',
                   prefixIcon: Icon(Icons.badge),
-                  border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Ingresa tu documento' : null,
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Ingresa tu documento' : null,
               ),
               const SizedBox(height: 16),
 
@@ -165,9 +242,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Número de Teléfono',
                   prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.trim().length < 7 ? 'Ingresa un teléfono válido' : null,
+                validator: (val) => val == null || val.trim().length < 7
+                    ? 'Ingresa un teléfono válido'
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -177,13 +255,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
                   prefixIcon: const Icon(Icons.lock),
-                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
-                validator: (val) => val == null || val.length < 6 ? 'Mínimo 6 caracteres' : null,
+                validator: (val) =>
+                    val == null || val.length < 6 ? 'Mínimo 6 caracteres' : null,
               ),
               const SizedBox(height: 16),
 
@@ -193,10 +271,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: InputDecoration(
                   labelText: 'Confirmar Contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    ),
                   ),
                 ),
                 validator: (val) {
@@ -216,8 +297,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: _isLoading
-                    ? CircularProgressIndicator(color: context.onBrand)
-                    : const Text('Registrarse e Iniciar Sesión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: context.onBrand,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Registrarse e Iniciar Sesión',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           ),

@@ -55,8 +55,8 @@ void main() async {
 // (usuario en memoria + disco). Úsalo en cualquier parte donde el
 // login sea exitoso (login normal o registro con login automático).
 //
-// 🔧 CORREGIDO: además de guardar el objeto 'usuario' completo como JSON,
-// ahora también guarda 'userId' y 'token' como claves sueltas en
+// Además de guardar el objeto 'usuario' completo como JSON,
+// también guarda 'userId' y 'token' como claves sueltas en
 // SharedPreferences, que es lo que esperan AddVehicleScreen y
 // WashApiService al leer la sesión.
 Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
@@ -76,8 +76,8 @@ Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
   }
 }
 
-// NUEVO: Helper para cerrar sesión limpiamente desde cualquier pantalla.
-// 🔧 CORREGIDO: ahora también elimina 'userId' al cerrar sesión.
+// Helper para cerrar sesión limpiamente desde cualquier pantalla.
+// También elimina 'userId' al cerrar sesión.
 Future<void> cerrarSesionUsuario() async {
   usuarioActualNotifier.value = null;
   final prefs = await SharedPreferences.getInstance();
@@ -100,7 +100,7 @@ class SpaVehicularApp extends StatelessWidget {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
               title: 'Spa Vehicular',
-              navigatorObservers: [routeObserver], // 🟢 NUEVO
+              navigatorObservers: [routeObserver],
 
               // Configuración de temas global
               themeMode: currentMode,
@@ -149,8 +149,7 @@ class SpaVehicularApp extends StatelessWidget {
                     return MaterialPageRoute(
                       builder: (context) => LoginScreen(
                         onLoginExitoso: (userData) async {
-                          // 🟢 CAMBIO CLAVE: ahora sí guardamos el usuario
-                          // en memoria y en disco antes de navegar.
+                          // Guarda el usuario en memoria y en disco antes de navegar.
                           await guardarSesionUsuario(userData);
 
                           if (!context.mounted) return;
@@ -166,7 +165,10 @@ class SpaVehicularApp extends StatelessWidget {
 
                   case '/registro':
                     return MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
+                      builder: (context) => RegisterScreen(
+                        // Ahora el registro también inicia la sesión en la app.
+                        onLoginExitoso: guardarSesionUsuario,
+                      ),
                       settings: settings,
                     );
 

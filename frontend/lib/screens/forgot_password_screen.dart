@@ -48,7 +48,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
 
-      // 🔧 Antes decía '/verify-code', ruta que NO existe en main.dart
+      // Antes decía '/verify-code', ruta que NO existe en main.dart
       // (caía en la pantalla principal). La ruta definida es '/verificar-codigo'.
       Navigator.pushNamed(
         context,
@@ -79,7 +79,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Icon(
               Icons.mark_email_read_outlined,
               size: 80,
-              color: context.brand,
+              color: context.brandText,
             ),
             const SizedBox(height: 16),
             const Text(

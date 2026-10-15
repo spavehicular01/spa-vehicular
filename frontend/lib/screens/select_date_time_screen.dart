@@ -74,7 +74,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_month, color: context.brand),
+                          Icon(Icons.calendar_month, color: context.brandText),
                           const SizedBox(width: 8),
                           Text(
                             'Fecha del Servicio',
@@ -112,7 +112,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.access_time_filled, color: context.brand),
+                          Icon(Icons.access_time_filled, color: context.brandText),
                           const SizedBox(width: 8),
                           Text(
                             'Horarios Disponibles',

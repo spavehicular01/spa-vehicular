@@ -31,6 +31,34 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Avisa a la app de la sesión y vuelve a la pantalla principal.
+  /// Si esta pantalla va embebida en la pestaña Perfil, popUntil no hace nada
+  /// y el cambio de sesión actualiza la vista por sí solo.
+  void _completarLogin(Map<String, dynamic> datos) {
+    widget.onLoginExitoso(datos);
+    if (!mounted) return;
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+  }
+
+  Map<String, dynamic> _armarDatos(Map usuario, dynamic token, String correoRespaldo) {
+    return {
+      'id': usuario['id'] ?? usuario['_id'] ?? '',
+      'nombres': usuario['nombres'] ?? usuario['Nombre'] ?? 'Usuario',
+      'apellidos': usuario['apellidos'] ?? usuario['Apellido'] ?? '',
+      'correo': usuario['correo'] ??
+          usuario['email'] ??
+          usuario['Correo_Electronico'] ??
+          correoRespaldo,
+      'rol': usuario['rol'] ?? 'cliente',
+      'documento': usuario['documentoIdentidad'] ?? usuario['documento'] ?? '',
+      'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
+      'vehiculos': usuario['vehiculos'] ?? [],
+      'token': token,
+      'citas': [],
+      'historial': [],
+    };
+  }
+
   Future<void> _iniciarSesion() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -49,28 +77,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final resultado = await AuthService.login(email, password);
 
-    setState(() => _cargando = false);
-
     if (!mounted) return;
+    setState(() => _cargando = false);
 
     final esExitoso = resultado['ok'] == true || resultado['success'] == true;
 
     if (esExitoso) {
       final usuario = resultado['usuario'] ?? {};
-
-      widget.onLoginExitoso({
-        'id': usuario['id'] ?? usuario['_id'] ?? '',
-        'nombres': usuario['nombres'] ?? 'Usuario',
-        'apellidos': usuario['apellidos'] ?? '',
-        'correo': usuario['correo'] ?? usuario['email'] ?? email,
-        'rol': usuario['rol'] ?? 'cliente',
-        'documento': usuario['documentoIdentidad'] ?? usuario['documento'] ?? '',
-        'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
-        'vehiculos': usuario['vehiculos'] ?? [],
-        'token': resultado['token'],
-        'citas': [],
-        'historial': [],
-      });
+      _completarLogin(_armarDatos(usuario, resultado['token'], email));
     } else if (resultado['requiereVerificacion'] == true) {
       Navigator.push(
         context,
@@ -98,26 +112,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final resultado = await AuthService.loginConGoogle();
 
-    setState(() => _cargandoGoogle = false);
-
     if (!mounted) return;
+    setState(() => _cargandoGoogle = false);
 
     if (resultado['success'] == true) {
       final usuario = resultado['usuario'] ?? {};
-
-      widget.onLoginExitoso({
-        'id': usuario['id'] ?? usuario['_id'] ?? '',
-        'nombres': usuario['nombres'] ?? usuario['Nombre'] ?? 'Usuario',
-        'apellidos': usuario['apellidos'] ?? usuario['Apellido'] ?? '',
-        'correo': usuario['correo'] ?? usuario['Correo_Electronico'] ?? '',
-        'rol': usuario['rol'] ?? 'cliente',
-        'documento': usuario['documentoIdentidad'] ?? '',
-        'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
-        'vehiculos': usuario['vehiculos'] ?? [],
-        'token': resultado['token'],
-        'citas': [],
-        'historial': [],
-      });
+      _completarLogin(_armarDatos(usuario, resultado['token'], ''));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -133,13 +133,21 @@ class _LoginScreenState extends State<LoginScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
+      // Si se abrió desde el diálogo (hay pantalla detrás), se muestra la flecha de volver.
+      appBar: Navigator.of(context).canPop() ? AppBar(title: const Text('Iniciar sesión')) : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.account_circle, size: 80, color: context.brand),
+              const Center(
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: AppColors.accent,
+                  child: Icon(Icons.person, size: 46, color: AppColors.primary),
+                ),
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Bienvenido',
@@ -151,9 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
+                  labelText: 'Correo electrónico',
                   prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -161,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'Contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword
@@ -170,7 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  border: const OutlineInputBorder(),
                 ),
               ),
               Align(
@@ -187,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     '¿Has olvidado tu contraseña?',
                     style: TextStyle(
-                      color: context.brand,
+                      color: context.brandText,
                       fontSize: 13,
                       decoration: TextDecoration.underline,
                     ),
@@ -253,28 +259,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: cs.onSurface,
-                  side: BorderSide(color: context.isDark ? AppColors.darkBorder : Colors.grey.shade400),
+                  side: BorderSide(
+                    color: context.isDark ? AppColors.darkBorder : Colors.grey.shade400,
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
               const SizedBox(height: 24),
 
               OutlinedButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
+                onPressed: () {
+                  // RegisterScreen avisa a la app y vuelve a la pantalla principal por sí sola.
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
+                      builder: (context) => RegisterScreen(
+                        onLoginExitoso: widget.onLoginExitoso,
+                      ),
                     ),
                   );
-
-                  if (result != null && result is Map<String, dynamic>) {
-                    widget.onLoginExitoso(result);
-                  }
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: context.brand,
-                  side: BorderSide(color: context.brand, width: 1.5),
+                  foregroundColor: context.brandText,
+                  side: BorderSide(color: context.brandText, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(
