@@ -9,7 +9,8 @@ class AppColors {
   static const Color muted = Color(0xFF8A94A6); // Texto secundario/etiquetas
   static const Color background = Color(0xFFF4F6FA); // Fondo general (claro)
 
-  // Azul vivo de login/registro (SOLO modo claro)
+  // Compatibilidad: algunos archivos viejos todavía usan este nombre.
+  // Ya no se usa en la app nueva, pero se deja para que nada deje de compilar.
   static const Color brandBlue = Color(0xFF001EFF);
 
   // Paleta oscura (la de la pantalla de Inicio)
@@ -20,11 +21,19 @@ class AppColors {
   static const Color darkMuted = Color(0xFF94A3B8);
 }
 
-/// Atajos: azul vivo en claro, cian en oscuro.
+/// Atajos de color, iguales a los de la pantalla de Inicio.
 extension AppThemeContext on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
-  Color get brand => isDark ? AppColors.accent : AppColors.brandBlue;
-  Color get onBrand => isDark ? AppColors.primary : Colors.white;
+
+  /// Relleno de botones: cian en claro y en oscuro (como "Iniciar sesión" en Inicio).
+  Color get brand => AppColors.accent;
+
+  /// Texto e iconos sobre un botón cian: azul marino.
+  Color get onBrand => AppColors.primary;
+
+  /// Enlaces e iconos sueltos sobre el fondo: azul agua en claro (se lee bien),
+  /// cian en oscuro.
+  Color get brandText => isDark ? AppColors.accent : AppColors.secondary;
 }
 
 class AppTextStyles {
@@ -218,7 +227,11 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.darkBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -235,23 +248,29 @@ class AppTheme {
   }
 }
 
-/// Chip reutilizable estilo AquaGlow (Activo / Pendiente / Completado, etc.)
+/// Chip de color para mostrar el estado de una cita (pendiente, en proceso, etc.).
 class StatusChip extends StatelessWidget {
   final String label;
   final Color color;
+
   const StatusChip({super.key, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12 + 8),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
       ),
       child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        label.replaceAll('_', ' '),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }

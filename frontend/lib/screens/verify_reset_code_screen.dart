@@ -169,9 +169,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verificar Cuenta'),
-        // Claro: azul vivo. Oscuro: hereda el AppBar oscuro del tema.
-        backgroundColor: isDark ? null : AppColors.brandBlue,
-        foregroundColor: isDark ? null : Colors.white,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -182,7 +179,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               Icon(
                 Icons.mark_email_read_outlined,
                 size: 80,
-                color: context.brand,
+                color: context.brandText,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -260,7 +257,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                       ? '¿No recibiste el código? Reenviar'
                       : 'Puedes reenviar en $_formattedTime',
                   style: TextStyle(
-                    color: _canResend ? context.brand : Colors.grey,
+                    color: _canResend ? context.brandText : Colors.grey,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

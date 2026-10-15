@@ -83,7 +83,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
             guardarSesionUsuario(datos);
-            guardarSesionUsuario(datos);
           },
           onIrATab: _irATab,
         );
@@ -98,7 +97,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos);
             guardarSesionUsuario(datos);
           },
         );
@@ -115,14 +113,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           return LoginScreen(
             onLoginExitoso: (datos) {
               guardarSesionUsuario(datos);
-              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
           return AdminDashboardScreen(
             userData: usuarioAutenticado,
             onCerrarSesion: () {
-              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
@@ -146,7 +142,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
-              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
