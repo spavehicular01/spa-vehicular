@@ -141,8 +141,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return '\$$buf';
   }
 
-  // Colores semánticos por estado (se mantienen distintos entre sí
-  // a propósito, para diferenciar estados de un vistazo).
+  // Colores semánticos por estado
   Color _obtenerColorEstado(String? estado) {
     switch (estado) {
       case 'pendiente':
@@ -176,7 +175,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   String _obtenerDetalleVehiculo(dynamic cita) {
     if (cita['vehiculoId'] is Map) {
       final v = cita['vehiculoId'];
-      return '${v['placa'] ?? ''} - ${v['marca'] ?? ''} ${v['modelo'] ?? ''}'.trim();
+      return '${v['placa'] ?? ''} ${v['marca'] ?? ''} ${v['modelo'] ?? ''}'.trim();
     }
     return cita['vehiculo'] ?? cita['vehiculoId'] ?? 'N/A';
   }
@@ -201,7 +200,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Citas (Admin)'),
@@ -278,7 +276,6 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
-                                    // 🟢 Solo aparece cuando el lavado terminó y aún no se ha cobrado
                                     if (estadoActual == 'finalizada' && !pagado && citaId != null)
                                       InkWell(
                                         borderRadius: BorderRadius.circular(8),
@@ -377,7 +374,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   }
 }
 
-// 🟢 Diálogo para registrar el pago: método real, monto y referencia opcional.
+// 🟢 Diálogo para registrar el pago
 class _RegistrarPagoDialog extends StatefulWidget {
   final String nombreCliente;
   final int? montoInicial;
