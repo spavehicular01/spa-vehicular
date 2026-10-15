@@ -7,6 +7,16 @@ import { crearNotificacion } from '../utils/notificaciones.js';
 
 const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
 
+// 🔒 Helpers de permisos (el id y el rol salen del token, nunca del cuerpo de la petición)
+const esAdminReq = (req) => String((req.user && req.user.rol) || '').toLowerCase() === 'admin';
+const idDeSesion = (req) => String((req.user && (req.user.id || req.user._id)) || '');
+
+// Si quien consulta no es admin, limita el filtro a sus propias citas
+const limitarAlDueno = (req, filtro) => {
+  if (esAdminReq(req)) return filtro;
+  return { ...filtro, usuarioId: idDeSesion(req) || null };
+};
+
 // 1. Obtener citas (Todas o filtradas por estado)
 export const obtenerCitas = async (req, res) => {
   try {
@@ -28,7 +38,9 @@ export const obtenerCitas = async (req, res) => {
 // 2. Obtener todas las citas (Panel Admin)
 export const obtenerTodasLasCitas = async (req, res) => {
   try {
-    const citas = await Appointment.find()
+    // El admin ve todas las citas; un cliente solo ve las suyas
+    const filtro = req.query.estado ? { estado: String(req.query.estado) } : {};
+    const citas = await Appointment.find(limitarAlDueno(req, filtro))
       .populate('usuarioId', POPULATE_USUARIO)
       .populate('vehiculoId')
       .populate('servicioId')
@@ -85,6 +97,12 @@ export const crearCita = async (req, res) => {
       correo
     } = req.body;
 
+    // 🔒 Un cliente solo puede agendar a su propio nombre; el admin puede agendar a nombre de otro
+    const usuarioIdFinal = esAdminReq(req) ? (usuarioId || idDeSesion(req)) : idDeSesion(req);
+    if (!usuarioIdFinal) {
+      return res.status(403).json({ mensaje: 'No se pudo identificar al usuario de la cita' });
+    }
+
     // 🟢 Validar que el vehículo y el servicio existan antes de crear la cita
     const [vehiculoExiste, servicioExiste] = await Promise.all([
       Vehicle.findById(vehiculoId),
@@ -124,7 +142,7 @@ export const crearCita = async (req, res) => {
     }
 
     const nuevaCita = new Appointment({
-      usuarioId,
+      usuarioId: usuarioIdFinal,
       vehiculoId,
       servicioId,
       tipoVehiculo: vehiculoExiste.tipoVehiculo,
@@ -213,6 +231,11 @@ export const reprogramarCita = async (req, res) => {
     const cita = await Appointment.findById(citaId);
     if (!cita) {
       return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    // 🔒 Solo el dueño de la cita o un admin pueden reprogramarla
+    if (!esAdminReq(req) && String(cita.usuarioId) !== idDeSesion(req)) {
+      return res.status(403).json({ mensaje: 'No puedes reprogramar una cita que no es tuya' });
     }
 
     // 🟢 Validar cupos en la nueva hora (sin contar esta misma cita)
@@ -466,9 +489,10 @@ export const obtenerCitasPorFecha = async (req, res) => {
     const inicioDia = new Date(`${fecha}T00:00:00.000-05:00`);
     const finDia = new Date(`${fecha}T23:59:59.999-05:00`);
 
-    const citas = await Appointment.find({
-      fechaHoraCita: { $gte: inicioDia, $lte: finDia }
-    })
+    // El admin ve las citas de todos ese día; un cliente solo las suyas
+    const filtro = { fechaHoraCita: { $gte: inicioDia, $lte: finDia } };
+
+    const citas = await Appointment.find(limitarAlDueno(req, filtro))
       .populate('usuarioId', POPULATE_USUARIO)
       .populate('vehiculoId')
       .populate('servicioId')

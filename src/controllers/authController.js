@@ -3,8 +3,11 @@ import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import { enviarCodigoRecuperacion, enviarCodigoVerificacion } from '../utils/mailer.js';
 
-// Clave secreta para firmar tokens JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_cars_wash';
+// Clave secreta para firmar tokens JWT (solo del entorno; sin ella el servidor no arranca)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('Falta la variable de entorno JWT_SECRET. Agrégala al archivo .env antes de iniciar el servidor.');
+}
 
 // 1. Iniciar Sesión (Login)
 export const login = async (req, res) => {

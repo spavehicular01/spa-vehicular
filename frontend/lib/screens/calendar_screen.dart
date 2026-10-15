@@ -14,11 +14,22 @@ class CalendarScreen extends StatefulWidget {
   final String? token;
   final void Function(Map<String, dynamic> datos)? onLoginExitoso;
 
+  /// Servicio que el cliente ya eligió en la pantalla de servicios (opcional).
+  /// Se pasa a los detalles de la cita para que aparezca preseleccionado.
+  final String? servicioInicialId;
+
+  /// true cuando esta pantalla se abre desde la lista de servicios (como página
+  /// propia): agrega su propio AppBar con el botón para volver. Dentro de la
+  /// pestaña "Calendario" queda en false porque MainNavigationScreen ya tiene uno.
+  final bool mostrarAppBar;
+
   const CalendarScreen({
     super.key,
     this.usuario,
     this.token,
     this.onLoginExitoso,
+    this.servicioInicialId,
+    this.mostrarAppBar = false,
   });
 
   @override
@@ -132,7 +143,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     debugPrint('--> usuario que se enviará a BookingScreen: ${widget.usuario}');
 
-    await Navigator.push(
+    final resultado = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => BookingScreen(
@@ -140,19 +151,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
           selectedTime: slot['hora'],
           usuario: widget.usuario,
           token: token,
+          servicioInicialId: widget.servicioInicialId,
         ),
       ),
     );
 
     // Al volver (se haya agendado o no) se refrescan los cupos.
     if (mounted) _cargarCitasDelDia();
+
+    // Si se abrió desde la lista de servicios y la cita quedó agendada,
+    // se vuelve atrás para no dejar al cliente en una pantalla de calendario suelta.
+    if (resultado == true && widget.mostrarAppBar && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Sin Scaffold/AppBar propios: esta pantalla vive dentro de
-    // MainNavigationScreen (tab "Calendario"), que ya provee su AppBar.
-    return Container(
+    final contenido = Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         children: [
@@ -187,6 +203,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ],
       ),
+    );
+
+    // En la pestaña "Calendario" no lleva Scaffold propio (lo provee MainNavigationScreen).
+    if (!widget.mostrarAppBar) return contenido;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Agendar cita')),
+      body: contenido,
     );
   }
 }

@@ -1,15 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'session_guard.dart';
 
 class VehicleService {
   static const String _baseUrl = 'http://10.0.2.2:3000/api/vehicles';
 
-  static Map<String, String> _headers(String? token) {
+  /// Headers con el token JWT. Si la pantalla no pasó un token, se toma el
+  /// guardado al iniciar sesión (las rutas de vehículos ahora exigen sesión).
+  static Future<Map<String, String>> _headers(String? token) async {
+    var tokenFinal = token;
+    if (tokenFinal == null || tokenFinal.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      tokenFinal = prefs.getString('token');
+    }
+
     final headers = <String, String>{'Content-Type': 'application/json'};
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
+    if (tokenFinal != null && tokenFinal.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $tokenFinal';
     }
     return headers;
   }
@@ -32,7 +41,7 @@ class VehicleService {
       debugPrint('GET VEHICULOS -> $url');
 
       final response = SessionGuard.revisar(
-        await http.get(url, headers: _headers(token)),
+        await http.get(url, headers: await _headers(token)),
       );
 
       debugPrint('GET VEHICULOS STATUS: ${response.statusCode}');
@@ -60,7 +69,7 @@ class VehicleService {
     try {
       final response = SessionGuard.revisar(await http.post(
         Uri.parse('$_baseUrl/registrar'),
-        headers: _headers(token),
+        headers: await _headers(token),
         body: jsonEncode({
           'usuarioId': usuarioId,
           'placa': placa,
@@ -87,7 +96,7 @@ class VehicleService {
     try {
       final response = SessionGuard.revisar(await http.delete(
         Uri.parse('$_baseUrl/$vehicleId'),
-        headers: _headers(token),
+        headers: await _headers(token),
       ));
       return response.statusCode == 200;
     } catch (e) {

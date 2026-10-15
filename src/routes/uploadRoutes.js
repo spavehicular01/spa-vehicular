@@ -1,10 +1,12 @@
 import express from 'express';
 import upload from '../middlewares/upload.js';
+import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // POST /api/upload
-router.post('/', upload.single('image'), (req, res) => {
+// Requiere sesión iniciada: antes cualquiera podía subir imágenes a Cloudinary sin registrarse.
+router.post('/', verifyToken, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ mensaje: 'No se ha proporcionado ninguna imagen.' });

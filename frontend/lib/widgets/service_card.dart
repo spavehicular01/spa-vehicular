@@ -34,15 +34,22 @@ class ServiceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nombre: más grande y en negrita para que sea lo primero que se vea
                     Text(
                       service.nombre,
-                      style: AppTextStyles.bodyStrong,
+                      style: AppTextStyles.bodyStrong.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    // Descripción: semi-negrita (w600). Para negrita completa usa FontWeight.w700.
                     Text(
                       service.descripcion,
-                      style: AppTextStyles.body,
-                      maxLines: 2,
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),

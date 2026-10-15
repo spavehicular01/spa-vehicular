@@ -19,12 +19,17 @@ class BookingScreen extends StatefulWidget {
   final Map<String, dynamic>? usuario;
   final String? token;
 
+  /// Servicio que el cliente ya eligió en la pantalla de servicios (opcional).
+  /// Si viene, queda preseleccionado en "Tipo de lavado".
+  final String? servicioInicialId;
+
   const BookingScreen({
     super.key,
     required this.selectedDate,
     required this.selectedTime,
     this.usuario,
     this.token,
+    this.servicioInicialId,
   });
 
   @override
@@ -102,7 +107,7 @@ class _BookingScreenState extends State<BookingScreen> {
       final serviciosMapeados = serviciosReales.map<Map<String, dynamic>>((s) {
         return {
           'id': s.id,
-          'nombre': '${s.nombre} (${s.duracionMinutos} min)',
+          'nombre': s.nombre,
           'minutos': s.duracionMinutos,
           'nombreBase': s.nombre,
           'precios': <String, double>{
@@ -114,10 +119,30 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (!mounted) return;
 
+      // 🟢 Si el cliente ya eligió un servicio en la pantalla de servicios, queda
+      // preseleccionado. Además se escoge el primer vehículo que tenga precio para
+      // ese servicio, para que la selección no se pierda por el tipo de vehículo.
+      String? vehiculoInicial =
+          vehiculosMapeados.isNotEmpty ? vehiculosMapeados.first['id'] : null;
+      String? servicioInicial;
+      final idElegido = widget.servicioInicialId;
+      if (idElegido != null) {
+        final coincidencias =
+            serviciosMapeados.where((s) => s['id'] == idElegido).toList();
+        if (coincidencias.isNotEmpty) {
+          servicioInicial = idElegido;
+          final precios = coincidencias.first['precios'] as Map<String, double>;
+          final compatibles =
+              vehiculosMapeados.where((v) => precios.containsKey(v['tipo'])).toList();
+          if (compatibles.isNotEmpty) vehiculoInicial = compatibles.first['id'];
+        }
+      }
+
       setState(() {
         _vehiculos = vehiculosMapeados;
         _servicios = serviciosMapeados;
-        _vehiculoSeleccionadoId = vehiculosMapeados.isNotEmpty ? vehiculosMapeados.first['id'] : null;
+        _vehiculoSeleccionadoId = vehiculoInicial;
+        _servicioSeleccionadoId = servicioInicial;
         _ajustarServicioSeleccionado();
         _cargandoDatos = false;
       });
@@ -260,7 +285,7 @@ class _BookingScreenState extends State<BookingScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('¡Cita Confirmada! 🎉', style: AppTextStyles.h2),
         content: Text(
