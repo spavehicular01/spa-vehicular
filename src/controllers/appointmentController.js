@@ -3,7 +3,7 @@ import Vehicle from '../models/Vehicle.js';
 import Service from '../models/Service.js';
 import { sendEmail } from '../services/emailService.js';
 import { contarCitasEnHora, LIMITE_POR_HORA } from '../utils/cupos.js';
-import { crearNotificacion } from '../utils/notificaciones.js';
+import { crearNotificacion, emitirAUsuarioYAdmins } from '../utils/notificaciones.js';
 
 const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
 
@@ -277,9 +277,8 @@ export const reprogramarCita = async (req, res) => {
       req.io
     );
 
-    if (req.io) {
-      req.io.emit('cita_reprogramada', cita);
-    }
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(req.io, cita.usuarioId, 'cita_reprogramada', cita);
 
     const correoDestino = req.body.correo || (req.user && req.user.correo);
 
@@ -383,13 +382,17 @@ export const cambiarEstadoCita = async (req, res) => {
       req.io
     );
 
-    if (req.io) {
-      req.io.emit('cambio_estado_cita', {
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(
+      req.io,
+      usuario && usuario._id ? usuario._id : usuario,
+      'cambio_estado_cita',
+      {
         citaId: citaActualizada._id,
         nuevoEstado: citaActualizada.estado,
         cita: citaActualizada
-      });
-    }
+      }
+    );
 
     // 🟢 El correo va al CLIENTE dueño de la cita (req.user es quien hace la acción, es decir, el admin)
     const correoCliente = usuario && (usuario.correo || usuario.Correo_Electronico);
@@ -465,13 +468,12 @@ export const cancelarCita = async (req, res) => {
       req.io
     );
 
-    if (req.io) {
-      req.io.emit('cambio_estado_cita', {
-        citaId: cita._id,
-        nuevoEstado: cita.estado,
-        cita
-      });
-    }
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(req.io, cita.usuarioId, 'cambio_estado_cita', {
+      citaId: cita._id,
+      nuevoEstado: cita.estado,
+      cita
+    });
 
     res.status(200).json({ mensaje: 'Cita cancelada correctamente', cita });
   } catch (error) {

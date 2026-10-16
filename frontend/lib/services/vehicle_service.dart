@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_config.dart';
 import 'session_guard.dart';
 
 class VehicleService {
-  static const String _baseUrl = 'http://10.0.2.2:3000/api/vehicles';
+  static String get _baseUrl => '${ApiConfig.baseUrl}/vehicles';
 
   /// Headers con el token JWT. Si la pantalla no pasó un token, se toma el
   /// guardado al iniciar sesión (las rutas de vehículos ahora exigen sesión).

@@ -1,7 +1,8 @@
 import Notification from '../models/Notification.js';
 
-// Guarda una notificación en la base de datos. Nunca lanza error:
-// si falla, solo se registra en consola para no romper la operación principal.
+// Guarda una notificación en la base de datos y se la avisa en tiempo real SOLO a su dueño
+// (sala "usuario:<id>" del WebSocket). Nunca lanza error: si falla, solo se registra en
+// consola para no romper la operación principal.
 export const crearNotificacion = async ({ usuarioId, citaId, tipo, titulo, mensaje }, io) => {
   try {
     if (!usuarioId) return null;
@@ -15,7 +16,7 @@ export const crearNotificacion = async ({ usuarioId, citaId, tipo, titulo, mensa
     });
 
     if (io) {
-      io.emit('nueva_notificacion', notificacion);
+      io.to(`usuario:${String(usuarioId)}`).emit('nueva_notificacion', notificacion);
     }
 
     return notificacion;
@@ -25,4 +26,15 @@ export const crearNotificacion = async ({ usuarioId, citaId, tipo, titulo, mensa
   }
 };
 
-export default { crearNotificacion };
+// Emite un evento en tiempo real solo al dueño de la cita y a los administradores conectados.
+export const emitirAUsuarioYAdmins = (io, usuarioId, evento, payload) => {
+  if (!io) return;
+
+  let destino = io.to('admins');
+  if (usuarioId) {
+    destino = destino.to(`usuario:${String(usuarioId)}`);
+  }
+  destino.emit(evento, payload);
+};
+
+export default { crearNotificacion, emitirAUsuarioYAdmins };

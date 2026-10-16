@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/session_guard.dart';
+import '../services/socket_service.dart';
 import 'home_screen.dart';
 import 'calendar_screen.dart';
 import 'wash_management_screen.dart';
@@ -83,6 +84,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
             guardarSesionUsuario(datos);
+            guardarSesionUsuario(datos);
           },
           onIrATab: _irATab,
         );
@@ -97,6 +99,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
+            guardarSesionUsuario(datos);
             guardarSesionUsuario(datos);
           },
         );
@@ -113,12 +116,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           return LoginScreen(
             onLoginExitoso: (datos) {
               guardarSesionUsuario(datos);
+              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
           return AdminDashboardScreen(
             userData: usuarioAutenticado,
             onCerrarSesion: () {
+              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
@@ -142,6 +147,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
+              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
@@ -275,6 +281,7 @@ class _CampanaNotificaciones extends StatefulWidget {
 class _CampanaNotificacionesState extends State<_CampanaNotificaciones> {
   int _noLeidas = 0;
   Timer? _timer;
+  final SocketService _socket = SocketService();
 
   String? get _usuarioId =>
       (widget.usuario['id'] ?? widget.usuario['_id'])?.toString();
@@ -283,12 +290,18 @@ class _CampanaNotificacionesState extends State<_CampanaNotificaciones> {
   void initState() {
     super.initState();
     _cargarContador();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _cargarContador());
+
+    // 🟢 Tiempo real: cuando llega una notificación nueva, el contador se actualiza al instante.
+    _socket.conectar(null, onNuevaNotificacion: (_) => _cargarContador());
+
+    // Respaldo por si se cae la conexión en tiempo real
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _cargarContador());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _socket.desconectar();
     super.dispose();
   }
 
