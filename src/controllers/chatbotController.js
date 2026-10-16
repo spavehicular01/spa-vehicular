@@ -134,7 +134,7 @@ CÓMO FUNCIONA LA APP (úsalo para guiar al cliente):
 - Se necesita haber iniciado sesión y tener al menos un vehículo registrado en la app.
 - Las citas se agendan en estas horas: 8:00, 9:00, 10:00 y 11:00 AM, y 2:00, 3:00, 4:00 y 5:00 PM. Cada hora admite máximo 5 citas; si una hora aparece como "Ocupado", ya no tiene cupos y hay que elegir otra.
 - Modalidades: en el spa (presencial) o a domicilio. Para domicilio se pide la dirección.
-- Métodos de pago: efectivo, transferencia (Nequi / Daviplata) y tarjeta débito o crédito.
+- Pagos: en la app NO se paga nada. Al agendar solo se indica cómo se pagará (efectivo, transferencia Nequi / Daviplata o tarjeta débito o crédito), y el pago se realiza en el spa al recoger el vehículo.
 - Seguimiento: en la pestaña "Lavadas" se ve el avance de la cita (Pendiente, En Proceso, Completado) y existe un historial. También llegan avisos y correos cuando cambia el estado.
 
 CÓMO RESPONDER:

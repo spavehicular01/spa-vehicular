@@ -1,7 +1,13 @@
 import express from 'express';
-import { actualizarPerfil, cambiarPassword, obtenerClientes } from "../controllers/userController.js";
+import {
+  registrarUsers,
+  verificarCuenta,
+  reenviarCodigoVerificacion,
+  login,
+  obtenerClientes
+} from "../controllers/User.js";
+import { actualizarPerfil, cambiarPassword } from "../controllers/userController.js";
 import { verifyToken, esAdmin } from "../middlewares/authMiddleware.js";
-// Middleware de Multer + Cloudinary
 import upload from "../middlewares/upload.js";
 
 const router = express.Router();

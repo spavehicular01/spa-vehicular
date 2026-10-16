@@ -34,7 +34,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
     return token != null && token.trim().isNotEmpty && token.trim() != 'null';
   }
 
-  void _irACalendario(String token, Map<String, dynamic>? usuario) {
+  // 🟢 Se envía el servicio elegido para que aparezca ya seleccionado en los detalles de la cita
+  void _irACalendario(String token, Map<String, dynamic>? usuario, String servicioId) {
     if (!mounted) return;
     Navigator.push(
       context,
@@ -42,6 +43,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
         builder: (context) => CalendarScreen(
           token: token,
           usuario: usuario,
+          servicioInicialId: servicioId,
+          mostrarAppBar: true,
         ),
       ),
     );
@@ -59,14 +62,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
           await guardarSesionUsuario(datos);
           final nuevoToken = datos['token'] as String?;
           if (nuevoToken != null) {
-            _irACalendario(nuevoToken, datos);
+            _irACalendario(nuevoToken, datos, item.id);
           }
         },
       );
       return;
     }
 
-    _irACalendario(token!, usuario);
+    _irACalendario(token!, usuario, item.id);
   }
 
   @override

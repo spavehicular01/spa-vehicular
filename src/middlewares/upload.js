@@ -18,6 +18,10 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  // Máximo 8 MB por imagen y un solo archivo por petición
+  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+});
 
 export default upload;

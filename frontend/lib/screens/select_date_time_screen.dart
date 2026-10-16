@@ -7,10 +7,15 @@ class SelectDateTimeScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
   final String? token;
 
+  /// Servicio que el cliente ya eligió en la pantalla de servicios (opcional).
+  /// Se pasa a la pantalla de detalles para que aparezca preseleccionado.
+  final String? servicioInicialId;
+
   const SelectDateTimeScreen({
     super.key,
     required this.usuario,
     this.token,
+    this.servicioInicialId,
   });
 
   @override
@@ -31,16 +36,18 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = context.isDark;
-    final cs = Theme.of(context).colorScheme;
-    final Color cardBg = cs.surface;
-    final Color textColor = cs.onSurface;
-    final Color borderColor = isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      // Fondo y AppBar vienen del tema (misma paleta que Inicio).
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Seleccionar Cita', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.azulElectrico,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Stack(
         children: [
@@ -74,7 +81,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_month, color: context.brandText),
+                          const Icon(Icons.calendar_month, color: AppTheme.azulElectrico),
                           const SizedBox(width: 8),
                           Text(
                             'Fecha del Servicio',
@@ -112,7 +119,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.access_time_filled, color: context.brandText),
+                          const Icon(Icons.access_time_filled, color: AppTheme.azulElectrico),
                           const SizedBox(width: 8),
                           Text(
                             'Horarios Disponibles',
@@ -129,17 +136,16 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                           return ChoiceChip(
                             label: Text(hora),
                             selected: isSelected,
-                            selectedColor: context.brand,
-                            backgroundColor: isDark ? AppColors.darkScaffold : const Color(0xFFF8FAFC),
-                            showCheckmark: false,
+                            selectedColor: AppTheme.azulElectrico,
+                            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             labelStyle: TextStyle(
-                              color: isSelected ? context.onBrand : textColor,
+                              color: isSelected ? Colors.white : textColor,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                               side: BorderSide(
-                                color: isSelected ? context.brand : borderColor,
+                                color: isSelected ? AppTheme.azulElectrico : borderColor,
                               ),
                             ),
                             onSelected: (selected) {
@@ -170,6 +176,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                                   selectedTime: _selectedTime!,
                                   usuario: widget.usuario,
                                   token: widget.token,
+                                  servicioInicialId: widget.servicioInicialId,
                                 ),
                               ),
                             );
@@ -179,18 +186,18 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: context.brand,
-                      disabledBackgroundColor: isDark ? AppColors.darkSurface : Colors.grey.shade400,
+                      backgroundColor: AppTheme.azulElectrico,
+                      disabledBackgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade400,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Continuar a Detalles',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: context.onBrand,
+                        color: Colors.white,
                       ),
                     ),
                   ),
