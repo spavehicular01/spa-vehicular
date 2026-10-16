@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_config.dart';
 import 'session_guard.dart';
 
 class UserService {
-  // Ajusta a 10.0.2.2 para emulador Android o localhost para Windows/Desktop
-  static const String _baseUrl = 'http://10.0.2.2:3000/api/users';
+  static String get _baseUrl => '${ApiConfig.baseUrl}/users';
 
   // Token JWT guardado al iniciar sesión
   static Future<String> _getToken() async {

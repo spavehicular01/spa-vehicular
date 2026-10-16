@@ -56,8 +56,9 @@ export const registrarPago = async (req, res) => {
       req.io
     );
 
+    // 🔒 El aviso con los datos del pago solo llega a los administradores conectados
     if (req.io) {
-      req.io.emit('pago_registrado', { citaId: cita._id, pago });
+      req.io.to('admins').emit('pago_registrado', { citaId: cita._id, pago });
     }
 
     res.status(201).json({ mensaje: 'Pago registrado correctamente', pago, cita });
@@ -106,8 +107,78 @@ export const obtenerPagoPorCita = async (req, res) => {
   }
 };
 
+// ───────────────────────────────────────────────────────────────
+// 4. Resumen de pagos para el panel de reportes (solo admin)
+// Los rangos (hoy, semana, mes) se calculan con la hora de Colombia (UTC-5, sin horario de verano).
+// ───────────────────────────────────────────────────────────────
+const OFFSET_COLOMBIA_MS = -5 * 60 * 60 * 1000;
+const MS_DIA = 24 * 60 * 60 * 1000;
+
+const inicioDelDiaColombia = (fecha = new Date()) => {
+  const local = new Date(fecha.getTime() + OFFSET_COLOMBIA_MS);
+  local.setUTCHours(0, 0, 0, 0);
+  return new Date(local.getTime() - OFFSET_COLOMBIA_MS);
+};
+
+const inicioDeSemanaColombia = (fecha = new Date()) => {
+  const inicioHoy = inicioDelDiaColombia(fecha);
+  const local = new Date(fecha.getTime() + OFFSET_COLOMBIA_MS);
+  const diasDesdeLunes = (local.getUTCDay() + 6) % 7; // lunes = 0
+  return new Date(inicioHoy.getTime() - diasDesdeLunes * MS_DIA);
+};
+
+const inicioDeMesColombia = (fecha = new Date()) => {
+  const local = new Date(fecha.getTime() + OFFSET_COLOMBIA_MS);
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - OFFSET_COLOMBIA_MS);
+};
+
+const resumenDesde = async (desde) => {
+  const filas = await Payment.aggregate([
+    { $match: { fechaPago: { $gte: desde } } },
+    { $group: { _id: '$metodoPago', total: { $sum: '$monto' }, cantidad: { $sum: 1 } } }
+  ]);
+
+  const porMetodo = {};
+  let total = 0;
+  let cantidad = 0;
+  for (const fila of filas) {
+    porMetodo[fila._id] = { total: fila.total, cantidad: fila.cantidad };
+    total += fila.total;
+    cantidad += fila.cantidad;
+  }
+
+  return { total, cantidad, porMetodo };
+};
+
+export const obtenerResumen = async (req, res) => {
+  try {
+    const ahora = new Date();
+
+    const [hoy, semana, mes, pendientesFilas] = await Promise.all([
+      resumenDesde(inicioDelDiaColombia(ahora)),
+      resumenDesde(inicioDeSemanaColombia(ahora)),
+      resumenDesde(inicioDeMesColombia(ahora)),
+      // Citas con el lavado terminado que todavía no se han cobrado
+      Appointment.aggregate([
+        { $match: { estado: 'finalizada', estadoPago: { $ne: 'pagado' } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$precio', 0] } }, cantidad: { $sum: 1 } } }
+      ])
+    ]);
+
+    const pendientes = pendientesFilas[0]
+      ? { total: pendientesFilas[0].total, cantidad: pendientesFilas[0].cantidad }
+      : { total: 0, cantidad: 0 };
+
+    res.status(200).json({ hoy, semana, mes, pendientes });
+  } catch (error) {
+    console.error('Error en obtenerResumen:', error);
+    res.status(500).json({ mensaje: 'Error al obtener el resumen de pagos', error: error.message });
+  }
+};
+
 export default {
   registrarPago,
   obtenerPagos,
-  obtenerPagoPorCita
+  obtenerPagoPorCita,
+  obtenerResumen
 };

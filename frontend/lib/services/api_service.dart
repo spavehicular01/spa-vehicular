@@ -3,11 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_config.dart';
 import 'session_guard.dart';
 
 class ApiService {
-  // Configuración de URL base para emulador Android
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  // La dirección del servidor sale de ApiConfig (un solo lugar para cambiarla)
+  static String get baseUrl => ApiConfig.baseUrl;
 
   // Helper privado para construir headers con Token JWT
   static Future<Map<String, String>> _getHeaders() async {
@@ -249,6 +250,28 @@ class ApiService {
     } catch (e) {
       debugPrint('Excepción al registrar pago: $e');
       return {'success': false, 'message': 'Error de conexión con el servidor'};
+    }
+  }
+
+  // 7.1 Resumen de pagos para el panel de reportes (solo Admin):
+  // totales de hoy, semana y mes (con desglose por método) y lo pendiente por cobrar.
+  static Future<Map<String, dynamic>> obtenerResumenPagos() async {
+    try {
+      final headers = await _getHeaders();
+      final response = SessionGuard.revisar(await http.get(
+        Uri.parse('$baseUrl/payments/resumen'),
+        headers: headers,
+      ));
+
+      debugPrint('GET Resumen Pagos Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(response.body));
+      }
+      throw Exception('Error al obtener el resumen de pagos (${response.statusCode})');
+    } catch (e) {
+      debugPrint('Excepción al obtener resumen de pagos: $e');
+      rethrow;
     }
   }
 

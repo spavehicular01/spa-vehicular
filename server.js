@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 
 // Importación de Rutas (con extensión .js obligatoria en ES Modules)
 import authRoutes from './src/routes/authRoutes.js';
@@ -60,7 +61,26 @@ mongoose.connect(process.env.MONGO_URI, { dbName: 'spa_vehicular' })
   .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
 // Eventos de conexión de WebSockets
+// 🔒 Autenticación de WebSockets: solo se conectan usuarios con un token válido
+// (la app lo envía en `auth: { token }`).
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth && socket.handshake.auth.token;
+    if (!token) return next(new Error('No autenticado'));
+    socket.data.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (error) {
+    next(new Error('Token inválido o expirado'));
+  }
+});
+
 io.on('connection', (socket) => {
+  // Cada usuario entra a su propia sala; los administradores, además, a la sala "admins".
+  // Así los avisos en tiempo real llegan solo a quien corresponde.
+  const { id, rol } = socket.data.user || {};
+  if (id) socket.join(`usuario:${String(id)}`);
+  if (String(rol || '').toLowerCase() === 'admin') socket.join('admins');
+
   console.log(`⚡ Cliente o Admin conectado a WebSocket ID: ${socket.id}`);
 
   socket.on('disconnect', () => {
