@@ -5,7 +5,7 @@ class AppColors {
   static const Color primary = Color(0xFF0B1E36); // Azul marino
   static const Color secondary = Color(0xFF0077B6); // Azul agua
   static const Color accent = Color(0xFF00E5FF); // Cian fresco
-  static const Color surface = Color(0xFFFFFFFF); // Fondo/tarjeta
+  static const Color surface = Color(0xFFFFFFFF); // Fondo/tarjeta (claro)
   static const Color muted = Color(0xFF8A94A6); // Texto secundario/etiquetas
   static const Color background = Color(0xFFF4F6FA); // Fondo general (claro)
 
@@ -21,7 +21,10 @@ class AppColors {
   static const Color darkMuted = Color(0xFF94A3B8);
 }
 
-/// Atajos de color, iguales a los de la pantalla de Inicio.
+/// Atajos de color que cambian solos entre modo claro y oscuro.
+///
+/// En lugar de `AppColors.surface` o `Colors.white` (que son siempre claros),
+/// usa `context.surfaceColor`, y así con el resto.
 extension AppThemeContext on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 
@@ -34,6 +37,29 @@ extension AppThemeContext on BuildContext {
   /// Enlaces e iconos sueltos sobre el fondo: azul agua en claro (se lee bien),
   /// cian en oscuro.
   Color get brandText => isDark ? AppColors.accent : AppColors.secondary;
+
+  // ───────── Adaptativos (reemplazan colores fijos) ─────────
+
+  /// Fondo de tarjetas, diálogos, modales y cuadros.
+  /// Reemplaza: AppColors.surface, Colors.white
+  Color get surfaceColor => isDark ? AppColors.darkSurface : AppColors.surface;
+
+  /// Fondo general de la pantalla.
+  /// Reemplaza: AppColors.background
+  Color get pageColor => isDark ? AppColors.darkScaffold : AppColors.background;
+
+  /// Texto principal.
+  /// Reemplaza: AppColors.primary usado como color de texto, Colors.black87
+  Color get textColor => isDark ? AppColors.darkText : AppColors.primary;
+
+  /// Texto secundario y etiquetas.
+  /// Reemplaza: AppColors.muted, Colors.grey
+  Color get mutedColor => isDark ? AppColors.darkMuted : AppColors.muted;
+
+  /// Bordes y divisores.
+  /// Reemplaza: Colors.grey.shade200 / shade300
+  Color get borderColor =>
+      isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB);
 }
 
 class AppTextStyles {
@@ -60,6 +86,7 @@ class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.primary,
+      cardColor: AppColors.surface,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
@@ -106,6 +133,21 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        modalBackgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -198,14 +240,31 @@ class AppTheme {
         backgroundColor: AppColors.darkSurface,
         modalBackgroundColor: AppColors.darkSurface,
         surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
       dialogTheme: const DialogThemeData(
         backgroundColor: AppColors.darkSurface,
         surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+        titleTextStyle: TextStyle(
+          color: AppColors.darkText,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: TextStyle(
+          color: AppColors.darkText,
+          fontSize: 14,
+          height: 1.4,
+        ),
       ),
       popupMenuTheme: const PopupMenuThemeData(
         color: AppColors.darkSurface,
         surfaceTintColor: Colors.transparent,
+        textStyle: TextStyle(color: AppColors.darkText),
       ),
       dropdownMenuTheme: const DropdownMenuThemeData(
         menuStyle: MenuStyle(
@@ -218,6 +277,34 @@ class AppTheme {
         iconColor: AppColors.accent,
       ),
       dividerTheme: const DividerThemeData(color: AppColors.darkBorder),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.accent,
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        contentTextStyle: TextStyle(color: AppColors.darkText),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? AppColors.accent
+              : AppColors.darkMuted,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? AppColors.accent.withValues(alpha: 0.4)
+              : AppColors.darkBorder,
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? AppColors.accent
+              : Colors.transparent,
+        ),
+        checkColor: const WidgetStatePropertyAll(AppColors.primary),
+        side: const BorderSide(color: AppColors.darkMuted, width: 1.5),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
@@ -260,7 +347,7 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),

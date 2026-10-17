@@ -124,7 +124,7 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
         urlExistente,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) =>
-            const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+            Icon(Icons.broken_image, size: 40, color: context.mutedColor),
       );
     } else {
       contenido = const Column(
@@ -143,9 +143,10 @@ class _ServiceFormDialogState extends State<ServiceFormDialog> {
         height: 120,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          // Mismo estilo que la foto en "Registrar Vehículo": cian suave, sin gris fijo.
+          color: AppColors.accent.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.secondary),
+          border: Border.all(color: AppColors.accent, width: 1.5),
         ),
         child: ClipRRect(borderRadius: BorderRadius.circular(10), child: contenido),
       ),
