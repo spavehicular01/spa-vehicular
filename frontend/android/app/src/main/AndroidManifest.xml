@@ -2,6 +2,8 @@
 
     <!-- Permiso de Internet fuera de application -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Notificaciones push (Android 13 o superior las pide al usuario) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="Spa Vehicular"
@@ -28,6 +30,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Canal de notificaciones que usa el servidor (aviso con banner). Se crea en la app. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="notificaciones_spa" />
 
         <meta-data
             android:name="flutterEmbedding"
