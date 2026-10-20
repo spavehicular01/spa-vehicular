@@ -1,4 +1,5 @@
 import Notification from '../models/Notification.js';
+import { enviarPush } from '../services/pushService.js';
 
 // Guarda una notificación en la base de datos y se la avisa en tiempo real SOLO a su dueño
 // (sala "usuario:<id>" del WebSocket). Nunca lanza error: si falla, solo se registra en
@@ -18,6 +19,17 @@ export const crearNotificacion = async ({ usuarioId, citaId, tipo, titulo, mensa
     if (io) {
       io.to(`usuario:${String(usuarioId)}`).emit('nueva_notificacion', notificacion);
     }
+
+    // Notificación push al celular (no se espera: no debe frenar la operación principal)
+    enviarPush(usuarioId, {
+      titulo,
+      mensaje,
+      datos: {
+        tipo,
+        citaId: citaId ? String(citaId) : '',
+        notificacionId: String(notificacion._id)
+      }
+    });
 
     return notificacion;
   } catch (error) {

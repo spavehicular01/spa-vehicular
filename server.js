@@ -19,6 +19,7 @@ import userRoutes from './src/routes/userRoutes.js';
 import reviewRoutes from './src/routes/reviewRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
+import deviceRoutes from './src/routes/deviceRoutes.js';
 
 // Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -97,6 +98,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/appointments/', appointmentRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/devices', deviceRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);

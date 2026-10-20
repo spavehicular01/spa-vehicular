@@ -7,6 +7,7 @@ import 'screens/main_navigation_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
+import 'services/push_service.dart';
 import 'theme/app_theme.dart';
 // Import del chat
 
@@ -48,6 +49,12 @@ void main() async {
     }
   }
 
+  // Notificaciones push: si Firebase no está configurado, la app sigue sin ellas.
+  await PushService.iniciar();
+  if (usuarioActualNotifier.value != null) {
+    PushService.registrarDispositivo();
+  }
+
   runApp(const SpaVehicularApp());
 }
 
@@ -74,12 +81,19 @@ Future<void> guardarSesionUsuario(Map<String, dynamic> userData) async {
   if (token.isNotEmpty) {
     await prefs.setString('token', token);
   }
+
+  // 🔔 Registra este celular para recibir las notificaciones push de la cuenta
+  PushService.registrarDispositivo();
 }
 
 // Helper para cerrar sesión limpiamente desde cualquier pantalla.
 // También elimina 'userId' al cerrar sesión.
 Future<void> cerrarSesionUsuario() async {
   usuarioActualNotifier.value = null;
+
+  // 🔔 Deja de enviar a este celular los avisos de la cuenta (necesita el token, por eso va antes de borrarlo)
+  await PushService.quitarDispositivo();
+
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('usuario');
   await prefs.remove('token');
