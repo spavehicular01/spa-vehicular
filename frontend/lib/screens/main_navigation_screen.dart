@@ -58,12 +58,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   void _irATab(int indice) => setState(() => _selectedIndex = indice);
 
-  void _abrirChatAsesor() {
+  // modoAdmin = true abre el asistente interno del administrador (en lugar del asesor de clientes)
+  void _abrirChatAsesor({bool modoAdmin = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const ChatBottomSheet(),
+      builder: (_) => ChatBottomSheet(modoAdmin: modoAdmin),
     );
   }
 
@@ -161,11 +162,64 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
+  bool _esAdmin(Map<String, dynamic>? usuario) =>
+      usuario != null && usuario['rol']?.toString().toLowerCase() == 'admin';
+
+  /// El administrador ve una sola pantalla: su panel. Sin barra inferior, sin la
+  /// campana de notificaciones (son de clientes) y con su propio asistente de consultas.
+  Widget _buildVistaAdmin(BuildContext context, Map<String, dynamic> usuario) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Panel Administrativo'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(usuario: usuario),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      // Espacio abajo para que el botón del chat no tape el botón de cerrar sesión
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: AdminDashboardScreen(
+          userData: usuario,
+          onCerrarSesion: () {
+            cerrarSesionUsuario();
+            setState(() => _selectedIndex = 0);
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_btn_asistente_admin',
+        elevation: 4,
+        shape: const CircleBorder(),
+        tooltip: 'Consultas del negocio',
+        onPressed: () => _abrirChatAsesor(modoAdmin: true),
+        child: const Icon(
+          Icons.support_agent,
+          color: AppColors.primary,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Map<String, dynamic>?>(
       valueListenable: usuarioActualNotifier,
       builder: (context, usuarioAutenticado, _) {
+        if (_esAdmin(usuarioAutenticado)) {
+          return _buildVistaAdmin(context, usuarioAutenticado!);
+        }
+
         return Scaffold(
           // Único AppBar de toda la navegación principal: las pantallas hijas
           // (HomeScreen, etc.) NO deben traer su propio AppBar, o se duplica.
