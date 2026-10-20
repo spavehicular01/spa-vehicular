@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
+import '../widgets/extras/ui_extras.dart'; // colorAcento(context)
 
 /// Lista de notificaciones guardadas del cliente (cita agendada, cambios de estado, pagos).
+/// Todos los colores salen del tema, así que se ve bien en modo claro y oscuro.
 class NotificationsScreen extends StatefulWidget {
   final String usuarioId;
 
@@ -100,13 +101,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _mensajeCentrado(String texto) {
+    final colorTexto = Theme.of(context).colorScheme.onSurface;
+
     return ListView(
       children: [
         const SizedBox(height: 200),
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(texto, textAlign: TextAlign.center, style: AppTextStyles.body),
+            child: Text(
+              texto,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colorTexto.withValues(alpha: 0.7),
+                fontSize: 15,
+              ),
+            ),
           ),
         ),
       ],
@@ -115,10 +125,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final acento = colorAcento(context);
+    final colorTexto = theme.colorScheme.onSurface;
     final hayNoLeidas = _items.any((n) => n['leida'] != true);
 
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Notificaciones'),
         actions: [
@@ -130,9 +143,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
+          ? Center(child: CircularProgressIndicator(color: acento))
           : RefreshIndicator(
-              color: AppColors.secondary,
+              color: acento,
               onRefresh: _cargar,
               child: _error != null
                   ? _mensajeCentrado(_error!)
@@ -145,28 +158,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             final n = _items[index];
                             final noLeida = n['leida'] != true;
 
+                            // No leída: la tarjeta del tema con un toque de cian encima
+                            // (se mezcla con el color de la tarjeta, no con el fondo).
+                            final colorTarjeta = noLeida
+                                ? Color.alphaBlend(
+                                    acento.withValues(alpha: 0.14),
+                                    theme.cardColor,
+                                  )
+                                : theme.cardColor;
+
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
-                              color: noLeida ? AppColors.accent.withValues(alpha: 0.12) : null,
+                              color: colorTarjeta,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: noLeida
+                                      ? acento.withValues(alpha: 0.5)
+                                      : colorTexto.withValues(alpha: 0.08),
+                                ),
+                              ),
                               child: ListTile(
                                 onTap: () => _marcarLeida(index),
                                 leading: Icon(
                                   _icono(n['tipo']?.toString()),
-                                  color: AppColors.secondary,
+                                  color: acento,
                                 ),
                                 title: Text(
                                   (n['titulo'] ?? '').toString(),
-                                  style: AppTextStyles.bodyStrong,
+                                  style: TextStyle(
+                                    color: colorTexto,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const SizedBox(height: 4),
-                                    Text((n['mensaje'] ?? '').toString(), style: AppTextStyles.body),
+                                    Text(
+                                      (n['mensaje'] ?? '').toString(),
+                                      style: TextStyle(
+                                        color: colorTexto.withValues(alpha: 0.78),
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                     const SizedBox(height: 6),
                                     Text(
                                       _formatearFecha(n['fecha']),
-                                      style: AppTextStyles.body.copyWith(fontSize: 12),
+                                      style: TextStyle(
+                                        color: colorTexto.withValues(alpha: 0.55),
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),

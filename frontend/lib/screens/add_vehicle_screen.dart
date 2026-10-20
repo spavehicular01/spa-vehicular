@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/vehicle_types.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
-import '../utils/session_utils.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -84,7 +83,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   void _mostrarOpcionesImagen() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: context.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -131,7 +130,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? usuarioId = await obtenerUserIdSesion(prefs);
+      final String? usuarioId = prefs.getString('userId');
 
       if (usuarioId == null || usuarioId.isEmpty) {
         if (mounted) {
@@ -293,11 +292,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               const SizedBox(height: 16),
 
               _etiqueta('Tipo de Vehículo'),
-              // Sin dropdownColor fijo: el menú toma el color del tema.
               DropdownButtonFormField<String>(
                 initialValue: _tipoSeleccionado,
                 isExpanded: true,
                 borderRadius: BorderRadius.circular(14),
+                dropdownColor: context.surfaceColor,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.category, color: AppColors.secondary),
                 ),

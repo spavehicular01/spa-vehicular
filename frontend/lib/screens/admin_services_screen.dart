@@ -131,12 +131,11 @@ class _AdminServicesScreenState extends State<AdminServicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El fondo y el AppBar vienen del tema (claro/oscuro).
     return Scaffold(
       appBar: AppBar(
         title: const Text('Servicios y Precios'),
-        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
-      backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirFormulario(),
         backgroundColor: AppColors.accent,
