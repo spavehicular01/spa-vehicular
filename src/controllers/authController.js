@@ -169,7 +169,16 @@ export const registro = async (req, res) => {
       ok: true,
       mensaje: 'Usuario registrado. Revisa tu correo para activar tu cuenta.',
       email: emailVal,
-      usuario: nuevoUsuario
+      // Solo datos básicos: nunca se devuelve la contraseña ni el código de verificación
+      usuario: {
+        id: nuevoUsuario._id,
+        _id: nuevoUsuario._id,
+        nombres: nuevoUsuario.nombres,
+        apellidos: nuevoUsuario.apellidos,
+        correo: nuevoUsuario.correo,
+        celular: nuevoUsuario.celular,
+        rol: nuevoUsuario.rol
+      }
     });
   } catch (error) {
     console.error('🔥 Error exacto en registro:', error);
