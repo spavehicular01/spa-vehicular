@@ -1,10 +1,14 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/vehicle_types.dart';
 import '../services/wash_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/addvehicles/image_source_sheet.dart';
+import '../widgets/addvehicles/labeled_text_field.dart';
+import '../widgets/addvehicles/loading_button.dart';
+import '../widgets/addvehicles/vehicle_image_picker.dart';
+import '../widgets/addvehicles/vehicle_type_dropdown.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   final Map<String, dynamic>? vehicleToEdit;
@@ -33,23 +37,18 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   bool _subiendo = false;
   final ImagePicker _picker = ImagePicker();
 
+  bool get _esEdicion => widget.vehicleToEdit != null;
+
   @override
   void initState() {
     super.initState();
-    _placaController = TextEditingController(
-      text: widget.vehicleToEdit?['placa'] ?? '',
-    );
-    _marcaController = TextEditingController(
-      text: widget.vehicleToEdit?['marca'] ?? '',
-    );
-    _referenciaController = TextEditingController(
-      text: widget.vehicleToEdit?['referencia'] ?? '',
-    );
-    _modeloController = TextEditingController(
-      text: widget.vehicleToEdit?['modelo'] ?? '',
-    );
+    final v = widget.vehicleToEdit;
+    _placaController = TextEditingController(text: v?['placa'] ?? '');
+    _marcaController = TextEditingController(text: v?['marca'] ?? '');
+    _referenciaController = TextEditingController(text: v?['referencia'] ?? '');
+    _modeloController = TextEditingController(text: v?['modelo'] ?? '');
 
-    final tipoExistente = widget.vehicleToEdit?['tipoVehiculo'];
+    final tipoExistente = v?['tipoVehiculo'];
     if (tipoExistente != null) {
       final entry = _tiposVehiculo.entries.firstWhere(
         (e) => e.value == tipoExistente,
@@ -58,7 +57,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       _tipoSeleccionado = entry.key;
     }
 
-    _imagenUrlExistente = widget.vehicleToEdit?['imagenUrl'];
+    _imagenUrlExistente = v?['imagenUrl'];
   }
 
   @override
@@ -78,38 +77,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     if (imagen != null) {
       setState(() => _imagenSeleccionada = imagen);
     }
-  }
-
-  void _mostrarOpcionesImagen() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.secondary),
-              title: const Text('Galería'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _seleccionarImagen(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera, color: AppColors.secondary),
-              title: const Text('Cámara'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _seleccionarImagen(ImageSource.camera);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _mostrarMensaje(String texto, {bool error = false}) {
@@ -179,18 +146,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     }
   }
 
-  Widget _etiqueta(String texto) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(texto, style: AppTextStyles.bodyStrong),
-      );
-
   @override
   Widget build(BuildContext context) {
-    final esEdicion = widget.vehicleToEdit != null;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
+        title: Text(_esEdicion ? 'Editar Vehículo' : 'Registrar Vehículo'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -199,129 +159,51 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              GestureDetector(
-                onTap: _mostrarOpcionesImagen,
-                child: Container(
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.accent, width: 1.5),
-                  ),
-                  child: _imagenSeleccionada != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            File(_imagenSeleccionada!.path),
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : (_imagenUrlExistente != null &&
-                              _imagenUrlExistente!.isNotEmpty)
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.network(
-                                _imagenUrlExistente!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo,
-                                    size: 40, color: AppColors.secondary),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Toca para agregar foto del vehículo',
-                                  style: AppTextStyles.body,
-                                ),
-                              ],
-                            ),
+              VehicleImagePicker(
+                imagenSeleccionada: _imagenSeleccionada,
+                imagenUrlExistente: _imagenUrlExistente,
+                onTap: () => mostrarOpcionesImagen(
+                  context,
+                  onSelected: _seleccionarImagen,
                 ),
               ),
               const SizedBox(height: 20),
-
-              _etiqueta('Placa'),
-              TextFormField(
+              LabeledTextField(
+                label: 'Placa',
+                hint: 'Ej. ABC123',
+                icon: Icons.pin,
                 controller: _placaController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  hintText: 'Ej. ABC123',
-                  prefixIcon: Icon(Icons.pin, color: AppColors.secondary),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
-
-              _etiqueta('Marca'),
-              TextFormField(
+              LabeledTextField(
+                label: 'Marca',
+                hint: 'Ej. Toyota',
+                icon: Icons.directions_car,
                 controller: _marcaController,
-                decoration: const InputDecoration(
-                  hintText: 'Ej. Toyota',
-                  prefixIcon: Icon(Icons.directions_car, color: AppColors.secondary),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
-
-              _etiqueta('Referencia'),
-              TextFormField(
+              LabeledTextField(
+                label: 'Referencia',
+                hint: 'Ej. Corolla',
+                icon: Icons.label_outline,
                 controller: _referenciaController,
-                decoration: const InputDecoration(
-                  hintText: 'Ej. Corolla',
-                  prefixIcon: Icon(Icons.label_outline, color: AppColors.secondary),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
-
-              _etiqueta('Modelo / Año'),
-              TextFormField(
+              LabeledTextField(
+                label: 'Modelo / Año',
+                hint: 'Ej. 2022',
+                icon: Icons.calendar_today,
                 controller: _modeloController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Ej. 2022',
-                  prefixIcon: Icon(Icons.calendar_today, color: AppColors.secondary),
-                ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
-
-              _etiqueta('Tipo de Vehículo'),
-              DropdownButtonFormField<String>(
-                initialValue: _tipoSeleccionado,
-                isExpanded: true,
-                borderRadius: BorderRadius.circular(14),
-                dropdownColor: context.surfaceColor,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.category, color: AppColors.secondary),
-                ),
-                items: _tiposVehiculo.keys
-                    .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _tipoSeleccionado = val);
-                },
+              VehicleTypeDropdown(
+                value: _tipoSeleccionado,
+                opciones: _tiposVehiculo.keys.toList(),
+                onChanged: (val) => setState(() => _tipoSeleccionado = val),
               ),
               const SizedBox(height: 28),
-
-              // Toma el cian con texto navy del elevatedButtonTheme
-              ElevatedButton(
-                onPressed: _subiendo ? null : _guardarVehiculo,
-                child: _subiendo
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo'),
+              LoadingButton(
+                label: _esEdicion ? 'Actualizar Vehículo' : 'Guardar Vehículo',
+                loading: _subiendo,
+                onPressed: _guardarVehiculo,
               ),
               const SizedBox(height: 12),
             ],
