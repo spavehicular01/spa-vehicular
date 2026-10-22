@@ -6,7 +6,7 @@ import {
   login,
   obtenerClientes
 } from "../controllers/User.js";
-import { actualizarPerfil, cambiarPassword } from "../controllers/userController.js";
+import { actualizarPerfil, cambiarPassword, obtenerMiPerfil } from "../controllers/userController.js";
 import { verifyToken, esAdmin } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/upload.js";
 
@@ -29,6 +29,9 @@ const soloPropioPerfil = (req, res, next) => {
 
 // Panel Admin: lista de clientes con sus vehículos
 router.get("/clientes", verifyToken, esAdmin, obtenerClientes);
+
+// Perfil actual del usuario autenticado (la app lo usa para saber si falta documento/teléfono)
+router.get("/me", verifyToken, obtenerMiPerfil);
 
 // Cambiar contraseña del usuario autenticado
 router.put("/change-password", verifyToken, cambiarPassword);

@@ -2,14 +2,87 @@ import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
 import bcrypt from 'bcryptjs';
 
+// Id del usuario autenticado (lo pone verifyToken en req.user)
+const idDelToken = (req) =>
+  req.user?.id || req.user?._id || req.user?.userId || req.userId;
+
+// Forma única en que se devuelve un usuario al frontend
+const formatearUsuario = (u) => ({
+  id: u._id,
+  _id: u._id,
+  nombres: u.nombres || u.Nombre,
+  apellidos: u.apellidos || u.Apellido,
+  correo: u.correo || u.Correo_Electronico,
+  celular: u.celular || u.telefono,
+  telefono: u.celular || u.telefono,
+  rol: u.rol,
+  documentoIdentidad: u.documentoIdentidad,
+  documento: u.documentoIdentidad,
+  avatar: u.avatar
+});
+
+// Obtener el perfil actual del usuario autenticado (lo usa la app para saber
+// si ya tiene documento y teléfono guardados)
+export const obtenerMiPerfil = async (req, res) => {
+  try {
+    const userId = idDelToken(req);
+    const user = userId ? await User.findById(userId) : null;
+
+    if (!user) {
+      return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado' });
+    }
+
+    return res.status(200).json({ ok: true, usuario: formatearUsuario(user) });
+  } catch (error) {
+    console.error('Error al obtener mi perfil:', error);
+    return res.status(500).json({ ok: false, mensaje: 'Error interno al obtener el perfil' });
+  }
+};
+
 // Actualizar perfil de usuario
 export const actualizarPerfil = async (req, res) => {
+  const responderError = (status, texto) =>
+    res.status(status).json({ ok: false, success: false, message: texto, mensaje: texto });
+
   try {
     const { id } = req.params;
-    const { nombres, apellidos, celular } = req.body;
+    const { nombres, apellidos, celular, documentoIdentidad } = req.body;
 
-    // Construir objeto con los datos a actualizar
-    const datosActualizar = { nombres, apellidos, celular };
+    const usuario = await User.findById(id);
+    if (!usuario) {
+      return responderError(404, 'Usuario no encontrado');
+    }
+
+    // Solo se actualizan los campos que realmente llegaron con valor
+    const datosActualizar = {};
+
+    if (nombres !== undefined && String(nombres).trim()) {
+      datosActualizar.nombres = String(nombres).trim();
+    }
+    if (apellidos !== undefined && String(apellidos).trim()) {
+      datosActualizar.apellidos = String(apellidos).trim();
+    }
+    if (celular !== undefined && String(celular).trim()) {
+      datosActualizar.celular = String(celular).trim();
+      datosActualizar.telefono = String(celular).trim();
+    }
+
+    // El documento se puede guardar UNA sola vez: si la cuenta ya tiene uno, no se cambia.
+    if (documentoIdentidad !== undefined && String(documentoIdentidad).trim()) {
+      const doc = String(documentoIdentidad).trim();
+
+      if (usuario.documentoIdentidad) {
+        if (usuario.documentoIdentidad !== doc) {
+          return responderError(400, 'El documento de identidad no se puede modificar');
+        }
+      } else {
+        const repetido = await User.findOne({ documentoIdentidad: doc, _id: { $ne: usuario._id } });
+        if (repetido) {
+          return responderError(400, 'Ese documento ya está registrado en otra cuenta');
+        }
+        datosActualizar.documentoIdentidad = doc;
+      }
+    }
 
     // Si la imagen viene procesada por Multer / Cloudinary
     if (req.file) {
@@ -24,42 +97,16 @@ export const actualizarPerfil = async (req, res) => {
       { returnDocument: 'after' }
     );
 
-    if (!usuarioActualizado) {
-      return res.status(404).json({ 
-        ok: false, 
-        success: false, 
-        message: 'Usuario no encontrado',
-        mensaje: 'Usuario no encontrado' 
-      });
-    }
-
     return res.status(200).json({
       ok: true,
       success: true,
       message: 'Perfil actualizado correctamente',
       mensaje: 'Perfil actualizado correctamente',
-      usuario: {
-        id: usuarioActualizado._id,
-        _id: usuarioActualizado._id,
-        nombres: usuarioActualizado.nombres,
-        apellidos: usuarioActualizado.apellidos,
-        correo: usuarioActualizado.correo,
-        celular: usuarioActualizado.celular,
-        telefono: usuarioActualizado.celular,
-        rol: usuarioActualizado.rol,
-        documentoIdentidad: usuarioActualizado.documentoIdentidad,
-        documento: usuarioActualizado.documentoIdentidad,
-        avatar: usuarioActualizado.avatar
-      }
+      usuario: formatearUsuario(usuarioActualizado)
     });
   } catch (error) {
     console.error('Error al actualizar el perfil:', error);
-    return res.status(500).json({ 
-      ok: false, 
-      success: false, 
-      message: 'Error interno al actualizar el perfil',
-      mensaje: 'Error interno al actualizar el perfil' 
-    });
+    return responderError(500, 'Error interno al actualizar el perfil');
   }
 };
 
@@ -136,6 +183,7 @@ export const obtenerClientes = async (req, res) => {
 };
 
 export default {
+  obtenerMiPerfil,
   actualizarPerfil,
   cambiarPassword,
   obtenerClientes
