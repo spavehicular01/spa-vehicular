@@ -14,8 +14,8 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'lavados',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'heic'], // Formatos aceptados
-  },
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+  },ad
 });
 
 const upload = multer({

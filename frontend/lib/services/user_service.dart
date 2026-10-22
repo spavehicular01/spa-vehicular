@@ -14,18 +14,29 @@ class UserService {
     return prefs.getString('token') ?? '';
   }
 
-  // Actualizar datos del perfil del usuario (con opción de foto)
+  // Actualizar datos del perfil del usuario (con opción de foto).
+  // Todos los campos son opcionales: solo se envían los que traen valor.
+  // `documentoIdentidad` el backend lo guarda una sola vez (no se puede cambiar).
   static Future<Map<String, dynamic>> actualizarPerfil({
     required String id,
-    required String nombres,
-    required String apellidos,
-    required String celular,
+    String nombres = '',
+    String apellidos = '',
+    String celular = '',
+    String documentoIdentidad = '',
     File? imagen,
   }) async {
     try {
       // Ruta real del backend: PUT /api/users/perfil/:id
       final uri = Uri.parse('$_baseUrl/perfil/$id');
       final token = await _getToken();
+
+      final campos = <String, String>{
+        if (nombres.trim().isNotEmpty) 'nombres': nombres.trim(),
+        if (apellidos.trim().isNotEmpty) 'apellidos': apellidos.trim(),
+        if (celular.trim().isNotEmpty) 'celular': celular.trim(),
+        if (documentoIdentidad.trim().isNotEmpty)
+          'documentoIdentidad': documentoIdentidad.trim(),
+      };
 
       // Si no hay imagen, hacemos una petición PUT normal tipo JSON
       if (imagen == null) {
@@ -35,20 +46,18 @@ class UserService {
             'Content-Type': 'application/json',
             if (token.isNotEmpty) 'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({
-            'nombres': nombres,
-            'apellidos': apellidos,
-            'celular': celular,
-          }),
+          body: jsonEncode(campos),
         ));
 
         final data = jsonDecode(response.body);
         return {
           'success': response.statusCode == 200,
-          'message': data['mensaje'] ?? 'Perfil actualizado correctamente',
+          'message': data['mensaje'] ??
+              data['message'] ??
+              'Perfil actualizado correctamente',
           'usuario': data['usuario'],
         };
-      } 
+      }
 
       // Si viene una imagen, usamos MultipartRequest para enviar el archivo
       var request = http.MultipartRequest('PUT', uri);
@@ -56,9 +65,7 @@ class UserService {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      request.fields['nombres'] = nombres;
-      request.fields['apellidos'] = apellidos;
-      request.fields['celular'] = celular;
+      request.fields.addAll(campos);
 
       var stream = http.ByteStream(imagen.openRead());
       var length = await imagen.length();
@@ -77,7 +84,9 @@ class UserService {
 
       return {
         'success': response.statusCode == 200,
-        'message': data['mensaje'] ?? 'Perfil actualizado correctamente',
+        'message': data['mensaje'] ??
+            data['message'] ??
+            'Perfil actualizado correctamente',
         'usuario': data['usuario'],
       };
     } catch (e) {
@@ -92,7 +101,7 @@ class UserService {
     required String nuevaPassword,
   }) async {
     try {
-      // Ruta nueva del backend: PUT /api/users/perfil/:id/cambiar-password
+      // Ruta del backend: PUT /api/users/perfil/:id/cambiar-password
       final uri = Uri.parse('$_baseUrl/perfil/$id/cambiar-password');
       final token = await _getToken();
 
@@ -102,9 +111,13 @@ class UserService {
           'Content-Type': 'application/json',
           if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
+        // El controlador del backend lee currentPassword / newPassword;
+        // se mandan ambos estilos de nombre para que siempre coincidan.
         body: jsonEncode({
           'passwordActual': passwordActual,
+          'currentPassword': passwordActual,
           'nuevaPassword': nuevaPassword,
+          'newPassword': nuevaPassword,
         }),
       ));
 
@@ -112,7 +125,9 @@ class UserService {
 
       return {
         'success': response.statusCode == 200,
-        'message': data['mensaje'] ?? 'Contraseña actualizada correctamente',
+        'message': data['mensaje'] ??
+            data['message'] ??
+            'Contraseña actualizada correctamente',
       };
     } catch (e) {
       return {

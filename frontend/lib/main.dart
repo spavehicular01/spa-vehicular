@@ -9,6 +9,7 @@ import 'screens/login_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
 import 'services/push_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/perfil_gate.dart';
 // Import del chat
 
 // Notificadores globales de estado
@@ -155,7 +156,11 @@ class SpaVehicularApp extends StatelessWidget {
                 switch (settings.name) {
                   case '/':
                     return MaterialPageRoute(
-                      builder: (context) => const MainNavigationScreen(),
+                      // PerfilGate pide documento y teléfono una sola vez
+                      // si la cuenta (ej. Google) todavía no los tiene.
+                      builder: (context) => const PerfilGate(
+                        child: MainNavigationScreen(),
+                      ),
                       settings: settings,
                     );
 
@@ -198,7 +203,9 @@ class SpaVehicularApp extends StatelessWidget {
 
                   default:
                     return MaterialPageRoute(
-                      builder: (context) => const MainNavigationScreen(),
+                      builder: (context) => const PerfilGate(
+                        child: MainNavigationScreen(),
+                      ),
                       settings: settings,
                     );
                 }
