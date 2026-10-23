@@ -20,8 +20,13 @@ class _ChatColors {
   static const textMuted = Color(0x99FFFFFF);
 }
 
+/// Chat con dos modos con el mismo diseño:
+/// - clientes (por defecto): asesor virtual sobre servicios, precios y agenda.
+/// - administrador ([modoAdmin] = true): asistente de consultas del negocio.
 class ChatBottomSheet extends StatefulWidget {
-  const ChatBottomSheet({super.key});
+  final bool modoAdmin;
+
+  const ChatBottomSheet({super.key, this.modoAdmin = false});
 
   @override
   State<ChatBottomSheet> createState() => _ChatBottomSheetState();
@@ -30,16 +35,13 @@ class ChatBottomSheet extends StatefulWidget {
 class _ChatBottomSheetState extends State<ChatBottomSheet> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, String>> _mensajes = [
-    {
-      'role': 'bot',
-      'text': '¡Hola! 🚗✨ Soy tu asesor virtual del Spa Vehicular. Pregúntame sobre nuestros servicios, precios o disponibilidad de agenda.',
-    }
-  ];
+  late final List<Map<String, String>> _mensajes;
   bool _cargando = false;
 
+  bool get _admin => widget.modoAdmin;
+
   // Preguntas rápidas que se muestran al abrir el chat.
-  static const List<String> _sugerencias = [
+  static const List<String> _sugerenciasCliente = [
     'Servicios y precios',
     'Horarios de atención',
     'Cómo agendar una cita',
@@ -47,6 +49,32 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
     'Lavado a domicilio',
     'Reprogramar o cancelar',
   ];
+
+  static const List<String> _sugerenciasAdmin = [
+    'Citas de hoy',
+    'Vehículos en el spa',
+    'Citas pendientes',
+    'Próximas citas',
+    'Lavadas por cobrar',
+    'Cobrado hoy',
+    'Cobrado esta semana',
+    'Servicios y precios',
+  ];
+
+  List<String> get _sugerencias => _admin ? _sugerenciasAdmin : _sugerenciasCliente;
+
+  @override
+  void initState() {
+    super.initState();
+    _mensajes = [
+      {
+        'role': 'bot',
+        'text': _admin
+            ? '¡Hola! 📋 Soy tu asistente del negocio. Pregúntame por las citas de hoy, lo que falta por cobrar, los pagos de la semana o los servicios y precios.'
+            : '¡Hola! 🚗✨ Soy tu asesor virtual del Spa Vehicular. Pregúntame sobre nuestros servicios, precios o disponibilidad de agenda.',
+      }
+    ];
+  }
 
   @override
   void dispose() {
@@ -71,7 +99,9 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
 
     _scrollHaciaAbajo();
 
-    final respuesta = await ChatService.enviarMensaje(texto, historial: historial);
+    final respuesta = _admin
+        ? await ChatService.enviarMensajeAdmin(texto, historial: historial)
+        : await ChatService.enviarMensaje(texto, historial: historial);
 
     if (mounted) {
       setState(() {
@@ -95,12 +125,14 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
   }
 
   Widget _buildSugerencias() {
+    final sugerencias = _sugerencias;
+
     return SizedBox(
       height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: _sugerencias.length,
+        itemCount: sugerencias.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           // Chip propio (no ActionChip) para que el tema global de la app
@@ -109,7 +141,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () => _enviarMensaje(_sugerencias[i]),
+              onTap: () => _enviarMensaje(sugerencias[i]),
               child: Container(
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -119,7 +151,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                   border: Border.all(color: _ChatColors.chipBorder),
                 ),
                 child: Text(
-                  _sugerencias[i],
+                  sugerencias[i],
                   style: const TextStyle(
                     color: _ChatColors.text,
                     fontSize: 12,
@@ -176,31 +208,35 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                           color: _ChatColors.accent,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.directions_car_rounded,
+                        child: Icon(
+                          _admin ? Icons.support_agent : Icons.directions_car_rounded,
                           color: _ChatColors.onAccent,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Asesor Virtual',
-                            style: TextStyle(
-                              color: _ChatColors.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _admin ? 'Asistente del Administrador' : 'Asesor Virtual',
+                              style: const TextStyle(
+                                color: _ChatColors.text,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'En línea • Respuestas al instante',
-                            style: TextStyle(
-                              color: _ChatColors.textMuted,
-                              fontSize: 12,
+                            Text(
+                              _admin
+                                  ? 'Datos del negocio en vivo • Solo para ti'
+                                  : 'En línea • Respuestas al instante',
+                              style: const TextStyle(
+                                color: _ChatColors.textMuted,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -249,11 +285,11 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                   ),
                 ),
                 if (_cargando)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                     child: Row(
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
@@ -261,10 +297,12 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                             color: _ChatColors.accent,
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'El asesor está respondiendo...',
-                          style: TextStyle(color: _ChatColors.textMuted, fontSize: 12),
+                          _admin
+                              ? 'El asistente está consultando los datos...'
+                              : 'El asesor está respondiendo...',
+                          style: const TextStyle(color: _ChatColors.textMuted, fontSize: 12),
                         ),
                       ],
                     ),
@@ -291,18 +329,22 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                             textInputAction: TextInputAction.send,
                             // Se anulan el fondo claro y los bordes que el tema global
                             // (inputDecorationTheme) le pone a todos los campos de texto.
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               filled: false,
                               fillColor: Colors.transparent,
-                              hintText: 'Pregunta por precios, servicios o citas...',
-                              hintStyle: TextStyle(color: _ChatColors.textMuted, fontSize: 13),
+                              hintText: _admin
+                                  ? 'Pregunta por citas, pagos o servicios...'
+                                  : 'Pregunta por precios, servicios o citas...',
+                              hintStyle: const TextStyle(
+                                  color: _ChatColors.textMuted, fontSize: 13),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               focusedErrorBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                             ),
                             onSubmitted: (_) => _enviarMensaje(),
                           ),

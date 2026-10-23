@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../config/api_config.dart';
 
 class AuthService {
-  static const String _baseUrl = 'http://10.0.2.2:3000/api/auth';
+  // La dirección del servidor sale de ApiConfig (un solo lugar para cambiarla)
+  static String get _baseUrl => '${ApiConfig.baseUrl}/auth';
 
-  // 🟢 Reemplaza con tu Client ID de tipo "Web" (el mismo que usa GOOGLE_CLIENT_ID en tu backend)
+  // 🟢 Client ID de tipo "Web" (el mismo que usa GOOGLE_CLIENT_ID en tu backend)
   static const String _webClientId = '903465087225-moalp2u8tjmuhe4ffct48nq0mnlucvi6.apps.googleusercontent.com';
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
@@ -42,10 +44,16 @@ class AuthService {
     }
   }
 
-  // 🟢 NUEVO: Login con Google
+  // 🟢 Login con Google
   static Future<Map<String, dynamic>> loginConGoogle() async {
     try {
-      // 1. Abre el selector de cuentas de Google
+      // 1. Se cierra la sesión de Google que haya quedado guardada, para que SIEMPRE
+      //    aparezca el selector de cuentas (antes entraba directo con la última cuenta).
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
+      // 2. Abre el selector de cuentas de Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -53,7 +61,7 @@ class AuthService {
         return {'success': false, 'message': 'Inicio de sesión cancelado'};
       }
 
-      // 2. Obtiene el idToken (JWT) que espera tu backend
+      // 3. Obtiene el idToken (JWT) que espera tu backend
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final String? idToken = googleAuth.idToken;
 
@@ -61,7 +69,7 @@ class AuthService {
         return {'success': false, 'message': 'No se pudo obtener el token de Google'};
       }
 
-      // 3. Manda el idToken a tu backend (ruta real: /login-google)
+      // 4. Manda el idToken a tu backend (ruta real: /login-google)
       final response = await http.post(
         Uri.parse('$_baseUrl/login-google'),
         headers: {'Content-Type': 'application/json'},
@@ -86,6 +94,13 @@ class AuthService {
       print('⚠️ ERROR LOGIN GOOGLE: $e');
       return {'success': false, 'message': 'Error de conexión con Google: $e'};
     }
+  }
+
+  /// Cierra la sesión de Google guardada en el teléfono. Se llama al cerrar sesión en la app.
+  static Future<void> cerrarSesionGoogle() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
   }
 
   static Future<Map<String, dynamic>> registrar({

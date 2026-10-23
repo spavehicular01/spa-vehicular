@@ -7,6 +7,7 @@ import 'screens/main_navigation_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
+import 'services/auth_service.dart';
 import 'services/push_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/perfil_gate.dart';
@@ -95,6 +96,10 @@ Future<void> cerrarSesionUsuario() async {
   // 🔔 Deja de enviar a este celular los avisos de la cuenta (necesita el token, por eso va antes de borrarlo)
   await PushService.quitarDispositivo();
 
+  // Cierra también la sesión de Google del teléfono, para que el próximo
+  // "Iniciar sesión con Google" deje elegir la cuenta
+  await AuthService.cerrarSesionGoogle();
+
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('usuario');
   await prefs.remove('token');
@@ -156,11 +161,9 @@ class SpaVehicularApp extends StatelessWidget {
                 switch (settings.name) {
                   case '/':
                     return MaterialPageRoute(
-                      // PerfilGate pide documento y teléfono una sola vez
-                      // si la cuenta (ej. Google) todavía no los tiene.
-                      builder: (context) => const PerfilGate(
-                        child: MainNavigationScreen(),
-                      ),
+                      // PerfilGate pide documento y teléfono si faltan (una sola vez)
+                      builder: (context) =>
+                          const PerfilGate(child: MainNavigationScreen()),
                       settings: settings,
                     );
 
@@ -203,9 +206,8 @@ class SpaVehicularApp extends StatelessWidget {
 
                   default:
                     return MaterialPageRoute(
-                      builder: (context) => const PerfilGate(
-                        child: MainNavigationScreen(),
-                      ),
+                      builder: (context) =>
+                          const PerfilGate(child: MainNavigationScreen()),
                       settings: settings,
                     );
                 }

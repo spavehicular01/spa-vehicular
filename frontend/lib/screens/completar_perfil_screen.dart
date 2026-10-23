@@ -1,14 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../main.dart'; // guardarSesionUsuario, cerrarSesionUsuario
-import '../services/user_service.dart';
-import '../theme/app_theme.dart';
-import '../utils/session_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Pantalla que se muestra una sola vez tras iniciar sesión (por ejemplo con
-/// Google) cuando a la cuenta le faltan el Documento de Identidad o el
-/// Número de Teléfono. Al guardar, los datos quedan en el servidor y en la
-/// sesión local, así que no se vuelven a pedir.
+import '../main.dart' show usuarioActualNotifier, cerrarSesionUsuario;
+import '../services/perfil_service.dart';
+import '../theme/app_theme.dart';
+
+/// Pantalla que pide Documento de Identidad y Teléfono cuando faltan
+/// (por ejemplo, tras entrar con Google). Se muestra una sola vez:
+/// al guardar, los datos quedan en la cuenta y no se vuelven a pedir.
 class CompletarPerfilScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
 
@@ -20,12 +21,10 @@ class CompletarPerfilScreen extends StatefulWidget {
 
 class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _documentoCtrl;
-  late final TextEditingController _telefonoCtrl;
-  late final bool _tieneDocumento;
-
+  late final TextEditingController _documentoController;
+  late final TextEditingController _telefonoController;
+  late final bool _documentoYaExiste;
   bool _guardando = false;
-  String? _error;
 
   @override
   void initState() {
@@ -39,74 +38,54 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
         (widget.usuario['telefono'] ?? widget.usuario['celular'] ?? '')
             .toString()
             .trim();
-
-    _tieneDocumento = doc.isNotEmpty;
-    _documentoCtrl = TextEditingController(text: doc);
-    _telefonoCtrl = TextEditingController(text: tel);
+    _documentoYaExiste = doc.isNotEmpty;
+    _documentoController = TextEditingController(text: doc);
+    _telefonoController = TextEditingController(text: tel);
   }
 
   @override
   void dispose() {
-    _documentoCtrl.dispose();
-    _telefonoCtrl.dispose();
+    _documentoController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _guardando = true);
 
-    setState(() {
-      _guardando = true;
-      _error = null;
-    });
+    final userId =
+        (widget.usuario['id'] ?? widget.usuario['_id'] ?? '').toString();
+    final documento = _documentoController.text.trim();
+    final telefono = _telefonoController.text.trim();
 
-    final id = (widget.usuario['id'] ?? widget.usuario['_id'])?.toString() ??
-        await obtenerUserIdSesion() ??
-        '';
-
-    if (id.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _guardando = false;
-        _error = 'No se pudo identificar tu sesión. Inicia sesión de nuevo.';
-      });
-      return;
-    }
-
-    final documento = _documentoCtrl.text.trim();
-    final telefono = _telefonoCtrl.text.trim();
-
-    final resultado = await UserService.actualizarPerfil(
-      id: id,
-      celular: telefono,
-      // Si la cuenta ya tenía documento no se vuelve a enviar
-      documentoIdentidad: _tieneDocumento ? '' : documento,
+    final resultado = await PerfilService.completarPerfil(
+      userId: userId,
+      documento: documento,
+      telefono: telefono,
     );
 
     if (!mounted) return;
 
     if (resultado['success'] != true) {
-      setState(() {
-        _guardando = false;
-        _error = resultado['message']?.toString() ?? 'No se pudo guardar.';
-      });
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message']?.toString() ?? 'No se pudo guardar'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    // Se actualiza la sesión (memoria + disco). Al cambiar el notificador,
-    // el PerfilGate quita esta pantalla por sí solo.
-    final devuelto = resultado['usuario'] is Map
-        ? Map<String, dynamic>.from(resultado['usuario'] as Map)
-        : <String, dynamic>{};
+    // Se actualiza la sesión local; el PerfilGate detecta el cambio y deja pasar a la app.
+    final nuevo = Map<String, dynamic>.from(widget.usuario)
+      ..['documento'] = documento
+      ..['telefono'] = telefono;
 
-    final actualizado = Map<String, dynamic>.from(widget.usuario);
-    actualizado['documento'] =
-        (devuelto['documentoIdentidad'] ?? devuelto['documento'] ?? documento)
-            .toString();
-    actualizado['telefono'] =
-        (devuelto['celular'] ?? devuelto['telefono'] ?? telefono).toString();
-
-    await guardarSesionUsuario(actualizado);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('usuario', jsonEncode(nuevo));
+    usuarioActualNotifier.value = nuevo;
   }
 
   @override
@@ -114,11 +93,16 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
     final cs = Theme.of(context).colorScheme;
     final nombre = (widget.usuario['nombres'] ?? '').toString().trim();
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Completa tu perfil'),
+          automaticallyImplyLeading: false,
+        ),
+        body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.all(24),
             child: Form(
               key: _formKey,
               child: Column(
@@ -128,89 +112,61 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
                     child: CircleAvatar(
                       radius: 40,
                       backgroundColor: AppColors.accent,
-                      child: Icon(Icons.badge_outlined,
-                          size: 42, color: AppColors.primary),
+                      child: Icon(Icons.badge, size: 42, color: AppColors.primary),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    nombre.isEmpty ? '¡Un último paso!' : '¡Hola, $nombre!',
+                    nombre.isEmpty ? '¡Bienvenido!' : '¡Hola, $nombre!',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Para agendar tus citas necesitamos tu documento de '
-                    'identidad y tu número de teléfono. Solo te los pediremos '
-                    'esta vez.',
+                    'Para continuar necesitamos tu documento y tu teléfono. '
+                    'Solo te los pediremos esta vez.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
-                    controller: _documentoCtrl,
-                    enabled: !_tieneDocumento && !_guardando,
+                    controller: _documentoController,
+                    readOnly: _documentoYaExiste,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(12),
-                    ],
-                    decoration: InputDecoration(
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
                       labelText: 'Documento de Identidad',
-                      prefixIcon: const Icon(Icons.badge_outlined),
-                      helperText: _tieneDocumento
-                          ? null
-                          : 'No se podrá cambiar después',
+                      prefixIcon: Icon(Icons.badge),
                     ),
-                    validator: (valor) {
-                      if (_tieneDocumento) return null;
-                      final v = (valor ?? '').trim();
-                      if (v.isEmpty) return 'Ingresa tu documento de identidad';
-                      if (v.length < 6) {
-                        return 'El documento debe tener al menos 6 dígitos';
-                      }
+                    validator: (v) {
+                      final t = (v ?? '').trim();
+                      if (t.isEmpty) return 'Ingresa tu documento';
+                      if (t.length < 5) return 'Documento inválido';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _telefonoCtrl,
-                    enabled: !_guardando,
+                    controller: _telefonoController,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                       labelText: 'Número de Teléfono',
-                      prefixIcon: Icon(Icons.phone_android),
-                      hintText: '3201234567',
+                      prefixIcon: Icon(Icons.phone),
                     ),
-                    validator: (valor) {
-                      final v = (valor ?? '').trim();
-                      if (v.isEmpty) return 'Ingresa tu número de teléfono';
-                      if (!RegExp(r'^3\d{9}$').hasMatch(v)) {
-                        return 'Ingresa un celular válido de 10 dígitos';
-                      }
+                    validator: (v) {
+                      final t = (v ?? '').trim();
+                      if (t.length < 7) return 'Ingresa un teléfono válido';
                       return null;
                     },
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: cs.error),
-                    ),
-                  ],
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: _guardando ? null : _guardar,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: context.brand,
                       foregroundColor: context.onBrand,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: _guardando
                         ? SizedBox(
@@ -223,8 +179,7 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
                           )
                         : const Text(
                             'Guardar y continuar',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
                   const SizedBox(height: 8),

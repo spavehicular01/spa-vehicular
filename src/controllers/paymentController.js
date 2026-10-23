@@ -150,8 +150,8 @@ const resumenDesde = async (desde) => {
   return { total, cantidad, porMetodo };
 };
 
-export const obtenerResumen = async (req, res) => {
-  try {
+// Datos del resumen: los usan el panel de reportes y el asistente del administrador
+export const calcularResumen = async () => {
     const ahora = new Date();
 
     const [hoy, semana, mes, pendientesFilas] = await Promise.all([
@@ -169,7 +169,12 @@ export const obtenerResumen = async (req, res) => {
       ? { total: pendientesFilas[0].total, cantidad: pendientesFilas[0].cantidad }
       : { total: 0, cantidad: 0 };
 
-    res.status(200).json({ hoy, semana, mes, pendientes });
+    return { hoy, semana, mes, pendientes };
+};
+
+export const obtenerResumen = async (req, res) => {
+  try {
+    res.status(200).json(await calcularResumen());
   } catch (error) {
     console.error('Error en obtenerResumen:', error);
     res.status(500).json({ mensaje: 'Error al obtener el resumen de pagos', error: error.message });

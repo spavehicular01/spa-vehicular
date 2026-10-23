@@ -20,6 +20,7 @@ import reviewRoutes from './src/routes/reviewRoutes.js';
 import paymentRoutes from './src/routes/paymentRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
 import deviceRoutes from './src/routes/deviceRoutes.js';
+import adminChatRoutes from './src/routes/adminChatRoutes.js';
 
 // Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -100,6 +101,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/services', serviceRoutes);
+// El asistente del administrador va ANTES de /api/chat para que su ruta específica tenga prioridad
+app.use('/api/chat/admin', adminChatRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);

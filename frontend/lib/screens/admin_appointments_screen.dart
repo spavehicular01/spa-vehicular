@@ -141,7 +141,8 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return '\$$buf';
   }
 
-  // Colores semánticos por estado
+  // Colores semánticos por estado (se mantienen distintos entre sí
+  // a propósito, para diferenciar estados de un vistazo).
   Color _obtenerColorEstado(String? estado) {
     switch (estado) {
       case 'pendiente':
@@ -175,14 +176,16 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   String _obtenerDetalleVehiculo(dynamic cita) {
     if (cita['vehiculoId'] is Map) {
       final v = cita['vehiculoId'];
-      return '${v['placa'] ?? ''} ${v['marca'] ?? ''} ${v['modelo'] ?? ''}'.trim();
+      return '${v['placa'] ?? ''} - ${v['marca'] ?? ''} ${v['modelo'] ?? ''}'.trim();
     }
     return cita['vehiculo'] ?? cita['vehiculoId'] ?? 'N/A';
   }
 
   String _obtenerDetalleServicio(dynamic cita) {
     if (cita['servicioId'] is Map) {
-      return cita['servicioId']['nombre'] ?? 'Servicio Estándar';
+      // En la base de datos el nombre del servicio está en "nombreServicio"
+      final servicio = cita['servicioId'];
+      return (servicio['nombreServicio'] ?? servicio['nombre'] ?? 'Servicio Estándar').toString();
     }
     return cita['servicio'] ?? 'Servicio General';
   }
@@ -203,7 +206,9 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestión de Citas (Admin)'),
+        // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
+      backgroundColor: AppColors.background,
       body: _cargando
           ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
           : RefreshIndicator(
@@ -276,6 +281,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                   spacing: 8,
                                   runSpacing: 8,
                                   children: [
+                                    // 🟢 Solo aparece cuando el lavado terminó y aún no se ha cobrado
                                     if (estadoActual == 'finalizada' && !pagado && citaId != null)
                                       InkWell(
                                         borderRadius: BorderRadius.circular(8),
@@ -374,7 +380,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
   }
 }
 
-// 🟢 Diálogo para registrar el pago
+// 🟢 Diálogo para registrar el pago: método real, monto y referencia opcional.
 class _RegistrarPagoDialog extends StatefulWidget {
   final String nombreCliente;
   final int? montoInicial;
