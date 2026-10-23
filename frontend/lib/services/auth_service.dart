@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,9 @@ class AuthService {
   // La dirección del servidor sale de ApiConfig (un solo lugar para cambiarla)
   static String get _baseUrl => '${ApiConfig.baseUrl}/auth';
 
+  // Render (plan gratis) se duerme: la primera petición puede tardar cerca de 1 minuto.
+  static const Duration _espera = Duration(seconds: 60);
+
   // 🟢 Client ID de tipo "Web" (el mismo que usa GOOGLE_CLIENT_ID en tu backend)
   static const String _webClientId = '903465087225-moalp2u8tjmuhe4ffct48nq0mnlucvi6.apps.googleusercontent.com';
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -15,13 +19,36 @@ class AuthService {
     serverClientId: _webClientId,
   );
 
+  // POST JSON con tiempo de espera
+  static Future<http.Response> _post(String ruta, Map<String, dynamic> cuerpo) {
+    return http
+        .post(
+          Uri.parse('$_baseUrl$ruta'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(cuerpo),
+        )
+        .timeout(_espera);
+  }
+
+  // Respuesta estándar cuando falla la conexión; imprime el error real en la consola.
+  static Map<String, dynamic> _fallo(String donde, Object e) {
+    print('⚠️ ERROR $donde: $e');
+    if (e is TimeoutException) {
+      return {
+        'success': false,
+        'message': 'El servidor tardó en responder. Intenta de nuevo en unos segundos.',
+      };
+    }
+    return {'success': false, 'message': 'Error de conexión con el servidor'};
+  }
+
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'correo': email, 'password': password}),
-      );
+      final response = await _post('/login', {
+        'email': email,
+        'correo': email,
+        'password': password,
+      });
 
       final data = jsonDecode(response.body);
       final bool exito = response.statusCode == 200;
@@ -40,7 +67,7 @@ class AuthService {
         'email': data['email'] ?? email,
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión con el servidor'};
+      return _fallo('LOGIN', e);
     }
   }
 
@@ -70,11 +97,7 @@ class AuthService {
       }
 
       // 4. Manda el idToken a tu backend (ruta real: /login-google)
-      final response = await http.post(
-        Uri.parse('$_baseUrl/login-google'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'idToken': idToken}),
-      );
+      final response = await _post('/login-google', {'idToken': idToken});
 
       final data = jsonDecode(response.body);
       final bool exito = response.statusCode == 200;
@@ -89,8 +112,10 @@ class AuthService {
         'message': data['message'] ?? data['mensaje'] ?? 'Error al iniciar sesión con Google',
         'usuario': data['usuario'],
         'token': data['token'],
+        'requierePerfil': data['requierePerfil'] == true,
       };
     } catch (e) {
+      if (e is TimeoutException) return _fallo('LOGIN GOOGLE', e);
       print('⚠️ ERROR LOGIN GOOGLE: $e');
       return {'success': false, 'message': 'Error de conexión con Google: $e'};
     }
@@ -112,20 +137,16 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/registrar'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nombres': nombres,
-          'apellidos': apellidos,
-          'documentoIdentidad': documentoIdentidad,
-          'email': correo,
-          'correo': correo,
-          'celular': celular,
-          'telefono': celular,
-          'password': password,
-        }),
-      );
+      final response = await _post('/registrar', {
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'documentoIdentidad': documentoIdentidad,
+        'email': correo,
+        'correo': correo,
+        'celular': celular,
+        'telefono': celular,
+        'password': password,
+      });
 
       final data = jsonDecode(response.body);
 
@@ -140,8 +161,7 @@ class AuthService {
         'usuario': data['usuario'],
       };
     } catch (e) {
-      print('⚠️ ERROR EXCEPCIÓN REGISTRO: $e');
-      return {'success': false, 'message': 'Error de conexión con el servidor: $e'};
+      return _fallo('REGISTRO', e);
     }
   }
 
@@ -150,15 +170,11 @@ class AuthService {
     required String codigo,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/verificar-cuenta'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'correo': email,
-          'codigo': codigo,
-        }),
-      );
+      final response = await _post('/verificar-cuenta', {
+        'email': email,
+        'correo': email,
+        'codigo': codigo,
+      });
 
       final data = jsonDecode(response.body);
       return {
@@ -166,7 +182,7 @@ class AuthService {
         'message': data['mensaje'] ?? data['message'] ?? 'Error al verificar la cuenta',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión con el servidor'};
+      return _fallo('VERIFICAR CUENTA', e);
     }
   }
 
@@ -174,14 +190,10 @@ class AuthService {
     required String email,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/reenviar-codigo'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'correo': email,
-        }),
-      );
+      final response = await _post('/reenviar-codigo', {
+        'email': email,
+        'correo': email,
+      });
 
       final data = jsonDecode(response.body);
 
@@ -190,17 +202,16 @@ class AuthService {
         'message': data['mensaje'] ?? data['message'] ?? 'Nuevo código enviado',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión con el servidor'};
+      return _fallo('REENVIAR CÓDIGO', e);
     }
   }
 
   static Future<Map<String, dynamic>> solicitarCodigoRecuperacion(String email) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/recuperar/solicitar-codigo'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'correo': email}),
-      );
+      final response = await _post('/recuperar/solicitar-codigo', {
+        'email': email,
+        'correo': email,
+      });
 
       final data = jsonDecode(response.body);
       return {
@@ -208,7 +219,7 @@ class AuthService {
         'message': data['mensaje'] ?? data['message'] ?? 'Ocurrió un error',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión con el servidor'};
+      return _fallo('SOLICITAR CÓDIGO', e);
     }
   }
 
@@ -218,16 +229,12 @@ class AuthService {
     required String nuevaPassword,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/recuperar/restablecer-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'correo': email,
-          'codigo': codigo,
-          'nuevaPassword': nuevaPassword,
-        }),
-      );
+      final response = await _post('/recuperar/restablecer-password', {
+        'email': email,
+        'correo': email,
+        'codigo': codigo,
+        'nuevaPassword': nuevaPassword,
+      });
 
       final data = jsonDecode(response.body);
       return {
@@ -235,7 +242,7 @@ class AuthService {
         'message': data['mensaje'] ?? data['message'] ?? 'Ocurrió un error',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error de conexión con el servidor'};
+      return _fallo('RESTABLECER PASSWORD', e);
     }
   }
 }
