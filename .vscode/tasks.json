@@ -5,9 +5,7 @@
       "label": "Iniciar Backend",
       "type": "npm",
       "script": "dev",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "path": "backend",
       "runOptions": {
         "runOn": "folderOpen"
       },
