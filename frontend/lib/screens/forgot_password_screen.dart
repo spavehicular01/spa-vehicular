@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import 'verify_reset_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -36,9 +37,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final resultado = await AuthService.solicitarCodigoRecuperacion(email);
 
-    setState(() => _isLoading = false);
-
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
     if (resultado['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,12 +48,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
 
-      // Antes decía '/verify-code', ruta que NO existe en main.dart
-      // (caía en la pantalla principal). La ruta definida es '/verificar-codigo'.
-      Navigator.pushNamed(
+      // Antes se abría la pantalla de "Verificar Cuenta", que usa otro código
+      // y otro endpoint. Ahora se abre en modo recuperación: pide el código
+      // y la nueva contraseña, y llama a restablecer-password.
+      Navigator.push(
         context,
-        '/verificar-codigo',
-        arguments: email,
+        MaterialPageRoute(
+          builder: (_) => VerifyResetCodeScreen(
+            email: email,
+            esRecuperacion: true,
+          ),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

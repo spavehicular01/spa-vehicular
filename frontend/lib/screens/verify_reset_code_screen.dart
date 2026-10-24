@@ -7,9 +7,14 @@ import '../theme/app_theme.dart';
 class VerifyResetCodeScreen extends StatefulWidget {
   final String? email;
 
+  /// false (por defecto): verifica una cuenta nueva con el código del registro.
+  /// true: restablece la contraseña con el código de "¿Olvidaste tu contraseña?".
+  final bool esRecuperacion;
+
   const VerifyResetCodeScreen({
     super.key,
     this.email,
+    this.esRecuperacion = false,
   });
 
   @override
@@ -18,7 +23,10 @@ class VerifyResetCodeScreen extends StatefulWidget {
 
 class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   final _codeController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _isLoading = false;
+  bool _ocultarPassword = true;
 
   // Correo recuperado e inmutable para las peticiones API
   String _emailFinal = '';
@@ -76,26 +84,32 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   void dispose() {
     _timer?.cancel();
     _codeController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _verificarCodigo() async {
-    final code = _codeController.text.trim();
-
+  // Valida el código; devuelve true si está bien.
+  bool _codigoValido(String code) {
     if (_emailFinal.isEmpty) {
       _showSnackBar('El correo no es válido. Intenta ingresar de nuevo.', Colors.red);
-      return;
+      return false;
     }
-
     if (code.isEmpty) {
       _showSnackBar('Por favor, ingresa el código', Colors.red);
-      return;
+      return false;
     }
-
     if (code.length != 6) {
       _showSnackBar('El código debe tener 6 dígitos', Colors.red);
-      return;
+      return false;
     }
+    return true;
+  }
+
+  // Modo 1: verificar cuenta nueva (registro)
+  Future<void> _verificarCodigo() async {
+    final code = _codeController.text.trim();
+    if (!_codigoValido(code)) return;
 
     setState(() => _isLoading = true);
 
@@ -131,6 +145,49 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     }
   }
 
+  // Modo 2: restablecer contraseña (¿Olvidaste tu contraseña?)
+  Future<void> _restablecerPassword() async {
+    final code = _codeController.text.trim();
+    final nueva = _passwordController.text;
+    final confirmar = _confirmController.text;
+
+    if (!_codigoValido(code)) return;
+
+    if (nueva.length < 6) {
+      _showSnackBar('La nueva contraseña debe tener mínimo 6 caracteres', Colors.red);
+      return;
+    }
+    if (nueva != confirmar) {
+      _showSnackBar('Las contraseñas no coinciden', Colors.red);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final resultado = await AuthService.restablecerPassword(
+      email: _emailFinal,
+      codigo: code,
+      nuevaPassword: nueva,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (resultado['success'] == true) {
+      _timer?.cancel();
+
+      _showSnackBar(
+        resultado['message'] ?? 'Contraseña actualizada. Ya puedes iniciar sesión.',
+        Colors.green,
+      );
+
+      // Vuelve a la pantalla principal, donde está el inicio de sesión
+      Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    } else {
+      _showSnackBar(resultado['message'] ?? 'No se pudo cambiar la contraseña', Colors.red);
+    }
+  }
+
   Future<void> _reenviarCodigo() async {
     if (_emailFinal.isEmpty) {
       _showSnackBar('No se encontró el correo del usuario.', Colors.red);
@@ -139,7 +196,10 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
 
     setState(() => _isLoading = true);
 
-    final resultado = await AuthService.reenviarCodigo(email: _emailFinal);
+    // Cada modo tiene su propio código: se reenvía el que corresponde
+    final resultado = widget.esRecuperacion
+        ? await AuthService.solicitarCodigoRecuperacion(_emailFinal)
+        : await AuthService.reenviarCodigo(email: _emailFinal);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -165,10 +225,11 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = context.isDark;
+    final bool recuperacion = widget.esRecuperacion;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verificar Cuenta'),
+        title: Text(recuperacion ? 'Restablecer Contraseña' : 'Verificar Cuenta'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -177,15 +238,15 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Icon(
-                Icons.mark_email_read_outlined,
+                recuperacion ? Icons.lock_reset : Icons.mark_email_read_outlined,
                 size: 80,
                 color: context.brandText,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Ingresa el Código de Verificación',
+              Text(
+                recuperacion ? 'Crea tu nueva contraseña' : 'Ingresa el Código de Verificación',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -212,6 +273,35 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+
+              // Solo en el modo de recuperación: contraseña nueva
+              if (recuperacion) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _ocultarPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Nueva contraseña',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_ocultarPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined),
+                      onPressed: () =>
+                          setState(() => _ocultarPassword = !_ocultarPassword),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _confirmController,
+                  obscureText: _ocultarPassword,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmar contraseña',
+                    prefixIcon: Icon(Icons.lock_reset),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               Text(
@@ -228,7 +318,9 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               const SizedBox(height: 20),
 
               ElevatedButton(
-                onPressed: _isLoading ? null : _verificarCodigo,
+                onPressed: _isLoading
+                    ? null
+                    : (recuperacion ? _restablecerPassword : _verificarCodigo),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.brand,
                   foregroundColor: context.onBrand,
@@ -243,9 +335,9 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Verificar y Entrar',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    : Text(
+                        recuperacion ? 'Cambiar contraseña' : 'Verificar y Entrar',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
               const SizedBox(height: 12),
