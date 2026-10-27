@@ -330,4 +330,21 @@ class ApiService {
       return false;
     }
   }
+
+  // 11. Eliminar una notificación
+  static Future<bool> eliminarNotificacion(String notificacionId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = SessionGuard.revisar(await http.delete(
+        Uri.parse('$baseUrl/notifications/$notificacionId'),
+        headers: headers,
+      ));
+
+      debugPrint('DELETE Notificación Status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Excepción al eliminar notificación: $e');
+      return false;
+    }
+  }
 }
