@@ -4,6 +4,7 @@ import '../widgets/extras/ui_extras.dart'; // colorAcento(context)
 
 /// Lista de notificaciones guardadas del cliente (cita agendada, cambios de estado, pagos).
 /// Todos los colores salen del tema, así que se ve bien en modo claro y oscuro.
+/// Se puede eliminar una notificación deslizándola hacia la izquierda.
 class NotificationsScreen extends StatefulWidget {
   final String usuarioId;
 
@@ -76,6 +77,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       );
     }
+  }
+
+  /// Elimina en el servidor. Devuelve true si se pudo; si no, muestra un aviso
+  /// y la tarjeta vuelve a su lugar.
+  Future<bool> _eliminar(dynamic item) async {
+    final id = (item['_id'] ?? item['id'])?.toString();
+    if (id == null) return false;
+
+    final exito = await ApiService.eliminarNotificacion(id);
+    if (!mounted) return exito;
+
+    if (exito) {
+      setState(() => _items.remove(item));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar la notificación'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return exito;
   }
 
   IconData _icono(String? tipo) {
@@ -167,55 +190,70 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   )
                                 : theme.cardColor;
 
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              color: colorTarjeta,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: noLeida
-                                      ? acento.withValues(alpha: 0.5)
-                                      : colorTexto.withValues(alpha: 0.08),
+                            return Dismissible(
+                              key: ValueKey((n['_id'] ?? n['id'] ?? index).toString()),
+                              direction: DismissDirection.endToStart, // solo hacia la izquierda
+                              confirmDismiss: (_) => _eliminar(n),
+                              background: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.only(right: 24),
+                                alignment: Alignment.centerRight,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
+                                child: const Icon(Icons.delete, color: Colors.white, size: 28),
                               ),
-                              child: ListTile(
-                                onTap: () => _marcarLeida(index),
-                                leading: Icon(
-                                  _icono(n['tipo']?.toString()),
-                                  color: acento,
-                                ),
-                                title: Text(
-                                  (n['titulo'] ?? '').toString(),
-                                  style: TextStyle(
-                                    color: colorTexto,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                              child: Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                color: colorTarjeta,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: noLeida
+                                        ? acento.withValues(alpha: 0.5)
+                                        : colorTexto.withValues(alpha: 0.08),
                                   ),
                                 ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      (n['mensaje'] ?? '').toString(),
-                                      style: TextStyle(
-                                        color: colorTexto.withValues(alpha: 0.78),
-                                        fontSize: 14,
-                                      ),
+                                child: ListTile(
+                                  onTap: () => _marcarLeida(index),
+                                  leading: Icon(
+                                    _icono(n['tipo']?.toString()),
+                                    color: acento,
+                                  ),
+                                  title: Text(
+                                    (n['titulo'] ?? '').toString(),
+                                    style: TextStyle(
+                                      color: colorTexto,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      _formatearFecha(n['fecha']),
-                                      style: TextStyle(
-                                        color: colorTexto.withValues(alpha: 0.55),
-                                        fontSize: 12,
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        (n['mensaje'] ?? '').toString(),
+                                        style: TextStyle(
+                                          color: colorTexto.withValues(alpha: 0.78),
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _formatearFecha(n['fecha']),
+                                        style: TextStyle(
+                                          color: colorTexto.withValues(alpha: 0.55),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: noLeida
+                                      ? const Icon(Icons.circle, size: 10, color: Colors.redAccent)
+                                      : null,
                                 ),
-                                trailing: noLeida
-                                    ? const Icon(Icons.circle, size: 10, color: Colors.redAccent)
-                                    : null,
                               ),
                             );
                           },

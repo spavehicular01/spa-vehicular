@@ -59,8 +59,33 @@ export const marcarTodasComoLeidas = async (req, res) => {
   }
 };
 
+// 4. Eliminar una notificación (solo su dueño o un admin)
+export const eliminarNotificacion = async (req, res) => {
+  try {
+    const { notificacionId } = req.params;
+
+    const notificacion = await Notification.findById(notificacionId);
+
+    if (!notificacion) {
+      return res.status(404).json({ mensaje: 'Notificación no encontrada' });
+    }
+
+    if (!esAdminReq(req) && String(notificacion.usuarioId) !== idDeSesion(req)) {
+      return res.status(403).json({ mensaje: 'No puedes eliminar una notificación que no es tuya' });
+    }
+
+    await notificacion.deleteOne();
+
+    res.status(200).json({ mensaje: 'Notificación eliminada' });
+  } catch (error) {
+    console.error('Error en eliminarNotificacion:', error);
+    res.status(500).json({ mensaje: 'Error al eliminar la notificación', error: error.message });
+  }
+};
+
 export default {
   obtenerNotificacionesPorUsuario,
   marcarComoLeida,
-  marcarTodasComoLeidas
+  marcarTodasComoLeidas,
+  eliminarNotificacion
 };

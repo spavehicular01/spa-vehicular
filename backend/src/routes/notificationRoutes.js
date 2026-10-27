@@ -13,5 +13,6 @@ router.patch('/usuario/:usuarioId/leidas', verifyToken, propioOAdmin('usuarioId'
 router.get('/usuario/:usuarioId', verifyToken, propioOAdmin('usuarioId'), notificationController.obtenerNotificacionesPorUsuario);
 // 🔒 El controlador verifica que la notificación sea del usuario con sesión
 router.patch('/:notificacionId/leida', verifyToken, notificationController.marcarComoLeida);
+router.delete('/:notificacionId', verifyToken, notificationController.eliminarNotificacion);
 
 export default router;
