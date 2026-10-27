@@ -31,7 +31,7 @@ class PhoneCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
         leading: const Icon(Icons.phone_android, color: AppColors.secondary),
-        title: const Text('Número de Teléfono'),
+        title: const Text('Número de SPA VEHICULAR'),
         subtitle: Text(telefono),
         trailing: const Icon(Icons.touch_app, color: AppColors.secondary),
         onTap: () {
