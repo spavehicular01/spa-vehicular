@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Notificaciones push (Android 13 o superior las pide al usuario) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Micrófono: dictar mensajes al chat (agendar por voz) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:label="Spa Vehicular"
@@ -43,6 +45,14 @@
 
     <!-- Permisos/Queries para abrir llamadas, WhatsApp y texto -->
     <queries>
+        <!-- Reconocimiento de voz (micrófono del chat) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <!-- Voz que lee las respuestas del asesor -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
