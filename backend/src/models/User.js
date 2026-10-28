@@ -1,0 +1,95 @@
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
+const userSchema = new mongoose.Schema({
+  // Nombres (sombra/compatibilidad)
+  nombres: { type: String, trim: true },
+  Nombre: { type: String, uppercase: true, trim: true },
+
+  // Apellidos (sombra/compatibilidad)
+  apellidos: { type: String, trim: true },
+  Apellido: { type: String, uppercase: true, trim: true },
+
+  // Teléfono / Celular
+  celular: { type: String, trim: true },
+  telefono: { type: String, trim: true },
+
+  // Documento de identidad
+  documentoIdentidad: { type: String, trim: true },
+
+  // Correos con índice disperso (sparse) para evitar duplicados en campos nulos
+  correo: { 
+    type: String, 
+    lowercase: true, 
+    trim: true, 
+    sparse: true 
+  },
+  Correo_Electronico: { 
+    type: String, 
+    lowercase: true, 
+    trim: true, 
+    sparse: true 
+  },
+
+  // Contraseñas (opcional para quien entra con Google)
+  password: { type: String },
+  passwords: { type: String },
+
+  // Integración con Google Auth
+  googleId: { type: String, unique: true, sparse: true },
+  avatar: { type: String, default: "" },
+
+  // --- VERIFICACIÓN DE CUENTA Y OTP TRADICIONAL ---
+  isVerified: { type: Boolean, default: false },
+  codigoVerificacion: { type: String, default: null },
+  codigoVerif: { type: String, default: null },
+  codigoVerificacionExpiracion: { type: Date, default: null },
+  codigoVerificacionExpira: { type: Date, default: null },
+
+  // --- RECUPERACIÓN DE CONTRASEÑA ---
+  resetPasswordCode: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
+  codigoRecuperacion: { type: String, default: null },
+  codigoRecuperacionExpiracion: { type: Date, default: null },
+
+  // Roles compatibles (mantiene tus enums anteriores)
+  rol: { 
+    type: String, 
+    enum: ["admin", "usuario", "cliente", "ADMIN", "USUARIO", "CLIENTE"], 
+    default: "usuario" 
+  }
+}, { timestamps: true });
+
+// Virtual: normaliza el nombre completo sin importar qué campo "sombra" tenga datos
+userSchema.virtual('nombreCompleto').get(function () {
+  const nombre = this.nombres || this.Nombre || '';
+  const apellido = this.apellidos || this.Apellido || '';
+  return `${nombre} ${apellido}`.trim();
+});
+
+// Virtual: normaliza el correo sin importar cuál de los dos campos se usó
+userSchema.virtual('correoNormalizado').get(function () {
+  return this.correo || this.Correo_Electronico || '';
+});
+
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
+// Middleware asíncrono sin 'next'
+userSchema.pre("save", async function () {
+  // Si la contraseña en 'password' fue modificada y no está hasheada
+  if (this.isModified("password") && this.password && !this.password.startsWith("$2b$")) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+
+  // Si la contraseña en 'passwords' fue modificada y no está hasheada
+  if (this.isModified("passwords") && this.passwords && !this.passwords.startsWith("$2b$")) {
+    const salt = await bcrypt.genSalt(10);
+    this.passwords = await bcrypt.hash(this.passwords, salt);
+  }
+});
+
+const User = mongoose.model("User", userSchema);
+
+export default User;

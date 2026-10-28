@@ -1,0 +1,522 @@
+import Appointment from '../models/Appointment.js';
+import Vehicle from '../models/Vehicle.js';
+import Service from '../models/Service.js';
+import { sendEmail } from '../services/emailService.js';
+import { contarCitasEnHora, LIMITE_POR_HORA } from '../utils/cupos.js';
+import { crearNotificacion, emitirAUsuarioYAdmins } from '../utils/notificaciones.js';
+
+const POPULATE_USUARIO = 'nombres Nombre apellidos Apellido correo Correo_Electronico';
+
+// 🔒 Helpers de permisos (el id y el rol salen del token, nunca del cuerpo de la petición)
+const esAdminReq = (req) => String((req.user && req.user.rol) || '').toLowerCase() === 'admin';
+const idDeSesion = (req) => String((req.user && (req.user.id || req.user._id)) || '');
+
+// Si quien consulta no es admin, limita el filtro a sus propias citas
+const limitarAlDueno = (req, filtro) => {
+  if (esAdminReq(req)) return filtro;
+  return { ...filtro, usuarioId: idDeSesion(req) || null };
+};
+
+// 1. Obtener citas (Todas o filtradas por estado)
+export const obtenerCitas = async (req, res) => {
+  try {
+    const { estado } = req.query;
+    const filtro = estado ? { estado: String(estado) } : {};
+    const citas = await Appointment.find(filtro)
+      .populate('usuarioId', POPULATE_USUARIO)
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 });
+
+    res.status(200).json(citas);
+  } catch (error) {
+    console.error('Error en obtenerCitas:', error);
+    res.status(500).json({ mensaje: 'Error al obtener citas', error: error.message });
+  }
+};
+
+// 2. Obtener todas las citas (Panel Admin)
+export const obtenerTodasLasCitas = async (req, res) => {
+  try {
+    // El admin ve todas las citas; un cliente solo ve las suyas
+    const filtro = req.query.estado ? { estado: String(req.query.estado) } : {};
+    const citas = await Appointment.find(limitarAlDueno(req, filtro))
+      .populate('usuarioId', POPULATE_USUARIO)
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 })
+      .lean();
+
+    res.status(200).json(citas);
+  } catch (error) {
+    console.error('Error en obtenerTodasLasCitas:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al obtener todas las citas', 
+      error: error.message 
+    });
+  }
+};
+
+// 3. Obtener citas de un cliente específico (App Móvil Flutter)
+export const obtenerCitasPorUsuario = async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    
+    const citas = await Appointment.find({ usuarioId })
+      .populate('usuarioId', POPULATE_USUARIO)
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .sort({ fechaHoraCita: -1 })
+      .lean();
+
+    res.status(200).json(citas);
+  } catch (error) {
+    console.error('Error en obtenerCitasPorUsuario:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al obtener las citas del usuario', 
+      error: error.message 
+    });
+  }
+};
+
+// 4. Crear Cita
+export const crearCita = async (req, res) => {
+  try {
+    const {
+      usuarioId,
+      vehiculoId,
+      servicioId,
+      fechaHoraCita,
+      tiempoEstimadoMinutos,
+      modalidad,
+      detallesDomicilio,
+      direccion,
+      metodoPago,
+      especificaciones,
+      telefonoContacto,
+      correo
+    } = req.body;
+
+    // 🔒 Un cliente solo puede agendar a su propio nombre; el admin puede agendar a nombre de otro
+    const usuarioIdFinal = esAdminReq(req) ? (usuarioId || idDeSesion(req)) : idDeSesion(req);
+    if (!usuarioIdFinal) {
+      return res.status(403).json({ mensaje: 'No se pudo identificar al usuario de la cita' });
+    }
+
+    // 🟢 Validar que el vehículo y el servicio existan antes de crear la cita
+    const [vehiculoExiste, servicioExiste] = await Promise.all([
+      Vehicle.findById(vehiculoId),
+      Service.findById(servicioId)
+    ]);
+
+    if (!vehiculoExiste) {
+      return res.status(400).json({ mensaje: 'El vehículo indicado no existe' });
+    }
+
+    if (!servicioExiste) {
+      return res.status(400).json({ mensaje: 'El servicio indicado no existe' });
+    }
+
+    // 🟢 El precio sale del servicio según el tipo del vehículo; nunca del cliente
+    const tarifa = (servicioExiste.precios || []).find(
+      (p) => p.tipoVehiculo === vehiculoExiste.tipoVehiculo
+    );
+    if (!tarifa) {
+      return res.status(400).json({
+        mensaje: 'Este servicio no tiene precio para el tipo de vehículo seleccionado'
+      });
+    }
+
+    // 🟢 Dirección del domicilio: la app la envía como `direccion`; también se acepta `detallesDomicilio`
+    const direccionDomicilio = String(detallesDomicilio?.direccion || direccion || '').trim();
+    if (modalidad === 'domicilio' && !direccionDomicilio) {
+      return res.status(400).json({ mensaje: 'Indica la dirección para el servicio a domicilio' });
+    }
+
+    // 🟢 Validar cupos disponibles en esa hora (máximo LIMITE_POR_HORA citas activas)
+    const ocupadas = await contarCitasEnHora(fechaHoraCita);
+    if (ocupadas >= LIMITE_POR_HORA) {
+      return res.status(409).json({
+        mensaje: 'Esa hora ya no tiene cupos disponibles. Elige otro horario.'
+      });
+    }
+
+    const nuevaCita = new Appointment({
+      usuarioId: usuarioIdFinal,
+      vehiculoId,
+      servicioId,
+      tipoVehiculo: vehiculoExiste.tipoVehiculo,
+      precio: tarifa.precio,
+      fechaHoraCita,
+      tiempoEstimadoMinutos,
+      modalidad,
+      detallesDomicilio: {
+        direccion: modalidad === 'domicilio' ? direccionDomicilio : '',
+        telefonoContacto: String(
+          detallesDomicilio?.telefonoContacto || telefonoContacto || ''
+        ).trim().slice(0, 20)
+      },
+      metodoPago: String(metodoPago || '').trim().slice(0, 40),
+      especificaciones: String(especificaciones || '').trim().slice(0, 500)
+    });
+    await nuevaCita.save();
+
+    // 🟢 Guardar la notificación en la base de datos
+    const fechaNotificacion = new Date(nuevaCita.fechaHoraCita).toLocaleString('es-CO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Bogota'
+    });
+    await crearNotificacion(
+      {
+        usuarioId: nuevaCita.usuarioId,
+        citaId: nuevaCita._id,
+        tipo: 'cita_creada',
+        titulo: '🚗 Cita agendada',
+        mensaje: `Tu cita quedó agendada para el ${fechaNotificacion}.`
+      },
+      req.io
+    );
+
+    const correoDestino = correo || (req.user && req.user.correo);
+
+    if (correoDestino) {
+      const fechaFormateada = new Date(nuevaCita.fechaHoraCita).toLocaleString('es-CO', {
+        dateStyle: 'long',
+        timeStyle: 'short'
+      });
+
+      sendEmail({
+        to: correoDestino,
+        subject: '🚗 Confirmación de Cita - SPA Vehicular',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #2b6cb0;">¡Tu cita ha sido agendada con éxito!</h2>
+            <p>Hola, hemos registrado tu solicitud de servicio en <b>SPA Vehicular</b>.</p>
+            <hr style="border: 0; border-top: 1px solid #eee;" />
+            <p><b>📅 Fecha y Hora:</b> ${fechaFormateada}</p>
+            <p><b>💰 Precio:</b> $${Number(nuevaCita.precio).toLocaleString('es-CO')}</p>
+            <p><b>📌 Estado:</b> ${nuevaCita.estado || 'Pendiente'}</p>
+            <br/>
+            <p>¡Gracias por confiar en nosotros! Te esperamos a tiempo.</p>
+          </div>
+        `
+      }).catch(err => console.error('⚠️ No se pudo enviar el correo de creación:', err.message));
+    }
+
+    res.status(201).json({ 
+      mensaje: 'Cita agendada con éxito', 
+      cita: nuevaCita 
+    });
+  } catch (error) {
+    console.error('Error en crearCita:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al agendar cita', 
+      error: error.message 
+    });
+  }
+};
+
+// 5. Reprogramar Cita
+export const reprogramarCita = async (req, res) => {
+  try {
+    const { citaId } = req.params;
+    const { nuevaFecha, motivo } = req.body;
+
+    const fechaValida = new Date(nuevaFecha);
+    if (isNaN(fechaValida.getTime())) {
+      return res.status(400).json({ mensaje: 'La nueva fecha no es válida' });
+    }
+
+    const cita = await Appointment.findById(citaId);
+    if (!cita) {
+      return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    // 🔒 Solo el dueño de la cita o un admin pueden reprogramarla
+    if (!esAdminReq(req) && String(cita.usuarioId) !== idDeSesion(req)) {
+      return res.status(403).json({ mensaje: 'No puedes reprogramar una cita que no es tuya' });
+    }
+
+    // 🟢 Validar cupos en la nueva hora (sin contar esta misma cita)
+    const ocupadas = await contarCitasEnHora(fechaValida, cita._id);
+    if (ocupadas >= LIMITE_POR_HORA) {
+      return res.status(409).json({
+        mensaje: 'La nueva hora ya no tiene cupos disponibles.'
+      });
+    }
+
+    if (!cita.historialReprogramaciones) {
+      cita.historialReprogramaciones = [];
+    }
+
+    cita.historialReprogramaciones.push({
+      motivo: motivo || 'Sin motivo especificado',
+      fechaAnterior: cita.fechaHoraCita,
+      fechaNueva: fechaValida
+    });
+
+    cita.fechaHoraCita = fechaValida;
+    cita.estado = 'reprogramada';
+    await cita.save();
+
+    // 🟢 Guardar la notificación en la base de datos
+    const fechaNotificacion = fechaValida.toLocaleString('es-CO', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: 'America/Bogota'
+    });
+    await crearNotificacion(
+      {
+        usuarioId: cita.usuarioId,
+        citaId: cita._id,
+        tipo: 'cita_reprogramada',
+        titulo: '🔄 Cita reprogramada',
+        mensaje: `Tu cita cambió de horario. Nueva fecha: ${fechaNotificacion}.`
+      },
+      req.io
+    );
+
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(req.io, cita.usuarioId, 'cita_reprogramada', cita);
+
+    const correoDestino = req.body.correo || (req.user && req.user.correo);
+
+    if (correoDestino) {
+      const fechaFormateada = fechaValida.toLocaleString('es-CO', {
+        dateStyle: 'long',
+        timeStyle: 'short'
+      });
+
+      const motivoEscapado = motivo
+        ? String(motivo).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+          }[c]))
+        : '';
+
+      sendEmail({
+        to: correoDestino,
+        subject: '🔄 Cita Reprogramada - SPA Vehicular',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #d69e2e;">Tu cita ha sido reprogramada</h2>
+            <p>Te informamos que tu cita en <b>SPA Vehicular</b> ha cambiado de horario.</p>
+            <hr style="border: 0; border-top: 1px solid #eee;" />
+            <p><b>📅 Nueva Fecha y Hora:</b> ${fechaFormateada}</p>
+            ${motivoEscapado ? `<p><b>💬 Motivo:</b> ${motivoEscapado}</p>` : ''}
+            <br/>
+            <p>Si tienes alguna duda sobre este cambio, puedes responder a este correo o contactarnos por el chatbot.</p>
+          </div>
+        `
+      }).catch(err => console.error('⚠️ No se pudo enviar el correo de reprogramación:', err.message));
+    }
+
+    res.status(200).json({ 
+      mensaje: 'Cita reprogramada correctamente', 
+      cita 
+    });
+  } catch (error) {
+    console.error('Error en reprogramarCita:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al reprogramar cita', 
+      error: error.message 
+    });
+  }
+};
+
+// 6. Cambiar Estado de Cita (WebSockets + Email + Notificación guardada)
+const ESTADOS_VALIDOS = ['pendiente', 'confirmada', 'en_proceso', 'finalizada', 'cancelada', 'reprogramada'];
+
+export const cambiarEstadoCita = async (req, res) => {
+  try {
+    const { citaId } = req.params;
+    const { estado } = req.body;
+
+    if (!ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ mensaje: `Estado inválido: ${estado}` });
+    }
+
+    const citaActualizada = await Appointment.findByIdAndUpdate(
+      citaId,
+      { estado },
+      { returnDocument: 'after' }
+    ).populate('usuarioId', POPULATE_USUARIO);
+
+    if (!citaActualizada) {
+      return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    // 🟢 Textos según el estado (se usan en la notificación guardada y en el correo)
+    let titulo = 'Actualización de tu Servicio';
+    let mensajeColor = '#2b6cb0';
+    let contenido = `El estado de tu cita ha cambiado a: <b>${estado}</b>.`;
+    let mensajeNotificacion = `El estado de tu cita cambió a: ${estado}.`;
+
+    if (estado === 'en_proceso') {
+      titulo = '🧼 ¡Tu vehículo ha entrado a lavado!';
+      mensajeColor = '#3182ce';
+      contenido = 'Hemos comenzado a trabajar en tu vehículo. ¡Te avisaremos en cuanto esté impecable!';
+      mensajeNotificacion = 'Hemos comenzado a trabajar en tu vehículo.';
+    } else if (estado === 'finalizada') {
+      titulo = '✅ ¡Tu vehículo está listo!';
+      mensajeColor = '#38a169';
+      contenido = 'El servicio ha finalizado con éxito. Ya puedes pasar a recoger tu vehículo. Recuerda que el pago se realiza en el spa al recogerlo.';
+      mensajeNotificacion = 'Tu vehículo está listo. Ya puedes recogerlo; el pago se realiza en el spa.';
+    } else if (estado === 'cancelada') {
+      titulo = '❌ Cita Cancelada';
+      mensajeColor = '#e53e3e';
+      contenido = 'Tu cita ha sido cancelada. Si consideras que es un error, por favor comunícate con nosotros.';
+      mensajeNotificacion = 'Tu cita fue cancelada.';
+    }
+
+    // 🟢 Guardar la notificación en la colección notifications
+    const usuario = citaActualizada.usuarioId; // populado (objeto) o null si el usuario fue borrado
+    await crearNotificacion(
+      {
+        usuarioId: usuario && usuario._id ? usuario._id : usuario,
+        citaId: citaActualizada._id,
+        tipo: 'cambio_estado',
+        titulo,
+        mensaje: mensajeNotificacion
+      },
+      req.io
+    );
+
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(
+      req.io,
+      usuario && usuario._id ? usuario._id : usuario,
+      'cambio_estado_cita',
+      {
+        citaId: citaActualizada._id,
+        nuevoEstado: citaActualizada.estado,
+        cita: citaActualizada
+      }
+    );
+
+    // 🟢 El correo va al CLIENTE dueño de la cita (req.user es quien hace la acción, es decir, el admin)
+    const correoCliente = usuario && (usuario.correo || usuario.Correo_Electronico);
+    const correoDestino = correoCliente || req.body.correo;
+
+    if (correoDestino) {
+      sendEmail({
+        to: correoDestino,
+        subject: `${titulo} - SPA Vehicular`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: ${mensajeColor};">${titulo}</h2>
+            <p>${contenido}</p>
+            <hr style="border: 0; border-top: 1px solid #eee;" />
+            <p><b>📌 Estado Actual:</b> ${estado}</p>
+            <br/>
+            <p>Gracias por confiar en <b>SPA Vehicular</b>.</p>
+          </div>
+        `
+      }).catch(err => console.error('⚠️ No se pudo enviar el correo de actualización de estado:', err.message));
+    }
+
+    res.status(200).json({
+      mensaje: `Estado de la cita actualizado a '${estado}'`,
+      cita: citaActualizada
+    });
+
+  } catch (error) {
+    console.error('Error en cambiarEstadoCita:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al cambiar estado de la cita', 
+      error: error.message 
+    });
+  }
+};
+
+// 6.1 Cancelar cita (la puede cancelar su dueño o un administrador)
+const ESTADOS_CANCELABLES = ['pendiente', 'confirmada', 'reprogramada'];
+
+export const cancelarCita = async (req, res) => {
+  try {
+    const { citaId } = req.params;
+
+    const cita = await Appointment.findById(citaId);
+    if (!cita) {
+      return res.status(404).json({ mensaje: 'Cita no encontrada' });
+    }
+
+    const esDueno = String(cita.usuarioId) === String(req.user && req.user.id);
+    const esAdminUser = String((req.user && req.user.rol) || '').toLowerCase() === 'admin';
+
+    if (!esDueno && !esAdminUser) {
+      return res.status(403).json({ mensaje: 'No puedes cancelar una cita que no es tuya' });
+    }
+
+    if (!ESTADOS_CANCELABLES.includes(cita.estado)) {
+      return res.status(400).json({
+        mensaje: `No se puede cancelar una cita en estado '${cita.estado}'`
+      });
+    }
+
+    cita.estado = 'cancelada';
+    await cita.save();
+
+    await crearNotificacion(
+      {
+        usuarioId: cita.usuarioId,
+        citaId: cita._id,
+        tipo: 'cambio_estado',
+        titulo: '❌ Cita cancelada',
+        mensaje: 'Tu cita fue cancelada.'
+      },
+      req.io
+    );
+
+    // 🔒 Solo el dueño de la cita y los administradores reciben el aviso en tiempo real
+    emitirAUsuarioYAdmins(req.io, cita.usuarioId, 'cambio_estado_cita', {
+      citaId: cita._id,
+      nuevoEstado: cita.estado,
+      cita
+    });
+
+    res.status(200).json({ mensaje: 'Cita cancelada correctamente', cita });
+  } catch (error) {
+    console.error('Error en cancelarCita:', error);
+    res.status(500).json({ mensaje: 'Error al cancelar la cita', error: error.message });
+  }
+};
+
+// 7. Obtener citas por fecha específica (YYYY-MM-DD) para el calendario de Flutter
+export const obtenerCitasPorFecha = async (req, res) => {
+  try {
+    const { fecha } = req.params;
+
+    // Rango en hora de Colombia (UTC-5). Ajusta el offset si cambias de zona.
+    const inicioDia = new Date(`${fecha}T00:00:00.000-05:00`);
+    const finDia = new Date(`${fecha}T23:59:59.999-05:00`);
+
+    // El admin ve las citas de todos ese día; un cliente solo las suyas
+    const filtro = { fechaHoraCita: { $gte: inicioDia, $lte: finDia } };
+
+    const citas = await Appointment.find(limitarAlDueno(req, filtro))
+      .populate('usuarioId', POPULATE_USUARIO)
+      .populate('vehiculoId')
+      .populate('servicioId')
+      .lean();
+
+    res.status(200).json(citas);
+  } catch (error) {
+    console.error('Error en obtenerCitasPorFecha:', error);
+    res.status(500).json({ 
+      mensaje: 'Error al obtener citas por fecha', 
+      error: error.message 
+    });
+  }
+};
+
+export default {
+  obtenerCitas,
+  obtenerTodasLasCitas,
+  obtenerCitasPorUsuario,
+  crearCita,
+  reprogramarCita,
+  cambiarEstadoCita,
+  cancelarCita,
+  obtenerCitasPorFecha
+};
