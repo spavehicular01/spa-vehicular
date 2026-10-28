@@ -37,7 +37,8 @@ class EditProfileSheet extends StatefulWidget {
     return showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      // Antes era AppColors.surface (siempre blanco). Ahora cambia con el modo.
+      backgroundColor: context.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -152,14 +153,17 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('✏️ Editar perfil', style: AppTextStyles.h2),
+                  Text(
+                    '✏️ Editar perfil',
+                    style: AppTextStyles.h2.copyWith(color: context.textColor),
+                  ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: context.mutedColor),
                     onPressed: _guardando ? null : () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(),
+              Divider(color: context.borderColor),
               const SizedBox(height: 8),
               Center(
                 child: AvatarPicker(
@@ -179,7 +183,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                 Text(
                   _error!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(
+                    color: context.isDark ? Colors.redAccent : Colors.red,
+                  ),
                 ),
               ],
               const SizedBox(height: 20),
