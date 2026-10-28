@@ -7,6 +7,10 @@ import 'profile/profile_header.dart';
 import 'profile/profile_utils.dart';
 import 'profile/vehicles_section.dart';
 
+/// Número de contacto del spa (se muestra en el recuadro de teléfono del perfil).
+/// Si algún día cambia la línea, solo hay que modificarlo aquí.
+const String kTelefonoSpa = '3125352533';
+
 class ProfileScreen extends StatefulWidget {
   final String nombreCompleto;
   final String correo;
@@ -128,7 +132,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: const Text('Documento de Identidad'),
             subtitle: Text(widget.documento),
           ),
-          PhoneCard(telefono: _telefono),
+          // Aquí va el número del spa (no el del cliente).
+          // El teléfono del cliente se sigue usando en "Editar perfil".
+          const PhoneCard(telefono: kTelefonoSpa),
           VehiclesSection(
             vehiculosIniciales: widget.vehiculos,
             onVehiculosChanged: widget.onVehiculosChanged,
