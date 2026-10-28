@@ -148,13 +148,13 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
       case 'pendiente':
         return Colors.orange;
       case 'en_proceso':
-        return AppColors.secondary;
+        return context.brandText; // azul agua en claro, cian en oscuro
       case 'finalizada':
         return Colors.green;
       case 'cancelada':
         return Colors.red;
       default:
-        return AppColors.muted;
+        return context.mutedColor;
     }
   }
 
@@ -208,18 +208,23 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
         title: const Text('Gestión de Citas (Admin)'),
         // Sin backgroundColor propio: hereda el AppBarTheme global.
       ),
-      backgroundColor: AppColors.background,
+      // Antes era AppColors.background (siempre claro). Ahora cambia con el modo.
+      backgroundColor: context.pageColor,
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
+          ? Center(child: CircularProgressIndicator(color: context.brandText))
           : RefreshIndicator(
-              color: AppColors.secondary,
+              color: context.brandText,
+              backgroundColor: context.surfaceColor,
               onRefresh: _cargarCitas,
               child: _citas.isEmpty
                   ? ListView(
                       children: [
                         const SizedBox(height: 200),
                         Center(
-                          child: Text('No hay citas registradas.', style: AppTextStyles.body),
+                          child: Text(
+                            'No hay citas registradas.',
+                            style: AppTextStyles.body.copyWith(color: context.mutedColor),
+                          ),
                         ),
                       ],
                     )
@@ -274,7 +279,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                     '${precio is num ? ' · ${_formatearPesos(precio)}' : ''}',
                                     style: AppTextStyles.body,
                                   ),
-                                const Divider(height: 24),
+                                Divider(height: 24, color: context.borderColor),
                                 Wrap(
                                   alignment: WrapAlignment.end,
                                   crossAxisAlignment: WrapCrossAlignment.center,
@@ -314,18 +319,18 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                           _cambiarEstadoCita(citaId, nuevoEstado, index);
                                         }
                                       },
-                                      itemBuilder: (context) => const [
+                                      itemBuilder: (context) => [
                                         PopupMenuItem(
                                           value: 'en_proceso',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.play_arrow, color: AppColors.secondary),
-                                              SizedBox(width: 8),
-                                              Text('Iniciar Lavada (En Proceso)'),
+                                              Icon(Icons.play_arrow, color: context.brandText),
+                                              const SizedBox(width: 8),
+                                              const Text('Iniciar Lavada (En Proceso)'),
                                             ],
                                           ),
                                         ),
-                                        PopupMenuItem(
+                                        const PopupMenuItem(
                                           value: 'finalizada',
                                           child: Row(
                                             children: [
@@ -335,7 +340,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen> {
                                             ],
                                           ),
                                         ),
-                                        PopupMenuItem(
+                                        const PopupMenuItem(
                                           value: 'cancelada',
                                           child: Row(
                                             children: [
@@ -453,6 +458,7 @@ class _RegistrarPagoDialogState extends State<_RegistrarPagoDialog> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _metodo,
+              dropdownColor: context.surfaceColor,
               decoration: const InputDecoration(labelText: 'Método de pago'),
               items: _metodos.entries
                   .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
