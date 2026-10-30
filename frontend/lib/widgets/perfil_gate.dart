@@ -9,7 +9,7 @@ import '../services/perfil_service.dart';
 enum _Estado { consultando, falta, error }
 
 /// Envuelve la app principal. Si hay un usuario (no admin) al que le falta
-/// Documento de Identidad o Teléfono, primero confirma con el servidor y,
+/// Apellido, Documento de Identidad o Teléfono, primero confirma con el servidor y,
 /// si de verdad faltan, muestra CompletarPerfilScreen. Funciona igual para
 /// cuentas nuevas de Google, cuentas existentes y al reabrir la app.
 class PerfilGate extends StatefulWidget {
@@ -31,10 +31,11 @@ class _PerfilGateState extends State<PerfilGate> {
       (u['rol'] ?? '').toString().toLowerCase() == 'admin';
 
   bool _faltanDatos(Map<String, dynamic> u) {
+    final ape = (u['apellidos'] ?? u['Apellido'] ?? '').toString().trim();
     final doc =
         (u['documento'] ?? u['documentoIdentidad'] ?? '').toString().trim();
     final tel = (u['telefono'] ?? u['celular'] ?? '').toString().trim();
-    return doc.isEmpty || tel.isEmpty;
+    return ape.isEmpty || doc.isEmpty || tel.isEmpty;
   }
 
   Future<void> _consultar(Map<String, dynamic> u) async {
@@ -47,15 +48,19 @@ class _PerfilGateState extends State<PerfilGate> {
       return;
     }
 
+    final ape = (servidor['apellidos'] ?? servidor['Apellido'] ?? '')
+        .toString()
+        .trim();
     final doc = (servidor['documentoIdentidad'] ?? servidor['documento'] ?? '')
         .toString()
         .trim();
     final tel =
         (servidor['celular'] ?? servidor['telefono'] ?? '').toString().trim();
 
-    if (doc.isNotEmpty && tel.isNotEmpty) {
+    if (ape.isNotEmpty && doc.isNotEmpty && tel.isNotEmpty) {
       // El servidor ya los tenía: se actualiza la sesión local y se deja pasar.
       final nuevo = Map<String, dynamic>.from(u)
+        ..['apellidos'] = ape
         ..['documento'] = doc
         ..['telefono'] = tel;
       final prefs = await SharedPreferences.getInstance();
@@ -64,6 +69,7 @@ class _PerfilGateState extends State<PerfilGate> {
     } else {
       // Faltan de verdad: se muestra el formulario con lo que ya exista.
       final conservado = Map<String, dynamic>.from(u)
+        ..['apellidos'] = ape
         ..['documento'] = doc
         ..['telefono'] = tel;
       usuarioActualNotifier.value = conservado;

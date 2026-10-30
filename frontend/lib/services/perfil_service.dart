@@ -36,11 +36,13 @@ class PerfilService {
     }
   }
 
-  /// Guarda documento y teléfono en la cuenta (queda en MongoDB para siempre).
+  /// Guarda apellido, documento y teléfono en la cuenta (queda en MongoDB para siempre).
+  /// El apellido es opcional para no romper otros lugares que llamen este método.
   static Future<Map<String, dynamic>> completarPerfil({
     required String userId,
     required String documento,
     required String telefono,
+    String apellidos = '',
   }) async {
     try {
       final headers = await _headers();
@@ -51,6 +53,7 @@ class PerfilService {
             body: jsonEncode({
               'documentoIdentidad': documento,
               'celular': telefono,
+              if (apellidos.trim().isNotEmpty) 'apellidos': apellidos.trim(),
             }),
           )
           .timeout(const Duration(seconds: 30)));

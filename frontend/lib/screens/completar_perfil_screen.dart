@@ -7,7 +7,7 @@ import '../main.dart' show usuarioActualNotifier, cerrarSesionUsuario;
 import '../services/perfil_service.dart';
 import '../theme/app_theme.dart';
 
-/// Pantalla que pide Documento de Identidad y Teléfono cuando faltan
+/// Pantalla que pide Apellidos, Documento de Identidad y Teléfono cuando faltan
 /// (por ejemplo, tras entrar con Google). Se muestra una sola vez:
 /// al guardar, los datos quedan en la cuenta y no se vuelven a pedir.
 class CompletarPerfilScreen extends StatefulWidget {
@@ -21,6 +21,7 @@ class CompletarPerfilScreen extends StatefulWidget {
 
 class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _apellidosController;
   late final TextEditingController _documentoController;
   late final TextEditingController _telefonoController;
   late final bool _documentoYaExiste;
@@ -29,6 +30,9 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
   @override
   void initState() {
     super.initState();
+    final ape = (widget.usuario['apellidos'] ?? widget.usuario['Apellido'] ?? '')
+        .toString()
+        .trim();
     final doc = (widget.usuario['documento'] ??
             widget.usuario['documentoIdentidad'] ??
             '')
@@ -39,12 +43,14 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
             .toString()
             .trim();
     _documentoYaExiste = doc.isNotEmpty;
+    _apellidosController = TextEditingController(text: ape);
     _documentoController = TextEditingController(text: doc);
     _telefonoController = TextEditingController(text: tel);
   }
 
   @override
   void dispose() {
+    _apellidosController.dispose();
     _documentoController.dispose();
     _telefonoController.dispose();
     super.dispose();
@@ -56,11 +62,13 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
 
     final userId =
         (widget.usuario['id'] ?? widget.usuario['_id'] ?? '').toString();
+    final apellidos = _apellidosController.text.trim();
     final documento = _documentoController.text.trim();
     final telefono = _telefonoController.text.trim();
 
     final resultado = await PerfilService.completarPerfil(
       userId: userId,
+      apellidos: apellidos,
       documento: documento,
       telefono: telefono,
     );
@@ -80,6 +88,7 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
 
     // Se actualiza la sesión local; el PerfilGate detecta el cambio y deja pasar a la app.
     final nuevo = Map<String, dynamic>.from(widget.usuario)
+      ..['apellidos'] = apellidos
       ..['documento'] = documento
       ..['telefono'] = telefono;
 
@@ -123,12 +132,23 @@ class _CompletarPerfilScreenState extends State<CompletarPerfilScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Para continuar necesitamos tu documento y tu teléfono. '
+                    'Para continuar necesitamos tus apellidos, tu documento y tu teléfono. '
                     'Solo te los pediremos esta vez.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _apellidosController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Apellidos',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    validator: (v) =>
+                        (v ?? '').trim().isEmpty ? 'Ingresa tus apellidos' : null,
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _documentoController,
                     readOnly: _documentoYaExiste,
