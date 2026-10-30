@@ -85,7 +85,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuarioAutenticado: usuarioAutenticado,
           onLoginExitoso: (datos) {
             guardarSesionUsuario(datos);
-            guardarSesionUsuario(datos);
           },
           onIrATab: _irATab,
         );
@@ -100,7 +99,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           usuario: usuarioAutenticado,
           token: usuarioAutenticado['token'],
           onLoginExitoso: (datos) {
-            guardarSesionUsuario(datos);
             guardarSesionUsuario(datos);
           },
         );
@@ -117,7 +115,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           return LoginScreen(
             onLoginExitoso: (datos) {
               guardarSesionUsuario(datos);
-              guardarSesionUsuario(datos);
             },
           );
         } else if (usuarioAutenticado['rol'] == 'admin') {
@@ -125,13 +122,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             userData: usuarioAutenticado,
             onCerrarSesion: () {
               cerrarSesionUsuario();
-              cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
           );
         } else {
+          final nombres = (usuarioAutenticado['nombres'] ?? '').toString();
+          final apellidos = (usuarioAutenticado['apellidos'] ?? '').toString();
+
           return ProfileScreen(
-            nombreCompleto: usuarioAutenticado['nombres'] ?? '',
+            nombres: nombres,
+            apellidos: apellidos,
+            nombreCompleto: '$nombres $apellidos'.trim(),
             correo: usuarioAutenticado['correo'] ?? '',
             documento: usuarioAutenticado['documento'] ?? '',
             telefono: usuarioAutenticado['telefono'] ?? '',
@@ -148,7 +149,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               guardarSesionUsuario(actualizado);
             },
             onCerrarSesion: () {
-              cerrarSesionUsuario();
               cerrarSesionUsuario();
               setState(() => _selectedIndex = 0);
             },
