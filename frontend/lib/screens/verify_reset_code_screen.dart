@@ -159,6 +159,16 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       // Cuenta verificada: se inicia la sesión sola, sin pedir de nuevo correo y contraseña
       await guardarSesionUsuario(_armarDatosSesion(usuario, token));
 
+      // Se asegura que el token y el id queden en SharedPreferences con las
+      // claves que leen los servicios ('token') y el perfil ('userId'). Sin el
+      // token, las peticiones salen sin Authorization y el servidor responde
+      // 401 ("Tu sesión venció").
+      await prefs.setString('token', token.toString());
+      final id = usuario['id'] ?? usuario['_id'];
+      if (id != null && id.toString().isNotEmpty) {
+        await prefs.setString('userId', id.toString());
+      }
+
       if (!mounted) return;
       _showSnackBar('Cuenta verificada correctamente. ¡Bienvenido!', Colors.green);
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);

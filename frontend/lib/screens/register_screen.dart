@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nombresController = TextEditingController();
   final _apellidosController = TextEditingController();
   final _correoController = TextEditingController();
+  final _confirmCorreoController = TextEditingController();
   final _documentoController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,11 +30,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
+  // Formato básico de correo: algo@dominio.ext
+  static final RegExp _formatoCorreo = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
   @override
   void dispose() {
     _nombresController.dispose();
     _apellidosController.dispose();
     _correoController.dispose();
+    _confirmCorreoController.dispose();
     _documentoController.dispose();
     _telefonoController.dispose();
     _passwordController.dispose();
@@ -213,12 +218,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _correoController,
                 keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                enableSuggestions: false,
                 decoration: const InputDecoration(
                   labelText: 'Correo electrónico',
                   prefixIcon: Icon(Icons.email),
                 ),
                 validator: (val) {
-                  if (val == null || !val.contains('@')) return 'Ingresa un correo válido';
+                  final correo = val?.trim() ?? '';
+                  if (!_formatoCorreo.hasMatch(correo)) return 'Ingresa un correo válido';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // El código de verificación se envía a este correo: si tiene un
+              // error de escritura, el correo rebota y la cuenta no se puede activar.
+              TextFormField(
+                controller: _confirmCorreoController,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: const InputDecoration(
+                  labelText: 'Confirmar correo electrónico',
+                  prefixIcon: Icon(Icons.mark_email_read_outlined),
+                ),
+                validator: (val) {
+                  final confirmacion = (val ?? '').trim().toLowerCase();
+                  final correo = _correoController.text.trim().toLowerCase();
+                  if (confirmacion.isEmpty) return 'Confirma tu correo';
+                  if (confirmacion != correo) return 'Los correos no coinciden';
                   return null;
                 },
               ),
@@ -306,7 +335,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       )
                     : const Text(
-                        'Registrarse e Iniciar Sesión',
+                        'Registrarse',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),

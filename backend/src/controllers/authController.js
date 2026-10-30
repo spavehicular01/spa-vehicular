@@ -134,7 +134,7 @@ export const registro = async (req, res) => {
       });
     }
 
-    const existeUsuario = await User.findOne({ 
+    const coincidencias = await User.find({ 
       $or: [
         { correo: emailVal }, 
         { Correo_Electronico: emailVal }, 
@@ -142,12 +142,25 @@ export const registro = async (req, res) => {
       ] 
     });
 
-    if (existeUsuario) {
+    // Solo se rechaza si alguna coincidencia es una cuenta ya activa. Las cuentas
+    // antiguas (sin el campo isVerified) también cuentan como activas: el login
+    // solo bloquea cuando isVerified es exactamente false.
+    const hayCuentaActiva = coincidencias.some((u) => u.isVerified !== false);
+
+    if (hayCuentaActiva) {
       return res.status(400).json({ 
         ok: false, 
         mensaje: 'El correo o documento de identidad ya están registrados' 
       });
     }
+
+    // Las cuentas que nunca se verificaron no pudieron iniciar sesión ni tienen
+    // datos asociados: se reemplazan por este nuevo registro. Así, quien escribió
+    // mal su correo puede volver a registrarse sin que el documento quede ocupado.
+    if (coincidencias.length > 0) {
+      await User.deleteMany({ _id: { $in: coincidencias.map((u) => u._id) } });
+    }
+    intentosVerificacion.delete(emailVal);
 
     // Encriptación de contraseña con bcrypt
     const passwordHasheada = await bcrypt.hash(passVal, 10);

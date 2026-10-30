@@ -164,8 +164,18 @@ class AuthService {
       );
 
       final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200;
+
+      // Igual que en login: el token se guarda aquí mismo. Sin esto, las
+      // peticiones siguientes salían sin Authorization y el servidor las
+      // rechazaba (la app mostraba "Tu sesión venció").
+      if (exito && data['token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', data['token'].toString());
+      }
+
       return {
-        'success': response.statusCode == 200,
+        'success': exito,
         'message': data['mensaje'] ?? data['message'] ?? 'Error al verificar la cuenta',
         // Al verificar, el servidor devuelve la sesión lista para iniciar
         'usuario': data['usuario'],
