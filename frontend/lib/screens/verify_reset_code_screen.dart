@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart'; // guardarSesionUsuario
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
@@ -106,6 +107,26 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     return true;
   }
 
+  /// Datos de sesión con el mismo formato que usa la pantalla de inicio de sesión.
+  Map<String, dynamic> _armarDatosSesion(Map usuario, dynamic token) {
+    return {
+      'id': usuario['id'] ?? usuario['_id'] ?? '',
+      'nombres': usuario['nombres'] ?? usuario['Nombre'] ?? 'Usuario',
+      'apellidos': usuario['apellidos'] ?? usuario['Apellido'] ?? '',
+      'correo': usuario['correo'] ??
+          usuario['email'] ??
+          usuario['Correo_Electronico'] ??
+          _emailFinal,
+      'rol': usuario['rol'] ?? 'cliente',
+      'documento': usuario['documentoIdentidad'] ?? usuario['documento'] ?? '',
+      'telefono': usuario['celular'] ?? usuario['telefono'] ?? '',
+      'vehiculos': usuario['vehiculos'] ?? [],
+      'token': token,
+      'citas': [],
+      'historial': [],
+    };
+  }
+
   // Modo 1: verificar cuenta nueva (registro)
   Future<void> _verificarCodigo() async {
     final code = _codeController.text.trim();
@@ -121,27 +142,31 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (resultado['success'] == true) {
-      _timer?.cancel();
+    if (resultado['success'] != true) {
+      _showSnackBar(resultado['message'] ?? 'Error al verificar el código', Colors.red);
+      return;
+    }
 
-      final prefs = await SharedPreferences.getInstance();
-      if (resultado['token'] != null) {
-        await prefs.setString('token', resultado['token']);
-      } else {
-        await prefs.setString('token', 'token_verificado_exitoso');
-      }
-      await prefs.setString('user_email', _emailFinal);
+    _timer?.cancel();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_email', _emailFinal);
+
+    final token = resultado['token'];
+    final usuario = resultado['usuario'];
+
+    if (token != null && usuario is Map) {
+      // Cuenta verificada: se inicia la sesión sola, sin pedir de nuevo correo y contraseña
+      await guardarSesionUsuario(_armarDatosSesion(usuario, token));
 
       if (!mounted) return;
-      _showSnackBar(resultado['message'] ?? 'Cuenta verificada correctamente. ¡Bienvenido!', Colors.green);
-
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/',
-        (route) => false,
-      );
+      _showSnackBar('Cuenta verificada correctamente. ¡Bienvenido!', Colors.green);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } else {
-      _showSnackBar(resultado['message'] ?? 'Error al verificar el código', Colors.red);
+      // Respaldo: la cuenta quedó verificada pero el servidor no devolvió la sesión
+      if (!mounted) return;
+      _showSnackBar('Cuenta verificada. Ahora inicia sesión.', Colors.green);
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
 

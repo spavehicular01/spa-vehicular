@@ -9,6 +9,31 @@ if (!JWT_SECRET) {
   throw new Error('Falta la variable de entorno JWT_SECRET. Agrégala al archivo .env antes de iniciar el servidor.');
 }
 
+// Límite de intentos al verificar el código del correo: sin él se podría adivinar
+// probando las 1.000.000 de combinaciones de 6 dígitos.
+const MAX_INTENTOS_CODIGO = 5;
+const VENTANA_INTENTOS_MS = 10 * 60 * 1000;
+const intentosVerificacion = new Map(); // correo -> { cuenta, desde }
+
+const intentosAgotados = (correo) => {
+  const registro = intentosVerificacion.get(correo);
+  if (!registro) return false;
+  if (Date.now() - registro.desde > VENTANA_INTENTOS_MS) {
+    intentosVerificacion.delete(correo);
+    return false;
+  }
+  return registro.cuenta >= MAX_INTENTOS_CODIGO;
+};
+
+const registrarIntentoFallido = (correo) => {
+  const registro = intentosVerificacion.get(correo);
+  if (!registro || Date.now() - registro.desde > VENTANA_INTENTOS_MS) {
+    intentosVerificacion.set(correo, { cuenta: 1, desde: Date.now() });
+  } else {
+    registro.cuenta += 1;
+  }
+};
+
 // 1. Iniciar Sesión (Login)
 export const login = async (req, res) => {
   try {
@@ -169,6 +194,8 @@ export const registro = async (req, res) => {
       ok: true,
       mensaje: 'Usuario registrado. Revisa tu correo para activar tu cuenta.',
       email: emailVal,
+      // La cuenta nueva no puede entrar hasta verificar el correo con el código
+      requiereVerificacion: true,
       // Solo datos básicos: nunca se devuelve la contraseña ni el código de verificación
       usuario: {
         id: nuevoUsuario._id,
@@ -211,7 +238,15 @@ export const confirmarCuenta = async (req, res) => {
 
     const codigoGuardado = user.codigoVerificacion || user.codigoVerif;
 
+    if (intentosAgotados(emailVal)) {
+      return res.status(429).json({
+        ok: false,
+        mensaje: 'Demasiados intentos fallidos. Solicita un código nuevo.'
+      });
+    }
+
     if (codigoGuardado !== codigoVal) {
+      registrarIntentoFallido(emailVal);
       return res.status(400).json({ ok: false, mensaje: 'El código de verificación es incorrecto' });
     }
 
@@ -227,7 +262,22 @@ export const confirmarCuenta = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      mensaje: 'Cuenta verificada exitosamente'
+      mensaje: 'Cuenta verificada exitosamente',
+      // Al verificar con éxito se inicia la sesión sola (mismo token y mismos datos que el login)
+      usuario: {
+        id: user._id,
+        nombres: user.nombres || user.Nombre,
+        apellidos: user.apellidos || user.Apellido,
+        correo: user.correo || user.Correo_Electronico,
+        rol: user.rol,
+        documentoIdentidad: user.documentoIdentidad,
+        celular: user.celular || user.telefono
+      },
+      token: jwt.sign(
+        { id: user._id, correo: user.correo || user.Correo_Electronico, rol: user.rol },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      )
     });
   } catch (error) {
     return res.status(500).json({ ok: false, mensaje: 'Error al verificar la cuenta', error: error.message });
@@ -264,6 +314,9 @@ export const reenviarCodigoVerificacion = async (req, res) => {
     user.codigoVerif = nuevoCodigo;
     user.codigoVerificacionExpiracion = nuevaExpiracion;
     await user.save();
+
+    // Con un código nuevo se reinician los intentos fallidos
+    intentosVerificacion.delete(emailVal);
 
     await enviarCodigoVerificacion(emailVal, nuevoCodigo, nombreUsuario);
     console.log(`[CÓDIGO REENVIADO A ${emailVal}]: ${nuevoCodigo}`);

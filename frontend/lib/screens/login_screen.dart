@@ -78,23 +78,37 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultado = await AuthService.login(email, password);
 
     if (!mounted) return;
-    setState(() => _cargando = false);
 
     final esExitoso = resultado['ok'] == true || resultado['success'] == true;
 
     if (esExitoso) {
+      setState(() => _cargando = false);
       final usuario = resultado['usuario'] ?? {};
       _completarLogin(_armarDatos(usuario, resultado['token'], email));
     } else if (resultado['requiereVerificacion'] == true) {
+      // La cuenta existe pero falta verificar el correo. El código del registro pudo
+      // vencer (dura 10 minutos), así que se envía uno nuevo antes de abrir la pantalla.
+      final correoVerificar = (resultado['email'] ?? email).toString();
+      await AuthService.reenviarCodigo(email: correoVerificar);
+
+      if (!mounted) return;
+      setState(() => _cargando = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tu cuenta aún no está verificada. Te enviamos un código nuevo a tu correo.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => VerifyResetCodeScreen(
-            email: resultado['email'] ?? email,
-          ),
+          builder: (context) => VerifyResetCodeScreen(email: correoVerificar),
         ),
       );
     } else {
+      setState(() => _cargando = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
