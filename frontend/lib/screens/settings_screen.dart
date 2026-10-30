@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../services/user_service.dart';
+import '../utils/password_validator.dart';
 
 import '../widgets/settings/profile_avatar.dart';
 import '../widgets/settings/profile_form.dart';
@@ -168,6 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final actualCtrl = TextEditingController();
     final nuevaCtrl = TextEditingController();
     bool enviando = false;
+    String? errorNueva; // error de validación mostrado dentro del diálogo
 
     showDialog(
       context: context,
@@ -176,27 +178,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: const Text('Cambiar Contraseña'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: actualCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña Actual',
-                      prefixIcon: Icon(Icons.lock_outline),
+              // Scroll para que el checklist no desborde con el teclado abierto
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: actualCtrl,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Contraseña Actual',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nuevaCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nueva Contraseña',
-                      prefixIcon: Icon(Icons.lock_reset),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: nuevaCtrl,
+                      obscureText: true,
+                      // Refresca el checklist y limpia el error mientras se escribe
+                      onChanged: (_) => setDialogState(() => errorNueva = null),
+                      decoration: InputDecoration(
+                        labelText: 'Nueva Contraseña',
+                        prefixIcon: const Icon(Icons.lock_reset),
+                        errorText: errorNueva,
+                      ),
                     ),
-                  ),
-                ],
+                    PasswordChecklist(password: nuevaCtrl.text),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -210,6 +220,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : () async {
                           final userId = widget.usuario?['id'] ?? widget.usuario?['_id'];
                           if (userId == null) return;
+
+                          // Reglas de contraseña: mínimo 8 caracteres, mayúscula,
+                          // número y caracter especial
+                          final error = PasswordValidator.validar(nuevaCtrl.text.trim());
+                          if (error != null) {
+                            setDialogState(() => errorNueva = error);
+                            return;
+                          }
 
                           setDialogState(() => enviando = true);
 

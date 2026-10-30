@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart'; // guardarSesionUsuario
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/password_validator.dart';
 
 class VerifyResetCodeScreen extends StatefulWidget {
   final String? email;
@@ -188,8 +189,10 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
 
     if (!_codigoValido(code)) return;
 
-    if (nueva.length < 6) {
-      _showSnackBar('La nueva contraseña debe tener mínimo 6 caracteres', Colors.red);
+    // Reglas de contraseña: mínimo 8 caracteres, mayúscula, número y caracter especial
+    final errorPassword = PasswordValidator.validar(nueva);
+    if (errorPassword != null) {
+      _showSnackBar(errorPassword, Colors.red);
       return;
     }
     if (nueva != confirmar) {
@@ -315,6 +318,8 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                 TextField(
                   controller: _passwordController,
                   obscureText: _ocultarPassword,
+                  // Refresca el checklist de requisitos mientras se escribe
+                  onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     labelText: 'Nueva contraseña',
                     prefixIcon: const Icon(Icons.lock_outline),
@@ -327,6 +332,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                     ),
                   ),
                 ),
+                PasswordChecklist(password: _passwordController.text),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _confirmController,

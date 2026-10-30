@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
 import bcrypt from 'bcryptjs';
+import { validarPassword } from '../utils/passwordValidator.js';
 
 // Id del usuario autenticado (lo pone verifyToken en req.user)
 const idDelToken = (req) =>
@@ -119,8 +120,14 @@ export const cambiarPassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword || newPassword.length < 6) {
-      return responder(400, false, 'La nueva contraseña debe tener mínimo 6 caracteres');
+    if (!currentPassword || !newPassword) {
+      return responder(400, false, 'La contraseña actual y la nueva son obligatorias');
+    }
+
+    // 🔒 Reglas de contraseña: mínimo 8 caracteres, mayúscula, número y caracter especial
+    const errorPassword = validarPassword(newPassword);
+    if (errorPassword) {
+      return responder(400, false, errorPassword);
     }
 
     const userId = req.user?.id || req.user?._id || req.user?.userId || req.userId;

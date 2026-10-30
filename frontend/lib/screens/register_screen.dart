@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/password_validator.dart';
 
 class RegisterScreen extends StatefulWidget {
   /// Callback que actualiza la sesión de la app. Es opcional para no romper
@@ -281,6 +282,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                // Refresca el checklist de requisitos mientras se escribe
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
                   prefixIcon: const Icon(Icons.lock),
@@ -289,9 +292,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
-                validator: (val) =>
-                    val == null || val.length < 6 ? 'Mínimo 6 caracteres' : null,
+                validator: PasswordValidator.validar,
               ),
+              PasswordChecklist(password: _passwordController.text),
               const SizedBox(height: 16),
 
               TextFormField(

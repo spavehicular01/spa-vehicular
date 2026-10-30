@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { enviarCodigoRecuperacion, enviarCodigoVerificacion } from '../utils/mailer.js';
+import { validarPassword } from '../utils/passwordValidator.js';
 
 // Clave secreta para firmar tokens JWT (solo del entorno; sin ella el servidor no arranca)
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -132,6 +133,12 @@ export const registro = async (req, res) => {
         ok: false, 
         mensaje: 'El correo y la contraseña son campos obligatorios.' 
       });
+    }
+
+    // 🔒 Reglas de contraseña: mínimo 8 caracteres, mayúscula, número y caracter especial
+    const errorPassword = validarPassword(passVal);
+    if (errorPassword) {
+      return res.status(400).json({ ok: false, mensaje: errorPassword });
     }
 
     const coincidencias = await User.find({ 
@@ -388,6 +395,12 @@ export const restablecerPassword = async (req, res) => {
 
     if (!email || !codigo || !nuevaPassword) {
       return res.status(400).json({ ok: false, mensaje: 'Todos los campos son requeridos' });
+    }
+
+    // 🔒 Reglas de contraseña: mínimo 8 caracteres, mayúscula, número y caracter especial
+    const errorPassword = validarPassword(nuevaPassword);
+    if (errorPassword) {
+      return res.status(400).json({ ok: false, mensaje: errorPassword });
     }
 
     const emailNormalizado = email.toLowerCase().trim();
