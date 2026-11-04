@@ -165,6 +165,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   bool _esAdmin(Map<String, dynamic>? usuario) =>
       usuario != null && usuario['rol']?.toString().toLowerCase() == 'admin';
 
+  /// Título del AppBar: en Inicio se muestra el rótulo cursivo del logo
+  /// (assets/titulo.png); en las demás pestañas, el texto normal.
+  Widget _tituloAppBar() {
+    if (_selectedIndex == 0) {
+      return Image.asset(
+        'assets/titulo.png',
+        height: 32,
+        color: Colors.white,
+        colorBlendMode: BlendMode.srcIn,
+        semanticLabel: 'Spa Vehicular',
+        // Si la imagen no carga, se muestra el texto en lugar de dejar el título vacío
+        errorBuilder: (_, __, ___) => const Text('Spa Vehicular'),
+      );
+    }
+    return Text(
+      ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
+    );
+  }
+
   /// El administrador ve una sola pantalla: su panel. Sin barra inferior, sin la
   /// campana de notificaciones (son de clientes) y con su propio asistente de consultas.
   Widget _buildVistaAdmin(BuildContext context, Map<String, dynamic> usuario) {
@@ -224,9 +243,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           // Único AppBar de toda la navegación principal: las pantallas hijas
           // (HomeScreen, etc.) NO deben traer su propio AppBar, o se duplica.
           appBar: AppBar(
-            title: Text(
-              ['Spa Vehicular', 'Calendario', 'Mis Lavadas', 'Cuenta'][_selectedIndex],
-            ),
+            title: _tituloAppBar(),
             actions: [
               // 🟢 Campana de notificaciones (solo con sesión iniciada)
               if (usuarioAutenticado != null)

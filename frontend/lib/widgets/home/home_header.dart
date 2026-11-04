@@ -14,7 +14,6 @@ class HomeHeader extends StatelessWidget {
     final nombreCompleto =
         (usuario?['nombres'] ?? usuario?['nombre'] ?? '').toString().trim();
     final nombre = nombreCompleto.isEmpty ? '' : nombreCompleto.split(' ').first;
-    final inicial = nombre.isEmpty ? 'U' : nombre[0].toUpperCase();
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -37,21 +36,8 @@ class HomeHeader extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: AppColors.accent,
-                    child: logueado
-                        ? Text(
-                            inicial,
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          )
-                        : const Icon(Icons.local_car_wash,
-                            color: AppColors.primary, size: 28),
-                  ),
+                  // El logo se muestra siempre, con sesión iniciada o cerrada
+                  _logo(),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -93,6 +79,22 @@ class HomeHeader extends StatelessWidget {
       ),
     );
   }
+
+  /// Logo de la app dentro del círculo del encabezado.
+  Widget _logo() => Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: ClipOval(
+          child: Image.asset(
+            'assets/icono_rounded.png',
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
 
   Widget _burbuja(double d, double alpha, {bool cian = false}) => Container(
         width: d,

@@ -44,6 +44,9 @@ flutter:
     - assets/icono.jpg
     - assets/icono_rounded.png
     - assets/branding_v2.png
+    - assets/titulo.png
+    - assets/logo.png
+    - assets/logo_oscuro.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

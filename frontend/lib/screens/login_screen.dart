@@ -142,6 +142,68 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Logo para modo claro: letras azul oscuro, fondo transparente.
+  // Logo para modo oscuro: letras blancas, fondo transparente.
+  // Ambos deben estar en frontend/assets y declarados en pubspec.yaml.
+  static const String _rutaLogo = 'assets/logo.png';
+  static const String _rutaLogoOscuro = 'assets/logo_oscuro.png';
+
+  /// Respaldo si no carga ninguna imagen: ícono y texto en lugar de romper la pantalla.
+  Widget _logoRespaldo({Color? colorTexto}) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircleAvatar(
+            radius: 40,
+            backgroundColor: AppColors.accent,
+            child: Icon(Icons.person, size: 46, color: AppColors.primary),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Bienvenido',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: colorTexto,
+            ),
+          ),
+        ],
+      );
+
+  Widget _buildLogo(BuildContext context) {
+    final ancho = (MediaQuery.of(context).size.width * 0.75).clamp(160.0, 300.0);
+    final oscuro = context.isDark;
+
+    // Versión para modo claro
+    Widget logoClaro({Color? colorTexto}) => Image.asset(
+          _rutaLogo,
+          width: ancho,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _logoRespaldo(colorTexto: colorTexto),
+        );
+
+    if (!oscuro) return Center(child: logoClaro());
+
+    // Modo oscuro: se usa logo_oscuro.png (letras blancas, sin fondo).
+    // Si ese archivo todavía no existe, se usa el logo normal sobre una tarjeta
+    // blanca para que se lea, como antes.
+    return Center(
+      child: Image.asset(
+        _rutaLogoOscuro,
+        width: ancho,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: logoClaro(colorTexto: Colors.black87),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -155,20 +217,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.accent,
-                  child: Icon(Icons.person, size: 46, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Bienvenido',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
+              // Logo del spa arriba del formulario, como en Instagram
+              _buildLogo(context),
+              const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
