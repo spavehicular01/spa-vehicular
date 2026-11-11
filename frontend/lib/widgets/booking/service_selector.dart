@@ -3,6 +3,9 @@ import '../../theme/app_theme.dart';
 
 /// Dropdown para elegir el tipo de servicio de lavado.
 /// Cada servicio trae 'id', 'nombre' y 'minutos' (duración estimada).
+/// Si trae 'aplica' == false, el servicio no tiene precio para el vehículo
+/// elegido: se ve en gris, pero sigue siendo seleccionable para que el cliente
+/// pueda escoger primero el servicio y luego cambiar de vehículo.
 class ServiceSelector extends StatelessWidget {
   final List<Map<String, dynamic>> servicios;
   final String? servicioSeleccionadoId;
@@ -17,6 +20,8 @@ class ServiceSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorNoAplica = Theme.of(context).hintColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -31,9 +36,19 @@ class ServiceSelector extends StatelessWidget {
             prefixIcon: Icon(Icons.local_car_wash, color: AppColors.secondary),
           ),
           items: servicios.map((serv) {
-            return DropdownMenuItem(
+            final aplica = serv['aplica'] != false;
+            return DropdownMenuItem<String>(
               value: serv['id'] as String,
-              child: Text(serv['nombre'] as String),
+              child: Text(
+                serv['nombre'] as String,
+                overflow: TextOverflow.ellipsis,
+                style: aplica
+                    ? null
+                    : TextStyle(
+                        color: colorNoAplica,
+                        fontStyle: FontStyle.italic,
+                      ),
+              ),
             );
           }).toList(),
           onChanged: onChanged,

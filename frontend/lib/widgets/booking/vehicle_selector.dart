@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
 /// Dropdown para elegir el vehículo del usuario que se va a lavar.
+/// Cada vehículo trae 'id' y 'nombre'. Si trae 'aplica' == 'false', el servicio
+/// elegido no es para ese tipo de vehículo: sale en gris y no se puede elegir.
 class VehicleSelector extends StatelessWidget {
   final List<Map<String, String>> vehiculos;
   final String? vehiculoSeleccionadoId;
@@ -16,6 +18,8 @@ class VehicleSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorDeshabilitado = Theme.of(context).hintColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,9 +34,20 @@ class VehicleSelector extends StatelessWidget {
             prefixIcon: Icon(Icons.directions_car, color: AppColors.secondary),
           ),
           items: vehiculos.map((vehiculo) {
-            return DropdownMenuItem(
+            final aplica = vehiculo['aplica'] != 'false';
+            return DropdownMenuItem<String>(
               value: vehiculo['id'],
-              child: Text(vehiculo['nombre']!),
+              enabled: aplica,
+              child: Text(
+                vehiculo['nombre']!,
+                overflow: TextOverflow.ellipsis,
+                style: aplica
+                    ? null
+                    : TextStyle(
+                        color: colorDeshabilitado,
+                        fontStyle: FontStyle.italic,
+                      ),
+              ),
             );
           }).toList(),
           onChanged: onChanged,

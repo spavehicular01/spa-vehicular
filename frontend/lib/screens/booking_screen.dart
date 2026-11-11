@@ -119,9 +119,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (!mounted) return;
 
-      // 🟢 Si el cliente ya eligió un servicio en la pantalla de servicios, queda
-      // preseleccionado. Además se escoge el primer vehículo que tenga precio para
-      // ese servicio, para que la selección no se pierda por el tipo de vehículo.
+      // Si el cliente ya eligió un servicio en la pantalla de servicios, queda
+      // preseleccionado. Además se escoge el primer vehículo compatible con ese
+      // servicio (si hay alguno) para que arranque en una combinación válida.
       String? vehiculoInicial =
           vehiculosMapeados.isNotEmpty ? vehiculosMapeados.first['id'] : null;
       String? servicioInicial;
@@ -138,12 +138,25 @@ class _BookingScreenState extends State<BookingScreen> {
         }
       }
 
+      // Si no venía un servicio elegido, se parte del primero que aplique al
+      // vehículo inicial. Esto se hace UNA sola vez, al cargar la pantalla.
+      if (servicioInicial == null && serviciosMapeados.isNotEmpty) {
+        String tipoInicial = '';
+        for (final v in vehiculosMapeados) {
+          if (v['id'] == vehiculoInicial) tipoInicial = v['tipo'] ?? '';
+        }
+        final aplican = serviciosMapeados
+            .where((s) => (s['precios'] as Map<String, double>).containsKey(tipoInicial))
+            .toList();
+        servicioInicial =
+            (aplican.isNotEmpty ? aplican.first : serviciosMapeados.first)['id'] as String?;
+      }
+
       setState(() {
         _vehiculos = vehiculosMapeados;
         _servicios = serviciosMapeados;
         _vehiculoSeleccionadoId = vehiculoInicial;
         _servicioSeleccionadoId = servicioInicial;
-        _ajustarServicioSeleccionado();
         _cargandoDatos = false;
       });
     } catch (e) {
@@ -163,46 +176,110 @@ class _BookingScreenState extends State<BookingScreen> {
     return '';
   }
 
-  /// Servicios que tienen precio para el vehículo elegido. El nombre incluye
-  /// el precio para que se vea en la lista desplegable.
-  List<Map<String, dynamic>> get _serviciosDisponibles {
-    final tipo = _tipoVehiculoSeleccionado;
-    final disponibles = <Map<String, dynamic>>[];
+  /// Servicio elegido (mapa original, con la tabla de precios) o null.
+  Map<String, dynamic>? get _servicioSeleccionado {
     for (final s in _servicios) {
-      final precios = s['precios'] as Map<String, double>;
-      final precio = precios[tipo];
-      if (precio == null) continue;
-      disponibles.add({
-        ...s,
-        'precio': precio,
-        'nombre': '${s['nombre']} - ${formatearPesos(precio)}',
-      });
+      if (s['id'] == _servicioSeleccionadoId) return s;
     }
-    return disponibles;
+    return null;
   }
 
-  /// Si el servicio elegido no aplica al vehículo actual, pasa al primero que sí aplique.
-  void _ajustarServicioSeleccionado() {
-    final disponibles = _serviciosDisponibles;
-    final sigueValido = disponibles.any((s) => s['id'] == _servicioSeleccionadoId);
-    if (!sigueValido) {
-      _servicioSeleccionadoId =
-          disponibles.isNotEmpty ? disponibles.first['id'] as String? : null;
+  /// Nombre del vehículo elegido, para mostrarlo en los avisos.
+  String get _nombreVehiculoSeleccionado {
+    for (final v in _vehiculos) {
+      if (v['id'] == _vehiculoSeleccionadoId) return v['nombre'] ?? '';
     }
+    return '';
+  }
+
+  /// ¿El servicio tiene precio para ese tipo de vehículo?
+  bool _servicioAplicaATipo(Map<String, dynamic> servicio, String tipo) {
+    final precios = servicio['precios'] as Map<String, double>;
+    return precios.containsKey(tipo);
+  }
+
+  /// La combinación vehículo + servicio es válida solo si el servicio
+  /// tiene precio para el tipo del vehículo elegido.
+  bool get _combinacionValida {
+    final servicio = _servicioSeleccionado;
+    if (servicio == null || _vehiculoSeleccionadoId == null) return false;
+    return _servicioAplicaATipo(servicio, _tipoVehiculoSeleccionado);
+  }
+
+  /// TODOS los servicios, siempre. Nunca se quitan de la lista (eso era lo que
+  /// hacía que el servicio elegido cambiara solo). Si el servicio no aplica al
+  /// vehículo actual, se marca como "No aplica" en vez de desaparecer.
+  List<Map<String, dynamic>> get _serviciosParaSelector {
+    final tipo = _tipoVehiculoSeleccionado;
+    return _servicios.map<Map<String, dynamic>>((s) {
+      final precios = s['precios'] as Map<String, double>;
+      final precio = precios[tipo];
+      if (precio == null) {
+        return {
+          ...s,
+          'precio': 0.0,
+          'aplica': false,
+          'nombre': '${s['nombre']} (No aplica)',
+        };
+      }
+      return {
+        ...s,
+        'precio': precio,
+        'aplica': true,
+        'nombre': '${s['nombre']} - ${formatearPesos(precio)}',
+      };
+    }).toList();
+  }
+
+  /// Vehículos con la marca "(No aplica)" cuando el servicio elegido no tiene
+  /// precio para su tipo. El id no cambia, así la selección nunca se pierde.
+  List<Map<String, String>> get _vehiculosParaSelector {
+    final servicio = _servicioSeleccionado;
+    return _vehiculos.map<Map<String, String>>((v) {
+      final aplica = servicio == null || _servicioAplicaATipo(servicio, v['tipo'] ?? '');
+      return {
+        ...v,
+        'aplica': aplica ? 'true' : 'false',
+        'nombre': aplica ? (v['nombre'] ?? '') : '${v['nombre']} (No aplica)',
+      };
+    }).toList();
   }
 
   void _alCambiarVehiculo(String? id) {
-    setState(() {
-      _vehiculoSeleccionadoId = id;
-      _ajustarServicioSeleccionado();
-    });
+    // Solo cambia el vehículo. El servicio elegido se respeta siempre.
+    setState(() => _vehiculoSeleccionadoId = id);
   }
 
-  Widget _avisoSinServicios() {
-    return Text(
-      'Ningún servicio tiene precio para ${etiquetaTipoVehiculo(_tipoVehiculoSeleccionado)}. '
-      'Elige otro vehículo o consulta con el spa.',
-      style: AppTextStyles.body.copyWith(color: Colors.redAccent),
+  void _alCambiarServicio(String? id) {
+    // Solo cambia el servicio. El vehículo elegido se respeta siempre.
+    setState(() => _servicioSeleccionadoId = id);
+  }
+
+  Widget _avisoCombinacionInvalida() {
+    final servicio = _servicioSeleccionado;
+    final nombreServicio = (servicio?['nombreBase'] ?? 'Este servicio').toString();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '"$nombreServicio" no aplica para $_nombreVehiculoSeleccionado '
+              '(${etiquetaTipoVehiculo(_tipoVehiculoSeleccionado)}). '
+              'Elige otro vehículo u otro servicio.',
+              style: AppTextStyles.body.copyWith(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -237,6 +314,14 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
+    // Bloquea la reserva si el servicio no aplica al tipo de vehículo elegido.
+    if (!_combinacionValida) {
+      _mostrarError(
+        'Ese servicio no aplica para el vehículo elegido. Elige otro vehículo u otro servicio.',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -246,7 +331,7 @@ class _BookingScreenState extends State<BookingScreen> {
         vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
         servicioSeleccionadoId: _servicioSeleccionadoId,
         misVehiculos: _vehiculos,
-        servicios: _serviciosDisponibles,
+        servicios: _serviciosParaSelector,
         modalidad: _modalidad,
         direccion: _direccionController.text,
         metodoPago: _metodoPago,
@@ -356,22 +441,26 @@ class _BookingScreenState extends State<BookingScreen> {
                                 const SizedBox(height: 20),
 
                                 VehicleSelector(
-                                  vehiculos: _vehiculos,
+                                  vehiculos: _vehiculosParaSelector,
                                   vehiculoSeleccionadoId: _vehiculoSeleccionadoId,
                                   onChanged: _alCambiarVehiculo,
                                 ),
                                 const SizedBox(height: 20),
 
-                                _serviciosDisponibles.isEmpty
-                                    ? _avisoSinServicios()
-                                    : ServiceSelector(
-                                        // Se recrea al cambiar de vehículo para refrescar la lista
-                                        key: ValueKey('serv-$_vehiculoSeleccionadoId'),
-                                        servicios: _serviciosDisponibles,
-                                        servicioSeleccionadoId: _servicioSeleccionadoId,
-                                        onChanged: (val) =>
-                                            setState(() => _servicioSeleccionadoId = val),
-                                      ),
+                                ServiceSelector(
+                                  // Se recrea al cambiar de vehículo para que los
+                                  // precios de la lista se refresquen, pero la
+                                  // selección (servicioSeleccionadoId) no cambia.
+                                  key: ValueKey('serv-$_vehiculoSeleccionadoId'),
+                                  servicios: _serviciosParaSelector,
+                                  servicioSeleccionadoId: _servicioSeleccionadoId,
+                                  onChanged: _alCambiarServicio,
+                                ),
+
+                                if (!_combinacionValida) ...[
+                                  const SizedBox(height: 12),
+                                  _avisoCombinacionInvalida(),
+                                ],
                                 const SizedBox(height: 20),
 
                                 ModalitySelector(
@@ -393,6 +482,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
                                 ConfirmBookingButton(
                                   isLoading: _isLoading,
+                                  // Si la combinación no es válida, _confirmarReserva
+                                  // muestra el aviso y no envía nada.
                                   onPressed: _confirmarReserva,
                                 ),
                                 const SizedBox(height: 12),
