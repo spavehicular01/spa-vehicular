@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.spa_vehicular"
+    namespace = "com.spa_vehicular.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.spa_vehicular"
+        applicationId = "com.spa_vehicular.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Android 7.0 (API 24) como mínimo: lo exigen las notificaciones locales y Firebase
