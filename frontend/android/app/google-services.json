@@ -12,7 +12,12 @@
           "package_name": "com.example.spa_vehicular"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD_svHxZb_9ePJx3PVF9fyRxksOIPZJ0go"
@@ -20,7 +25,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113237873341:android:8a5aaf855df483a11eddd4",
+        "android_client_info": {
+          "package_name": "com.spa_vehicular.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "113237873341-5flk8ir3kddugr7fqed34a6mvstb2oc0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spa_vehicular.app",
+            "certificate_hash": "7c8d9ab0715548e34f1916e492ecdb3e5f33b1e5"
+          }
+        },
+        {
+          "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_svHxZb_9ePJx3PVF9fyRxksOIPZJ0go"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
