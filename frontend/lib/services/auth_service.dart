@@ -8,8 +8,9 @@ class AuthService {
   // La dirección del servidor sale de ApiConfig (un solo lugar para cambiarla)
   static String get _baseUrl => '${ApiConfig.baseUrl}/auth';
 
-  // 🟢 Client ID de tipo "Web" (el mismo que usa GOOGLE_CLIENT_ID en tu backend)
-  static const String _webClientId = '903465087225-moalp2u8tjmuhe4ffct48nq0mnlucvi6.apps.googleusercontent.com';
+  // 🟢 Client ID de tipo "Web" (client_type: 3 del google-services.json del proyecto
+  // spa-vehicular-8a04d). Debe ser el MISMO que GOOGLE_CLIENT_ID en el backend (Render).
+  static const String _webClientId = '113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com';
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     serverClientId: _webClientId,
