@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     // Lee android/app/google-services.json (Firebase / notificaciones push)
     id("com.google.gms.google-services")
+}
+
+// Datos de la llave de firma (android/key.properties, no se sube a Git)
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val tieneLlaveRelease = keystorePropertiesFile.exists()
+
+if (tieneLlaveRelease) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
 android {
@@ -19,10 +30,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.spa_vehicular.app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Android 7.0 (API 24) como mínimo: lo exigen las notificaciones locales y Firebase
         minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
@@ -30,11 +38,28 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Solo se crea si existe key.properties. Así, quien no tenga la llave
+        // (por ejemplo un compañero) puede seguir corriendo la app en debug.
+        if (tieneLlaveRelease) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Con key.properties firma con la llave de subida (Play Store);
+            // sin él usa la de debug para que `flutter run --release` siga funcionando.
+            signingConfig = if (tieneLlaveRelease) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
