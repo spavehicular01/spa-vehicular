@@ -7,35 +7,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:113237873341:android:d7892c072ae0c8a31eddd4",
-        "android_client_info": {
-          "package_name": "com.example.spa_vehicular"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyD_svHxZb_9ePJx3PVF9fyRxksOIPZJ0go"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "113237873341-imq33vifk5dl1l1najl722t9dkbs3mb2.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:113237873341:android:8a5aaf855df483a11eddd4",
         "android_client_info": {
           "package_name": "com.spa_vehicular.app"
