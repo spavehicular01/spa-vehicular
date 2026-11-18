@@ -52,6 +52,10 @@ const userSchema = new mongoose.Schema({
   codigoRecuperacion: { type: String, default: null },
   codigoRecuperacionExpiracion: { type: Date, default: null },
 
+  // --- CUENTA ELIMINADA (datos personales ya borrados; solo queda el registro anónimo) ---
+  eliminado: { type: Boolean, default: false },
+  fechaEliminacion: { type: Date, default: null },
+
   // Roles compatibles (mantiene tus enums anteriores)
   rol: { 
     type: String, 

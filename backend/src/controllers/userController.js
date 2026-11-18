@@ -159,7 +159,10 @@ export const cambiarPassword = async (req, res) => {
 export const obtenerClientes = async (req, res) => {
   try {
     const clientes = await User.find({
-      rol: { $in: ['usuario', 'cliente', 'USUARIO', 'CLIENTE'] }
+      rol: { $in: ['usuario', 'cliente', 'USUARIO', 'CLIENTE'] },
+      // Oculta las cuentas eliminadas (quedan anonimizadas)
+      correo: { $not: /@cuenta-eliminada\.invalid$/ },
+      Correo_Electronico: { $not: /@cuenta-eliminada\.invalid$/ }
     })
       .select('nombres Nombre apellidos Apellido correo Correo_Electronico celular telefono documentoIdentidad avatar')
       .lean();

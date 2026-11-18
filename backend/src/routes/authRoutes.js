@@ -1,6 +1,7 @@
 import express from 'express';
 import authController from '../controllers/authController.js';
 import { loginWithGoogle } from '../controllers/google.js';
+import { eliminarMiCuenta } from '../controllers/cuentaController.js';
 
 const router = express.Router();
 
@@ -18,5 +19,8 @@ router.post('/reenviar-codigo', authController.reenviarCodigoVerificacion);
 // 3. Recuperación de contraseña
 router.post('/recuperar/solicitar-codigo', authController.solicitarCodigoRecuperacion);
 router.post('/recuperar/restablecer-password', authController.restablecerPassword);
+
+// 4. Eliminación de cuenta (desde la app, con sesión iniciada)
+router.post('/cuenta/eliminar', eliminarMiCuenta);
 
 export default router;
