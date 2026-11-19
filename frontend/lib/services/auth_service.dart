@@ -97,6 +97,48 @@ class AuthService {
     }
   }
 
+  /// Elimina la cuenta del usuario que tiene la sesión iniciada.
+  /// Si la cuenta tiene contraseña, el servidor responde `requierePassword: true`
+  /// y hay que volver a llamar enviando también la contraseña.
+  static Future<Map<String, dynamic>> eliminarCuenta({
+    required String confirmacion,
+    String? password,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/cuenta/eliminar'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'confirmacion': confirmacion,
+          if (password != null && password.isNotEmpty) 'password': password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      final bool exito = response.statusCode == 200;
+
+      if (exito) {
+        // Cuenta eliminada: se borra la sesión guardada en el teléfono
+        await prefs.clear();
+        await cerrarSesionGoogle();
+      }
+
+      return {
+        'success': exito,
+        'message': data['mensaje'] ?? data['message'] ?? 'No se pudo eliminar la cuenta',
+        'requierePassword': data['requierePassword'] == true,
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión con el servidor'};
+    }
+  }
+
   /// Cierra la sesión de Google guardada en el teléfono. Se llama al cerrar sesión en la app.
   static Future<void> cerrarSesionGoogle() async {
     try {

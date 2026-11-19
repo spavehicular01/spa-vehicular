@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "113237873341-5flk8ir3kddugr7fqed34a6mvstb2oc0.apps.googleusercontent.com",
+          "client_id": "113237873341-vpvt7aafl9rsuhu31i683vvn9g4a6b7e.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.spa_vehicular.app",
-            "certificate_hash": "7c8d9ab0715548e34f1916e492ecdb3e5f33b1e5"
+            "certificate_hash": "3db1cdfe0f8f37e22868ef00b2237b3158bb4909"
           }
         },
         {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'profile/eliminar_cuenta_dialog.dart';
 import '../theme/app_theme.dart';
 import 'profile/edit_profile_sheet.dart';
 import 'profile/phone_card.dart';
@@ -90,6 +91,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     widget.onCerrarSesion();
   }
 
+  /// Pide confirmación y elimina la cuenta del usuario (requisito de Google Play).
+  /// Si la cuenta tiene contraseña, el servidor lo avisa y el diálogo la pide.
+  Future<void> _confirmarEliminarCuenta() async {
+    final eliminada = await EliminarCuentaDialog.mostrar(context);
+    if (eliminada && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tu cuenta fue eliminada')),
+      );
+      widget.onCerrarSesion();
+    }
+  }
+
   Future<void> _abrirEditarPerfil() async {
     final result = await EditProfileSheet.mostrar(
       context,
@@ -143,10 +156,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           OutlinedButton.icon(
             onPressed: _ejecutarCerrarSesion,
             icon: const Icon(Icons.logout, color: Colors.red),
-            label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+            label: const Text('Cerrar Sesión',
+                style: TextStyle(color: Colors.red)),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.red),
               minimumSize: const Size(double.infinity, 45),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _confirmarEliminarCuenta,
+            icon: const Icon(Icons.delete_forever, color: Colors.red),
+            label: const Text(
+              'Eliminar mi cuenta',
+              style: TextStyle(color: Colors.red),
             ),
           ),
         ],

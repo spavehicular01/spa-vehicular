@@ -3,6 +3,7 @@ import 'admin_appointments_screen.dart';
 import 'admin_services_screen.dart';
 import 'admin_clients_screen.dart';
 import 'history_washes_screen.dart';
+import 'profile/eliminar_cuenta_dialog.dart';
 import '../theme/app_theme.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -14,6 +15,18 @@ class AdminDashboardScreen extends StatelessWidget {
     required this.userData,
     required this.onCerrarSesion,
   });
+
+  /// Pide confirmación y elimina la cuenta del administrador.
+  /// Si es el único admin, el servidor lo rechaza y el mensaje sale en la ventana.
+  Future<void> _confirmarEliminarCuenta(BuildContext context) async {
+    final eliminada = await EliminarCuentaDialog.mostrar(context);
+    if (!eliminada || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tu cuenta fue eliminada')),
+    );
+    onCerrarSesion();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +150,17 @@ class AdminDashboardScreen extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.red, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _confirmarEliminarCuenta(context),
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              label: const Text(
+                'Eliminar mi cuenta',
+                style: TextStyle(color: Colors.red),
               ),
             ),
           ),
