@@ -36,12 +36,14 @@
     <li><strong>Datos de la cuenta:</strong> nombres, apellidos, correo electrónico, documento de identidad, número de celular y contraseña (guardada cifrada, nunca en texto legible).</li>
     <li><strong>Foto de perfil</strong>, si decides agregarla.</li>
     <li><strong>Inicio de sesión con Google:</strong> si entras con Google, recibimos tu nombre, correo y foto de tu cuenta de Google. No recibimos tu contraseña de Google.</li>
+    <li><strong>Dirección:</strong> solo si eliges un servicio a domicilio, la dirección escrita por ti donde se prestará el servicio.</li>
     <li><strong>Vehículos:</strong> los datos de los vehículos que registras para solicitar el servicio.</li>
-    <li><strong>Citas y servicios:</strong> las citas que agendas y el historial de servicios realizados.</li>
+    <li><strong>Citas y servicios:</strong> las citas que agendas, el historial de servicios realizados y el método de pago que eliges (efectivo, transferencia o tarjeta) y el registro del pago de cada servicio (valor y si fue cobrado). La app no guarda números de tarjeta.</li>
     <li><strong>Reseñas</strong> que escribas sobre el servicio.</li>
+    <li><strong>Mensajes del asistente virtual:</strong> el texto que escribes, o que dictas por voz y se convierte en texto, al chat de la app.</li>
     <li><strong>Datos del dispositivo:</strong> un identificador (token) del dispositivo para enviarte notificaciones.</li>
   </ul>
-  <p>La app no recoge tu ubicación ni accede a tus contactos.</p>
+  <p>La app no recoge tu ubicación GPS ni accede a tus contactos. Si usas el dictado por voz, la conversión de voz a texto la realiza el reconocimiento de voz de tu teléfono; la app no graba ni guarda audio.</p>
 
   <h2>3. Para qué usamos tus datos</h2>
   <ul>
@@ -60,6 +62,7 @@
     <li><strong>MongoDB Atlas:</strong> almacenamiento de la base de datos.</li>
     <li><strong>Render:</strong> alojamiento del servidor.</li>
     <li><strong>Cloudinary:</strong> almacenamiento de fotos de perfil.</li>
+    <li><strong>Groq:</strong> proveedor de inteligencia artificial que genera las respuestas del asistente virtual. En el asistente del cliente recibe tus mensajes, tus vehículos registrados, los servicios con sus precios, los cupos disponibles y los datos de la cita que preparas en el chat (fecha, hora, modalidad, dirección si es a domicilio, método de pago y notas). En el asistente del administrador recibe datos de la operación del negocio (nombre y teléfono de los clientes, vehículos, servicios, fechas y precios de las citas) para responder consultas internas.</li>
     <li><strong>Brevo:</strong> envío de correos, como el código de verificación de tu cuenta.</li>
   </ul>
   <p>Estos proveedores solo procesan los datos para prestarnos el servicio. Los datos pueden alojarse en servidores fuera de Colombia. También podemos entregar información si una autoridad competente lo exige conforme a la ley.</p>
