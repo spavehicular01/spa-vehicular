@@ -2,6 +2,8 @@ import 'dotenv/config';
 import dns from 'dns';
 import express from 'express';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -24,6 +26,9 @@ import adminChatRoutes from './src/routes/adminChatRoutes.js';
 
 // Forzar DNS de Google (fix para SRV lookup fallando contra DNS link-local IPv6 fe80::1)
 dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+// Carpeta del backend (en ES Modules no existe __dirname, hay que calcularlo)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
@@ -112,6 +117,11 @@ app.get('/', (req, res) => {
   res.json({ mensaje: 'API Cars-Wash funcionando correctamente 🚀' });
 });
 
+// Política de privacidad (página pública, requerida por Google Play)
+app.get('/politica-privacidad', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'politica-privacidad.html'));
+});
+
 // Función para listar rutas de un router específico con su prefijo conocido
 function extraerRutasRouter(router, prefijo) {
   const rutas = [];
@@ -140,6 +150,7 @@ const todasLasRutas = [
   ...extraerRutasRouter(uploadRoutes, '/api/upload'),
   ...extraerRutasRouter(userRoutes, '/api/users'),
   { metodo: 'GET', ruta: '/' }, // ruta raíz
+  { metodo: 'GET', ruta: '/politica-privacidad' },
 ];
 
 console.log('\n📋 Rutas disponibles en la API:\n');
