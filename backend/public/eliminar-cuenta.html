@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eliminar cuenta · Spa Vehicular</title>
+<style>
+  :root { --bg:#ffffff; --card:#f4f7fa; --text:#1c2733; --muted:#5b6b7a; --accent:#0b2545; --line:#dde3ea; --danger:#c62828; --ok:#1b7f3b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1720; --card:#17222e; --text:#e6edf3; --muted:#9fb0c0; --accent:#6fd3ff; --line:#27323f; --danger:#ff8a80; --ok:#69d68a; }
+  }
+  html { color-scheme: light dark; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { color:var(--accent); font-size:1.7rem; margin-bottom:4px; }
+  h2 { color:var(--accent); font-size:1.1rem; margin-top:28px; }
+  .meta { color:var(--muted); font-size:.9rem; }
+  a { color:var(--accent); }
+  ul { padding-left:22px; }
+  form { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:16px; }
+  label { display:block; font-weight:600; margin-top:12px; }
+  input { width:100%; box-sizing:border-box; margin-top:4px; padding:10px 12px; font-size:1rem;
+          border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--text); }
+  button { margin-top:18px; width:100%; padding:12px; font-size:1rem; font-weight:700; cursor:pointer;
+           border:0; border-radius:8px; background:var(--danger); color:#fff; }
+  button:disabled { opacity:.6; cursor:wait; }
+  #msg { margin-top:14px; font-weight:600; }
+  #msg.error { color:var(--danger); }
+  #msg.ok { color:var(--ok); }
+  .hint { color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Eliminar mi cuenta</h1>
+  <p class="meta">Aplicación Spa Vehicular</p>
+
+  <p>Desde esta página puedes solicitar la eliminación de tu cuenta de <strong>Spa Vehicular</strong> y de los datos asociados, aunque ya hayas desinstalado la app.</p>
+
+  <h2>Cómo eliminar tu cuenta</h2>
+  <ul>
+    <li>Escribe el correo y la contraseña con los que te registraste.</li>
+    <li>Escribe la palabra <strong>ELIMINAR</strong> para confirmar.</li>
+    <li>Pulsa <em>Eliminar mi cuenta</em>. La eliminación es inmediata y no se puede deshacer.</li>
+  </ul>
+
+  <form id="f" autocomplete="off">
+    <label for="correo">Correo electrónico</label>
+    <input id="correo" type="email" required autocomplete="email">
+
+    <label for="pass">Contraseña</label>
+    <input id="pass" type="password" required autocomplete="current-password">
+
+    <label for="conf">Escribe ELIMINAR para confirmar</label>
+    <input id="conf" type="text" required autocapitalize="characters">
+
+    <button id="btn" type="submit">Eliminar mi cuenta</button>
+    <div id="msg" role="status"></div>
+    <p class="hint">Si el servidor estaba inactivo, la primera respuesta puede tardar hasta un minuto.</p>
+  </form>
+
+  <h2>Qué datos se eliminan</h2>
+  <ul>
+    <li>Tus datos personales: nombre, correo, documento de identidad, número de celular y foto de perfil.</li>
+    <li>Tus reseñas y tus notificaciones.</li>
+    <li>Los identificadores de tus dispositivos usados para notificaciones.</li>
+    <li>Los vehículos registrados que no tengan citas asociadas.</li>
+  </ul>
+
+  <h2>Qué puede conservarse</h2>
+  <p>El historial de citas y servicios ya realizados puede conservarse sin vínculo con tu identidad, para llevar el registro del negocio. Tu cuenta queda anonimizada y ya no se puede usar para iniciar sesión.</p>
+  <p>La cuenta del único administrador no se puede eliminar mientras no exista otro administrador.</p>
+
+  <h2>Si entraste con Google o tienes problemas</h2>
+  <p>Si tu cuenta se creó con “Iniciar sesión con Google” y no tienes contraseña, o si algo falla, escribe a <a href="mailto:spavehicular01@gmail.com">spavehicular01@gmail.com</a> desde el correo de tu cuenta, indicando que quieres eliminarla.</p>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('f');
+  var btn = document.getElementById('btn');
+  var msg = document.getElementById('msg');
+
+  function mostrar(texto, tipo) {
+    msg.textContent = texto;
+    msg.className = tipo || '';
+  }
+
+  function texto(data, defecto) {
+    return (data && (data.message || data.mensaje)) || defecto;
+  }
+
+  async function enviar(url, cuerpo, token) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    var r = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(cuerpo) });
+    var data = null;
+    try { data = await r.json(); } catch (e) {}
+    return { ok: r.ok, data: data };
+  }
+
+  form.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var correo = document.getElementById('correo').value.trim();
+    var pass = document.getElementById('pass').value;
+    var conf = document.getElementById('conf').value.trim().toUpperCase();
+
+    if (conf !== 'ELIMINAR') {
+      mostrar('Escribe la palabra ELIMINAR para confirmar.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    mostrar('Verificando tus datos…');
+
+    try {
+      var login = await enviar('/api/auth/login', {
+        Correo_Electronico: correo, correo: correo, email: correo,
+        passwords: pass, password: pass
+      });
+      if (!login.ok) {
+        mostrar(texto(login.data, 'Correo o contraseña incorrectos.'), 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      var d = login.data || {};
+      var token = d.token || d.accessToken || d.jwt || (d.usuario && d.usuario.token);
+      if (!token) {
+        mostrar('No pudimos iniciar sesión. Escríbenos a spavehicular01@gmail.com.', 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      mostrar('Eliminando tu cuenta…');
+      var del = await enviar('/api/auth/cuenta/eliminar', { confirmacion: 'ELIMINAR', password: pass }, token);
+
+      if (del.ok) {
+        form.reset();
+        mostrar('Tu cuenta fue eliminada. Ya no podrás iniciar sesión con ella.', 'ok');
+        btn.style.display = 'none';
+      } else {
+        mostrar(texto(del.data, 'No se pudo eliminar la cuenta.'), 'error');
+        btn.disabled = false;
+      }
+    } catch (e) {
+      mostrar('No se pudo conectar con el servidor. Intenta de nuevo en un minuto.', 'error');
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

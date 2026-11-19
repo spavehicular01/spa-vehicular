@@ -122,6 +122,11 @@ app.get('/politica-privacidad', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'politica-privacidad.html'));
 });
 
+// Página pública para eliminar la cuenta (requerida por Google Play)
+app.get('/eliminar-cuenta', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'eliminar-cuenta.html'));
+});
+
 // Función para listar rutas de un router específico con su prefijo conocido
 function extraerRutasRouter(router, prefijo) {
   const rutas = [];
@@ -151,6 +156,7 @@ const todasLasRutas = [
   ...extraerRutasRouter(userRoutes, '/api/users'),
   { metodo: 'GET', ruta: '/' }, // ruta raíz
   { metodo: 'GET', ruta: '/politica-privacidad' },
+  { metodo: 'GET', ruta: '/eliminar-cuenta' },
 ];
 
 console.log('\n📋 Rutas disponibles en la API:\n');
