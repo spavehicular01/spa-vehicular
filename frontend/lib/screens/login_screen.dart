@@ -4,6 +4,7 @@ import 'forgot_password_screen.dart';
 import 'verify_reset_code_screen.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/aceptar_politica_privacidad.dart';
 
 class LoginScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onLoginExitoso;
@@ -21,6 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _cargando = false;
   bool _cargandoGoogle = false;
+
+  // Quien entra con Google puede estar creando su cuenta: debe aceptar la política
+  bool _aceptaPolitica = false;
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -300,11 +305,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Expanded(child: Divider()),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+
+              // Aceptación de la política de privacidad (solo para entrar con Google)
+              AceptarPoliticaPrivacidad(
+                aceptada: _aceptaPolitica,
+                onChanged: (v) => setState(() => _aceptaPolitica = v),
+              ),
+              const SizedBox(height: 8),
 
               // Botón de Google
               OutlinedButton.icon(
-                onPressed: _cargandoGoogle ? null : _iniciarSesionConGoogle,
+                onPressed: (_cargandoGoogle || !_aceptaPolitica)
+                    ? null
+                    : _iniciarSesionConGoogle,
                 icon: _cargandoGoogle
                     ? const SizedBox(
                         height: 18,

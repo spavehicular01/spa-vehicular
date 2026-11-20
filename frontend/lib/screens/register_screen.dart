@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/password_validator.dart';
+import '../widgets/aceptar_politica_privacidad.dart';
 
 class RegisterScreen extends StatefulWidget {
   /// Callback que actualiza la sesión de la app. Es opcional para no romper
@@ -30,6 +31,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+
+  // El usuario debe aceptar la política de privacidad para poder registrarse
+  bool _aceptaPolitica = false;
 
   // Formato básico de correo: algo@dominio.ext
   static final RegExp _formatoCorreo = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -319,10 +323,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Aceptación de la política de privacidad (obligatoria para registrarse)
+              AceptarPoliticaPrivacidad(
+                aceptada: _aceptaPolitica,
+                onChanged: (v) => setState(() => _aceptaPolitica = v),
+              ),
+              const SizedBox(height: 16),
 
               ElevatedButton(
-                onPressed: _isLoading ? null : _procesarRegistro,
+                onPressed: (_isLoading || !_aceptaPolitica) ? null : _procesarRegistro,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.brand,
                   foregroundColor: context.onBrand,
