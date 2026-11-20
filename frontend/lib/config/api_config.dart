@@ -16,7 +16,7 @@ class ApiConfig {
 
   /// true  = en debug la app habla con el servidor desplegado en Render.
   /// false = en debug la app habla con tu computador (npm start local).
-  static const bool usarServidorRemoto = true;
+  static const bool usarServidorRemoto =true;
 
   static String get baseUrl {
     if (_urlPersonalizada.isNotEmpty) {
